@@ -49,33 +49,35 @@ TUGS     = ["TUG Stallion", "TUG Hercules", "TUG Neptune", "TUG Samson", "TUG Tr
 STATIONS = ["Outer Pilot Station", "North Channel Anchorage"]
 
 # ── Port geography ─────────────────────────────────────────────────────────────
-# Fictional Port of Northhaven — loosely SE Queensland geography
+# Fictional Port of Northhaven — mapped onto Port of Brisbane / Fisherman Islands
 
 PORT_GEO = {
-    "center":  {"lat": -27.448, "lon": 153.095},
+    "center":  {"lat": -27.383, "lon": 153.173},
     "zoom":    13,
     "berths": {
-        "B01": {"lat": -27.430, "lon": 153.092, "terminal": "North Terminal", "heading": 315},
-        "B02": {"lat": -27.433, "lon": 153.090, "terminal": "North Terminal", "heading": 315},
-        "B03": {"lat": -27.436, "lon": 153.088, "terminal": "North Terminal", "heading": 315},
-        "B04": {"lat": -27.460, "lon": 153.102, "terminal": "South Terminal", "heading": 135},
-        "B05": {"lat": -27.463, "lon": 153.100, "terminal": "South Terminal", "heading": 135},
-        "B06": {"lat": -27.466, "lon": 153.098, "terminal": "South Terminal", "heading": 135},
+        # North Terminal — container/ro-ro quay, north face of the island
+        "B01": {"lat": -27.368, "lon": 153.150, "terminal": "North Terminal", "heading": 350},
+        "B02": {"lat": -27.369, "lon": 153.161, "terminal": "North Terminal", "heading": 350},
+        "B03": {"lat": -27.370, "lon": 153.172, "terminal": "North Terminal", "heading": 350},
+        # South Terminal — bulk/general cargo, south face of the island
+        "B04": {"lat": -27.397, "lon": 153.157, "terminal": "South Terminal", "heading": 170},
+        "B05": {"lat": -27.398, "lon": 153.167, "terminal": "South Terminal", "heading": 170},
+        "B06": {"lat": -27.399, "lon": 153.177, "terminal": "South Terminal", "heading": 170},
     },
     "anchorage": {
-        "lat": -27.440, "lon": 153.185,
-        "radius_km": 2.2,
+        "lat": -27.352, "lon": 153.253,
+        "radius_km": 2.5,
         "label": "Northhaven Anchorage",
     },
-    "pilot_boarding_ground": {"lat": -27.442, "lon": 153.148, "label": "Pilot Boarding Ground"},
+    "pilot_boarding_ground": {"lat": -27.360, "lon": 153.218, "label": "Pilot Boarding Ground"},
     "channel_waypoints": [
-        {"lat": -27.442, "lon": 153.180},
-        {"lat": -27.443, "lon": 153.160},
-        {"lat": -27.444, "lon": 153.148},
-        {"lat": -27.445, "lon": 153.130},
-        {"lat": -27.443, "lon": 153.112},
-        {"lat": -27.438, "lon": 153.100},
-        {"lat": -27.433, "lon": 153.092},
+        {"lat": -27.352, "lon": 153.246},
+        {"lat": -27.357, "lon": 153.228},
+        {"lat": -27.362, "lon": 153.212},
+        {"lat": -27.367, "lon": 153.198},
+        {"lat": -27.372, "lon": 153.186},
+        {"lat": -27.374, "lon": 153.175},
+        {"lat": -27.370, "lon": 153.161},
     ],
 }
 
@@ -96,25 +98,25 @@ def vessel_position(v: dict, now: datetime) -> dict:
     hrs  = (eta - now).total_seconds() / 3600
 
     if hrs < 0:
-        # Should be berthed — fallback to berth
+        # Should be berthed — fallback to port center
         c = coords.get(v["berth_id"])
         if c:
             return {"lat": c["lat"] + jlat * 0.3, "lon": c["lon"] + jlon * 0.3}
-        return {"lat": -27.445 + jlat, "lon": 153.095 + jlon}
+        return {"lat": -27.383 + jlat, "lon": 153.173 + jlon}
     elif hrs < 2.5:
         # Near pilot boarding ground
         pbg = PORT_GEO["pilot_boarding_ground"]
         return {"lat": pbg["lat"] + jlat, "lon": pbg["lon"] + jlon}
     elif hrs < 8:
         # Mid-channel / inbound
-        return {"lat": -27.443 + jlat, "lon": 153.155 + jlon * 2}
+        return {"lat": -27.366 + jlat, "lon": 153.200 + jlon * 2}
     elif hrs < 24:
         # Anchorage
         anc = PORT_GEO["anchorage"]
         return {"lat": anc["lat"] + jlat * 2, "lon": anc["lon"] + jlon * 2}
     else:
-        # Offshore
-        return {"lat": -27.440 + jlat * 3, "lon": 153.230 + jlon * 3}
+        # Offshore — further into Moreton Bay
+        return {"lat": -27.345 + jlat * 3, "lon": 153.280 + jlon * 3}
 
 # ── Mock data generation ──────────────────────────────────────────────────────
 
