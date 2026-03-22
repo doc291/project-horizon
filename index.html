@@ -301,6 +301,121 @@
     .count-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 9px; padding: 0 4px; font-size: 10px; font-weight: 700; background: var(--critical); color: #fff; }
     .count-badge.zero { background: var(--surface2); color: var(--text-dim); }
     .count-badge.warn { background: var(--medium); color: #000; }
+
+    /* ── Decision Support Window ── */
+    #dsw-overlay {
+      display: none; position: fixed; inset: 0; z-index: 800;
+      background: rgba(0,0,0,.55); backdrop-filter: blur(2px);
+    }
+    #dsw-overlay.open { display: block; }
+    #dsw-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 520px;
+      background: var(--surface); border-left: 1px solid var(--border);
+      box-shadow: -8px 0 40px rgba(0,0,0,.6);
+      display: flex; flex-direction: column; z-index: 900;
+      transform: translateX(100%); transition: transform .25s ease;
+    }
+    #dsw-overlay.open #dsw-drawer { transform: translateX(0); }
+    .dsw-header {
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; gap: 10px; flex-shrink: 0;
+    }
+    .dsw-header-text { flex: 1; }
+    .dsw-title { font-size: 14px; font-weight: 700; color: var(--text-bright); line-height: 1.3; margin-bottom: 4px; }
+    .dsw-subtitle { font-size: 11px; color: var(--text-dim); }
+    .dsw-close {
+      background: none; border: none; color: var(--text-dim); font-size: 20px;
+      cursor: pointer; padding: 0 4px; line-height: 1; flex-shrink: 0;
+    }
+    .dsw-close:hover { color: var(--text-bright); }
+    .dsw-body { flex: 1; overflow-y: auto; padding: 16px 18px; }
+    .dsw-body::-webkit-scrollbar { width: 4px; }
+    .dsw-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* Decision timer */
+    .dsw-timer {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px 16px; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .dsw-timer.urgent { border-color: var(--critical); background: rgba(239,68,68,.08); }
+    .dsw-timer.warning { border-color: var(--medium); background: rgba(234,179,8,.08); }
+    .timer-icon { font-size: 22px; flex-shrink: 0; }
+    .timer-body { flex: 1; }
+    .timer-label { font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-dim); }
+    .timer-countdown { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-bright); letter-spacing: 1px; }
+    .timer-countdown.urgent  { color: var(--critical); }
+    .timer-countdown.warning { color: var(--medium); }
+    .timer-sub { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+    /* Recommendation */
+    .dsw-section-title {
+      font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+      color: var(--text-dim); margin-bottom: 8px;
+    }
+    .dsw-rec-card {
+      background: rgba(56,189,248,.07); border: 1px solid rgba(56,189,248,.3);
+      border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;
+    }
+    .dsw-rec-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .rec-star { font-size: 14px; }
+    .rec-label { font-size: 13px; font-weight: 700; color: var(--accent); flex: 1; }
+    .confidence-badge {
+      font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .confidence-badge.high   { background: rgba(34,197,94,.2);  color: #4ade80; }
+    .confidence-badge.medium { background: rgba(234,179,8,.2);  color: #fde047; }
+    .confidence-badge.low    { background: rgba(239,68,68,.2);  color: #f87171; }
+    .dsw-rec-reasoning { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+
+    /* Impact comparison */
+    .dsw-impact-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .dsw-option-card {
+      border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px;
+      cursor: pointer; transition: border-color .15s, background .15s; position: relative;
+    }
+    .dsw-option-card:hover   { border-color: var(--accent); background: rgba(56,189,248,.04); }
+    .dsw-option-card.selected{ border-color: var(--accent); background: rgba(56,189,248,.08); }
+    .dsw-option-card.is-rec  { border-color: rgba(56,189,248,.35); }
+    .rec-ribbon {
+      position: absolute; top: -1px; right: 12px;
+      background: var(--accent); color: #000; font-size: 8px; font-weight: 800;
+      padding: 2px 7px; border-radius: 0 0 5px 5px; letter-spacing: .6px; text-transform: uppercase;
+    }
+    .option-card-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .option-card-label { font-size: 12px; font-weight: 700; color: var(--text-bright); flex: 1; }
+    .risk-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .4px; }
+    .risk-badge.low    { background: rgba(34,197,94,.2);  color: #4ade80; }
+    .risk-badge.medium { background: rgba(234,179,8,.2);  color: #fde047; }
+    .risk-badge.high   { background: rgba(239,68,68,.2);  color: #f87171; }
+    .option-metrics {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;
+    }
+    .metric { background: rgba(0,0,0,.2); border-radius: 5px; padding: 5px 7px; }
+    .metric-label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 2px; }
+    .metric-val { font-size: 12px; font-weight: 700; color: var(--text-bright); }
+    .metric-val.cost    { color: var(--medium); }
+    .metric-val.low-risk{ color: #4ade80; }
+    .metric-val.high-risk{color: #f87171; }
+
+    /* DSW footer */
+    .dsw-footer {
+      padding: 14px 18px; border-top: 1px solid var(--border);
+      display: flex; gap: 10px; flex-shrink: 0;
+    }
+    .dsw-commit-btn {
+      flex: 1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700;
+      background: var(--accent); color: #000; border: none; cursor: pointer;
+      transition: opacity .15s;
+    }
+    .dsw-commit-btn:hover    { opacity: .85; }
+    .dsw-commit-btn:disabled { opacity: .35; cursor: not-allowed; }
+    .dsw-cancel-btn {
+      padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      background: none; color: var(--text-dim); border: 1px solid var(--border); cursor: pointer;
+    }
+    .dsw-cancel-btn:hover { border-color: var(--text-dim); color: var(--text); }
   </style>
 </head>
 <body>
@@ -457,6 +572,57 @@
       </table>
     </div>
   </div>
+
+<!-- ── Decision Support Window ── -->
+<div id="dsw-overlay" onclick="closeDSW(event)">
+  <div id="dsw-drawer">
+    <div class="dsw-header">
+      <div class="dsw-header-text">
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:5px;">
+          <span class="signal-badge CONFLICT">CONFLICT</span>
+          <span style="font-size:10px;color:var(--text-dim);font-weight:700;letter-spacing:.6px;text-transform:uppercase;">Decision Support</span>
+        </div>
+        <div class="dsw-title" id="dsw-title">–</div>
+        <div class="dsw-subtitle" id="dsw-subtitle">–</div>
+      </div>
+      <button class="dsw-close" onclick="closeDSW()">✕</button>
+    </div>
+
+    <div class="dsw-body">
+      <!-- Timer -->
+      <div class="dsw-timer" id="dsw-timer">
+        <div class="timer-icon">⏱</div>
+        <div class="timer-body">
+          <div class="timer-label">Decision window closes in</div>
+          <div class="timer-countdown" id="dsw-countdown">--:--:--</div>
+          <div class="timer-sub" id="dsw-deadline-label">–</div>
+        </div>
+      </div>
+
+      <!-- Recommendation -->
+      <div class="dsw-section-title">★ Recommended Action</div>
+      <div class="dsw-rec-card" id="dsw-rec-card">
+        <div class="dsw-rec-hdr">
+          <span class="rec-star">★</span>
+          <span class="rec-label" id="dsw-rec-label">–</span>
+          <span class="confidence-badge" id="dsw-confidence">–</span>
+        </div>
+        <div class="dsw-rec-reasoning" id="dsw-rec-reasoning">–</div>
+      </div>
+
+      <!-- Impact analysis -->
+      <div class="dsw-section-title">Impact Analysis — All Options</div>
+      <div class="dsw-impact-grid" id="dsw-impact-grid"></div>
+    </div>
+
+    <div class="dsw-footer">
+      <button class="dsw-cancel-btn" onclick="closeDSW()">Cancel</button>
+      <button class="dsw-commit-btn" id="dsw-commit-btn" disabled onclick="commitDecision()">
+        Select an option to commit
+      </button>
+    </div>
+  </div>
+</div>
 
 </div><!-- /app -->
 
@@ -667,12 +833,13 @@ function renderConflicts(conflicts){
       return`<button class="sig-btn restore" onclick="sigAction('${c.id}','${edesc}','new',event)">↺ Restore</button>`;
     })();
     const seqSect=hasSeq?`<div class="seq-section"><div class="seq-title">⇄ Sequencing Alternatives</div>${seqAlts.map((alt,ai)=>`<div class="seq-alt" id="seq-${c.id}-${ai}" onclick="selectSeq('${c.id}',${ai})"><div class="seq-alt-hdr"><span class="seq-alt-label">${esc(alt.label)}</span><span class="feasibility-badge ${alt.feasibility}">${alt.feasibility}</span></div>${alt.cascade_impact?`<div class="seq-cascade">Cascade: ${esc(alt.cascade_impact)}</div>`:''}</div>`).join('')}</div>`:'';
+    const hasDSW = sigType === 'CONFLICT' && c.decision_support;
     return`<div class="conflict-card sev-${c.severity}" id="cc-${c.id}">
       <div class="conflict-hdr" onclick="toggleConflict('${c.id}')">
         <span class="sev-badge ${c.severity}">${c.severity.toUpperCase()}</span>
         <span class="signal-badge ${sigType}">${sigType}</span>
         <span class="conflict-title">${esc((c.description||c.conflict_type).slice(0,58))}</span>
-        <span class="state-badge ${state}">${state}</span>
+        ${hasDSW ? `<button class="sig-btn ack" style="margin-left:auto;flex-shrink:0;font-size:10px;padding:3px 8px;background:rgba(56,189,248,.15);color:var(--accent);border-color:rgba(56,189,248,.4);" onclick="event.stopPropagation();openDSW('${c.id}')">⚡ Decision Support</button>` : `<span class="state-badge ${state}">${state}</span>`}
       </div>
       <div class="conflict-body">
         <div class="conflict-desc">${edesc}</div>
@@ -818,6 +985,119 @@ setInterval(()=>{
 
 /* ── Auto-refresh ── */
 setInterval(refresh,60000);
+
+/* ── Decision Support Window ── */
+let _dswConflict = null, _dswSelectedAlt = null, _dswTimerInterval = null;
+
+function openDSW(conflictId) {
+  const c = (_data && _data.conflicts || []).find(x => x.id === conflictId);
+  if (!c || !c.decision_support) return;
+  _dswConflict = c;
+  _dswSelectedAlt = null;
+
+  const ds = c.decision_support;
+  document.getElementById('dsw-title').textContent = c.description ? c.description.slice(0, 80) : c.conflict_type;
+  document.getElementById('dsw-subtitle').textContent = `${(c.vessel_names||[]).join(' · ')} · ${c.berth_name||''}`;
+
+  // Recommendation
+  const recOpt = (ds.options||[]).find(o => o.id === ds.recommended_option_id);
+  document.getElementById('dsw-rec-label').textContent     = recOpt ? recOpt.label : '–';
+  document.getElementById('dsw-rec-reasoning').textContent = ds.recommended_reasoning || '–';
+  const confEl = document.getElementById('dsw-confidence');
+  confEl.textContent = ds.confidence || '–';
+  confEl.className   = `confidence-badge ${ds.confidence||'medium'}`;
+
+  // Deadline label
+  document.getElementById('dsw-deadline-label').textContent = ds.decision_deadline
+    ? `Deadline: ${fmtTime(ds.decision_deadline)}` : '–';
+
+  // Impact grid
+  const grid = document.getElementById('dsw-impact-grid');
+  grid.innerHTML = (ds.options||[]).map((opt, i) => {
+    const isRec      = opt.id === ds.recommended_option_id;
+    const riskColor  = opt.risk === 'low' ? 'low-risk' : opt.risk === 'high' ? 'high-risk' : '';
+    const delaySt    = opt.delay_mins === 0 ? 'low-risk' : opt.delay_mins > 120 ? 'high-risk' : '';
+    const cascadeSt  = opt.cascade_count === 0 ? 'low-risk' : opt.cascade_count >= 2 ? 'high-risk' : '';
+    return `
+      <div class="dsw-option-card ${isRec ? 'is-rec' : ''}" id="dsw-opt-${i}" onclick="selectDSWOption(${i})">
+        ${isRec ? '<div class="rec-ribbon">★ Recommended</div>' : ''}
+        <div class="option-card-hdr">
+          <span class="option-card-label">${esc(opt.label)}</span>
+          <span class="risk-badge ${opt.risk}">${opt.risk} risk</span>
+        </div>
+        <div class="option-metrics">
+          <div class="metric">
+            <div class="metric-label">Cost Impact</div>
+            <div class="metric-val cost">${esc(opt.cost_label)}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Delay</div>
+            <div class="metric-val ${delaySt}">${opt.delay_mins === 0 ? 'None' : opt.delay_mins + ' min'}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Cascade</div>
+            <div class="metric-val ${cascadeSt}">${opt.cascade_count === 0 ? 'None' : opt.cascade_count + ' vessel' + (opt.cascade_count > 1 ? 's' : '')}</div>
+          </div>
+        </div>
+        ${opt.cascade_impact ? `<div style="margin-top:7px;font-size:10px;color:var(--text-dim);font-style:italic">${esc(opt.cascade_impact)}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  // Start countdown timer
+  if (_dswTimerInterval) clearInterval(_dswTimerInterval);
+  _updateDSWTimer(ds.decision_deadline);
+  _dswTimerInterval = setInterval(() => _updateDSWTimer(ds.decision_deadline), 1000);
+
+  // Reset commit button
+  const btn = document.getElementById('dsw-commit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Select an option to commit';
+
+  document.getElementById('dsw-overlay').classList.add('open');
+}
+
+function _updateDSWTimer(deadlineIso) {
+  if (!deadlineIso) return;
+  const secs  = Math.max(0, Math.round((new Date(deadlineIso) - Date.now()) / 1000));
+  const h     = Math.floor(secs / 3600);
+  const m     = Math.floor((secs % 3600) / 60);
+  const s     = secs % 60;
+  const str   = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const cdEl  = document.getElementById('dsw-countdown');
+  const tmEl  = document.getElementById('dsw-timer');
+  const cls   = secs < 1800 ? 'urgent' : secs < 3600 ? 'warning' : '';
+  cdEl.textContent = str;
+  cdEl.className   = `timer-countdown ${cls}`;
+  tmEl.className   = `dsw-timer ${cls}`;
+  if (secs === 0 && _dswTimerInterval) clearInterval(_dswTimerInterval);
+}
+
+function selectDSWOption(idx) {
+  document.querySelectorAll('.dsw-option-card').forEach((el, i) => el.classList.toggle('selected', i === idx));
+  const ds   = _dswConflict && _dswConflict.decision_support;
+  if (!ds) return;
+  _dswSelectedAlt = ds.options[idx];
+  const btn  = document.getElementById('dsw-commit-btn');
+  btn.disabled    = false;
+  btn.textContent = `Commit: ${_dswSelectedAlt.label.slice(0, 45)}${_dswSelectedAlt.label.length > 45 ? '…' : ''}`;
+}
+
+function commitDecision() {
+  if (!_dswConflict || !_dswSelectedAlt) return;
+  // Record in audit log
+  writeAudit(_dswConflict.id, `[DECISION] ${_dswSelectedAlt.label}`, 'ACK');
+  setSigState(_dswConflict.id, 'acknowledged');
+  pushNotif('decision', `Decision committed: ${_dswSelectedAlt.label}`, '#4ade80');
+  if (_data) renderConflicts(_data.conflicts || []);
+  closeDSW();
+}
+
+function closeDSW(e) {
+  if (e && e.target !== document.getElementById('dsw-overlay')) return;
+  if (_dswTimerInterval) { clearInterval(_dswTimerInterval); _dswTimerInterval = null; }
+  document.getElementById('dsw-overlay').classList.remove('open');
+  _dswConflict = null; _dswSelectedAlt = null;
+}
 
 /* ── Boot ── */
 renderAuditLog(); renderNotifPanel(); updateBellBadge(); refresh();

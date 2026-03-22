@@ -254,12 +254,21 @@ def make_towage(vessels: list, now: datetime) -> list:
 
 # ── Sequencing alternatives ────────────────────────────────────────────────────
 
-def _seq_alt(sid, strategy, label, description, vessels, cascade, feasibility, saving_h=0):
+def _seq_alt(sid, strategy, label, description, vessels, cascade, feasibility,
+             saving_h=0, cost_usd=0, cost_label="", delay_mins=0,
+             cascade_count=0, risk="medium", recommended=False):
     return {
         "id": sid, "strategy": strategy, "label": label,
         "description": description, "affected_vessels": vessels,
         "cascade_impact": cascade, "feasibility": feasibility,
         "time_saving_hours": saving_h,
+        # Decision support impact fields
+        "cost_usd": cost_usd,
+        "cost_label": cost_label or (f"~${cost_usd:,}" if cost_usd else "Negligible"),
+        "delay_mins": delay_mins,
+        "cascade_count": cascade_count,
+        "risk": risk,
+        "recommended": recommended,
     }
 
 def b04_alternatives(a_name, b_name):
@@ -270,19 +279,25 @@ def b04_alternatives(a_name, b_name):
             f"Delay {a_name} ETA by 90min. B04 opens after {b_name} departs with full clearance window. Pilot notice is restored.",
             [a_name],
             f"Outbound towage for {a_name} delayed 90min. Pilot rescheduled to +3.5h. Terminal gang start pushed back.",
-            "high", 0),
+            "high", 0,
+            cost_usd=3800, cost_label="~$3,800 anchorage + delay fees",
+            delay_mins=90, cascade_count=1, risk="low", recommended=True),
         _seq_alt("SEQ-B04-2", "advance_departure",
             f"Accelerate {b_name} departure (−3h)",
             f"Advance {b_name} ETD by 3h by accelerating cargo operations. B04 clears before {a_name} arrives.",
             [b_name],
             "Terminal must accelerate crane gang — likely overtime. Shipping line cargo cut-off advanced by 3h.",
-            "medium", 3),
+            "medium", 3,
+            cost_usd=11200, cost_label="~$11,200 overtime + terminal",
+            delay_mins=0, cascade_count=2, risk="medium", recommended=False),
         _seq_alt("SEQ-B04-3", "reassign_berth",
             f"Reassign {a_name} to Berth 2",
             f"B02 becomes available +8h. {a_name} (RoRo, LOA 185m) is within B02 dimensional limits (max LOA 300m).",
             [a_name],
             f"Pilot boarding route unchanged. Towage approach changes to North Terminal. Terminal gang reassigned to B02.",
-            "high", 0),
+            "high", 0,
+            cost_usd=2400, cost_label="~$2,400 repositioning",
+            delay_mins=30, cascade_count=0, risk="low", recommended=False),
     ]
 
 def b03_alternatives(a_name, b_name):
@@ -293,19 +308,25 @@ def b03_alternatives(a_name, b_name):
             f"Hold {b_name} at anchorage for 2.5h. {a_name} departs +19h, clearance complete +20h. {b_name} ETA becomes +20.5h.",
             [b_name],
             f"Minimal cascade. {b_name} anchorage costs apply. Pilot and tug times adjust accordingly.",
-            "high", 0),
+            "high", 0,
+            cost_usd=2100, cost_label="~$2,100 anchorage fees",
+            delay_mins=150, cascade_count=1, risk="low", recommended=True),
         _seq_alt("SEQ-B03-2", "advance_departure",
             f"Advance {a_name} departure by 2h",
             f"Accelerate cargo operations on {a_name}. {a_name} ETD moves to +17h, giving a 1.5h buffer before {b_name} ETA.",
             [a_name],
             f"Terminal crane gang must accelerate immediately. Shipping line notified of early ETD.",
-            "medium", 2),
+            "medium", 2,
+            cost_usd=7400, cost_label="~$7,400 overtime + ops",
+            delay_mins=0, cascade_count=1, risk="medium", recommended=False),
         _seq_alt("SEQ-B03-3", "reassign_berth",
             f"Reassign {b_name} to Berth 4",
             f"B04 opens after V007/V005 window resolves. {b_name} (Bulk, LOA 195m) within B04 limits. Dependent on B04 conflict resolution.",
             [b_name],
             "Requires B04 conflict to be resolved first. Terminal equipment moved to South Terminal.",
-            "low", 0),
+            "low", 0,
+            cost_usd=3200, cost_label="~$3,200 repositioning",
+            delay_mins=60, cascade_count=2, risk="high", recommended=False),
     ]
 
 
@@ -315,7 +336,7 @@ CLEARANCE_MINS = 60
 
 def _conflict(cid, ctype, signal_type, severity, vessel_ids, vessel_names,
                berth_id, berth_name, conflict_time, description, resolutions,
-               sequencing_alternatives=None):
+               sequencing_alternatives=None, decision_support=None):
     return {
         "id": cid,
         "conflict_type": ctype,
@@ -329,6 +350,27 @@ def _conflict(cid, ctype, signal_type, severity, vessel_ids, vessel_names,
         "description": description,
         "resolution_options": resolutions,
         "sequencing_alternatives": sequencing_alternatives or [],
+        "decision_support": decision_support,
+    }
+
+
+def _build_decision_support(seq_alts, conflict_time_dt, now):
+    """Build decision support block from sequencing alternatives."""
+    rec   = next((a for a in seq_alts if a.get("recommended")), seq_alts[0] if seq_alts else None)
+    # Deadline: 2h before conflict, but at least 20 min from now
+    raw_deadline = conflict_time_dt - timedelta(hours=2)
+    deadline     = max(raw_deadline, now + timedelta(minutes=20))
+    reasoning_map = {
+        "delay_arrival":    "Lowest cost option with minimal cascade impact. Anchorage capacity is available and pilot can be rescheduled with adequate notice.",
+        "advance_departure":"Restores full clearance window but requires immediate terminal action and incurs overtime.",
+        "reassign_berth":   "Eliminates the conflict entirely. Vessel dimensions confirm berth compatibility.",
+    }
+    return {
+        "recommended_option_id":  rec["id"] if rec else None,
+        "recommended_reasoning":  reasoning_map.get(rec["strategy"], "Best available option given current port state.") if rec else "",
+        "confidence":             "high" if rec and rec.get("risk") == "low" else "medium",
+        "decision_deadline":      fmt(deadline),
+        "options": seq_alts,
     }
 
 
@@ -363,6 +405,7 @@ def detect_conflicts(vessels, berths, pilotage, towage, now):
                         seq_alts = b04_alternatives(a["name"], b["name"])
                     elif berth_id == "B03":
                         seq_alts = b03_alternatives(a["name"], b["name"])
+                    ds = _build_decision_support(seq_alts, b_start, now) if seq_alts else None
                     conflicts.append(_conflict(
                         str(uuid.uuid4())[:8], "berth_overlap", "CONFLICT", sev,
                         [a["id"], b["id"]], [a["name"], b["name"]],
@@ -373,7 +416,7 @@ def detect_conflicts(vessels, berths, pilotage, towage, now):
                         [f"Delay {b['name']} arrival by {max(CLEARANCE_MINS - gap + 15, 30)}min",
                          f"Bring forward {a['name']} departure",
                          f"Reassign {b['name']} to an alternative berth"],
-                        seq_alts,
+                        seq_alts, ds,
                     ))
 
     # ── 2. Berth not ready ────────────────────────────────────────────────────
