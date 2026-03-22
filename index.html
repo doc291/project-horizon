@@ -238,6 +238,7 @@
     .signal-badge.CONFLICT { background: rgba(239,68,68,.15); color: #ff8080; border: 1px solid rgba(239,68,68,.4); }
     .signal-badge.WARNING  { background: rgba(249,115,22,.15); color: #ffb347; border: 1px solid rgba(249,115,22,.4); }
     .signal-badge.ADVISORY { background: rgba(234,179,8,.15);  color: #fde047; border: 1px solid rgba(234,179,8,.4); }
+    .signal-badge.WEATHER  { background: rgba(56,189,248,.15); color: #38bdf8; border: 1px solid rgba(56,189,248,.4); }
     .state-badge    { font-size: 9px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; padding: 2px 6px; border-radius: 10px; margin-left: auto; }
     .state-badge.new          { background: rgba(56,189,248,.15); color: var(--accent); border: 1px solid rgba(56,189,248,.3); }
     .state-badge.acknowledged { background: rgba(34,197,94,.15);  color: #4ade80; border: 1px solid rgba(34,197,94,.3); }
@@ -546,7 +547,7 @@
   <header>
     <div class="logo">
       <img src="/logo" alt="Project Horizon" />
-      <span class="logo-badge">BETA 3</span>
+      <span class="logo-badge">BETA 4</span>
     </div>
     <div class="header-mid">
       <div class="stat-chip"><strong id="s-vessels">–</strong>&nbsp;vessels</div>
@@ -914,7 +915,7 @@ function render(d){
   (d.conflicts||[]).forEach(c=>{
     if(!_knownCIds.has(c.id)){
       _knownCIds.add(c.id);
-      const col=c.signal_type==='CONFLICT'?'#ef4444':c.signal_type==='WARNING'?'#f97316':'#eab308';
+      const col=c.signal_type==='CONFLICT'?'#ef4444':c.signal_type==='WARNING'?'#f97316':c.signal_type==='WEATHER'?'#38bdf8':'#eab308';
       pushNotif('new_conflict',`New ${c.signal_type}: ${(c.description||c.conflict_type).slice(0,70)}`,col);
     }
   });
@@ -1089,7 +1090,9 @@ function renderDecisions(conflicts){
 function renderConflicts(conflicts){
   const el=document.getElementById('conflict-list'),badge=document.getElementById('conflict-count');
   badge.textContent=conflicts.length;
-  badge.className='count-badge'+(conflicts.length===0?' zero':conflicts.some(c=>c.signal_type==='WARNING')?' warn':'');
+  const hasCrit=conflicts.some(c=>c.severity==='critical');
+  const hasWarn=conflicts.some(c=>c.signal_type==='WARNING'||c.signal_type==='WEATHER');
+  badge.className='count-badge'+(conflicts.length===0?' zero':hasCrit?'':hasWarn?' warn':'');
   if(!conflicts.length){el.innerHTML='<div class="empty">No active signals</div>';return}
   el.innerHTML=conflicts.map(c=>{
     const state=getSigState(c.id),sigType=c.signal_type||'ADVISORY';

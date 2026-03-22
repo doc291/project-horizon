@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Project Horizon — Beta 3
+Project Horizon — Beta 4
 Self-contained server: zero external dependencies, pure Python 3 stdlib.
 
 Usage (local):
@@ -573,9 +573,7 @@ def detect_conflicts(vessels, berths, pilotage, towage, now):
 
     sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
     conflicts.sort(key=lambda c: (sev_order.get(c["severity"], 9), c["conflict_time"]))
-
-    # Return up to 5 most important conflicts (as requested for Beta 1)
-    return conflicts[:5]
+    return conflicts
 
 
 # ── Guidance generation ────────────────────────────────────────────────────────
@@ -718,6 +716,205 @@ def make_weather():
         "pressure_hpa":         pressure,
         "conditions":           cond,
     }
+
+
+# ── Beta 4: Port Rules & Weather Alert Detection ───────────────────────────────
+
+HIGH_WINDAGE = {"Container", "RoRo"}  # Vessel types with elevated wind-manoeuvring risk
+
+PORT_RULES = {
+    "wind_advisory": {
+        "threshold_kts": 20, "applies_to": "high-windage vessels (Container, RoRo)",
+        "rule_ref": "MSQ Port of Brisbane Procedures §5.3",
+        "action": "Monitor closely. Advise masters of high-windage vessels to review manoeuvring plan.",
+    },
+    "wind_no_berthing": {
+        "threshold_kts": 25, "applies_to": "all vessels",
+        "rule_ref": "MSQ Port of Brisbane Procedures §5.3.1",
+        "action": "No new berthing operations to commence. Vessels already alongside may remain.",
+    },
+    "wind_movements_suspended": {
+        "threshold_kts": 30, "applies_to": "all vessels",
+        "rule_ref": "MSQ Port of Brisbane Procedures §5.3.2",
+        "action": "All vessel movements in port suspended. Masters to maintain engine readiness.",
+    },
+    "wind_engines_standby": {
+        "threshold_kts": 40, "applies_to": "all berthed vessels",
+        "rule_ref": "MSQ Port of Brisbane Procedures §5.3.3",
+        "action": "All berthed vessels must have main engines on standby. Increased mooring watch.",
+    },
+    "swell_pilot_caution": {
+        "threshold_m": 1.5, "applies_to": "pilot transfer operations",
+        "rule_ref": "SOLAS V/23, IMPA Pilot Ladder Guidelines 2022",
+        "action": "Enhanced pilot ladder inspection required. Masters to assess transfer conditions.",
+    },
+    "swell_transfer_suspended": {
+        "threshold_m": 2.0, "applies_to": "pilot ladder transfers",
+        "rule_ref": "SOLAS V/23, IMO Res. A.1045(27), IMPA 2022 §4.2",
+        "action": "Pilot ladder transfers suspended. Helicopter transfer only if available.",
+    },
+    "vis_reduced_procedures": {
+        "threshold_nm": 3.0, "applies_to": "all vessels",
+        "rule_ref": "COLREGS Rule 19, QMSS Navigation Safety Direction 2013",
+        "action": "Reduced visibility procedures in force. Proceed at safe speed, radar watch maintained.",
+    },
+    "vis_vts_restrictions": {
+        "threshold_nm": 1.0, "applies_to": "all movements",
+        "rule_ref": "MSQ Port of Brisbane Procedures §3.2, COLREGS Rule 19",
+        "action": "VTS movement restrictions apply. No movements to commence without explicit VTS approval.",
+    },
+}
+
+
+def _swell_severity(height_m: float, period_s: float) -> float:
+    """
+    Compute effective swell height applying period correction.
+    Long-period swell (≥10s) creates larger vessel motion: multiply height by 1.2.
+    Returns effective swell height in metres.
+    """
+    return round(height_m * 1.2, 2) if period_s >= 10 else height_m
+
+
+def detect_weather_alerts(weather: dict, vessels: list, now: datetime) -> list:
+    """
+    Generate port-wide weather alert signals using Port of Brisbane MSQ thresholds
+    and SOLAS/IMPA pilot transfer rules.  At most 3 alerts (one per category:
+    wind, swell, visibility).  Uses the same _conflict() structure.
+    """
+    alerts     = []
+    wind_kts   = weather.get("wind_speed_kts", 0)
+    swell_m    = weather.get("swell_height_m", 0.0)
+    swell_per  = weather.get("swell_period_s", 7)
+    vis_nm     = weather.get("visibility_nm", 10.0)
+    wind_dir   = weather.get("wind_direction_label", "")
+    eff_swell  = _swell_severity(swell_m, swell_per)
+
+    hw_vessels = [v for v in vessels
+                  if v.get("vessel_type") in HIGH_WINDAGE
+                  and v["status"] != "departed"]
+    all_active = [v for v in vessels if v["status"] != "departed"]
+    berthed    = [v for v in vessels if v["status"] == "berthed"]
+    inbound_pil = [v for v in vessels
+                   if v["status"] not in ("berthed", "departed")
+                   and v.get("pilotage_required")]
+
+    # ── 1. Wind alert (one signal, highest applicable threshold) ──────────────
+    if wind_kts >= 40:
+        r = PORT_RULES["wind_engines_standby"]
+        alerts.append(_conflict(
+            "WX-WIND", "weather_wind", "WEATHER", "critical",
+            [v["id"] for v in berthed], [v["name"] for v in berthed],
+            None, None, fmt(now),
+            (f"Wind {wind_kts}kts {wind_dir} — exceeds 40kt threshold ({r['rule_ref']}). "
+             f"All berthed vessels must have main engines on standby. "
+             f"Increased mooring watch required."),
+            [r["action"],
+             f"Rule reference: {r['rule_ref']}",
+             "Notify all masters and port operations centre immediately",
+             "Arrange additional mooring lines as required"],
+        ))
+    elif wind_kts >= 30:
+        r = PORT_RULES["wind_movements_suspended"]
+        alerts.append(_conflict(
+            "WX-WIND", "weather_wind", "WEATHER", "critical",
+            [v["id"] for v in all_active], [v["name"] for v in all_active],
+            None, None, fmt(now),
+            (f"Wind {wind_kts}kts {wind_dir} — exceeds 30kt threshold ({r['rule_ref']}). "
+             f"All vessel movements in port are suspended."),
+            [r["action"],
+             f"Rule reference: {r['rule_ref']}",
+             "No inbound or outbound movements without Harbour Master approval",
+             "Hold inbound vessels at anchorage pending improvement"],
+        ))
+    elif wind_kts >= 25:
+        r = PORT_RULES["wind_no_berthing"]
+        alerts.append(_conflict(
+            "WX-WIND", "weather_wind", "WEATHER", "high",
+            [v["id"] for v in all_active], [v["name"] for v in all_active],
+            None, None, fmt(now),
+            (f"Wind {wind_kts}kts {wind_dir} — exceeds 25kt no-berthing threshold ({r['rule_ref']}). "
+             f"No new berthing operations may commence."),
+            [r["action"],
+             f"Rule reference: {r['rule_ref']}",
+             "Delay inbound vessels at anchorage until wind reduces below 25kts",
+             "Notify terminal operators and agents of potential delays"],
+        ))
+    elif wind_kts >= 20 and hw_vessels:
+        r = PORT_RULES["wind_advisory"]
+        hw_names = [v["name"] for v in hw_vessels]
+        alerts.append(_conflict(
+            "WX-WIND", "weather_wind", "WEATHER", "medium",
+            [v["id"] for v in hw_vessels], hw_names,
+            None, None, fmt(now),
+            (f"Wind {wind_kts}kts {wind_dir} — advisory for high-windage vessels ({r['rule_ref']}). "
+             f"Container and RoRo vessels have elevated manoeuvring risk above 20kts."),
+            [r["action"],
+             f"Rule reference: {r['rule_ref']}",
+             f"Advise masters of: {', '.join(hw_names[:4])}",
+             "Confirm additional tug support is available if required"],
+        ))
+
+    # ── 2. Swell alert (one signal, highest applicable threshold) ────────────
+    period_note = (f" (×1.2 long-period correction, period {swell_per}s)"
+                   if swell_per >= 10 else f" (period {swell_per}s)")
+    if eff_swell >= 2.0:
+        r = PORT_RULES["swell_transfer_suspended"]
+        aff = inbound_pil or all_active
+        alerts.append(_conflict(
+            "WX-SWELL", "weather_swell", "WEATHER", "critical",
+            [v["id"] for v in aff], [v["name"] for v in aff],
+            None, None, fmt(now),
+            (f"Swell {swell_m}m{period_note} — effective {eff_swell}m exceeds 2.0m threshold. "
+             f"Pilot ladder transfers are suspended under {r['rule_ref']}."),
+            [r["action"],
+             f"Rule reference: {r['rule_ref']}",
+             "Activate helicopter transfer protocol if available",
+             "Hold inbound vessels requiring pilotage at outer anchorage until swell subsides"],
+        ))
+    elif eff_swell >= 1.5:
+        r = PORT_RULES["swell_pilot_caution"]
+        aff = inbound_pil or all_active
+        alerts.append(_conflict(
+            "WX-SWELL", "weather_swell", "WEATHER", "high",
+            [v["id"] for v in aff], [v["name"] for v in aff],
+            None, None, fmt(now),
+            (f"Swell {swell_m}m{period_note} — effective {eff_swell}m above 1.5m caution threshold. "
+             f"Enhanced pilot transfer protocols apply ({r['rule_ref']})."),
+            [r["action"],
+             f"Rule reference: {r['rule_ref']}",
+             "Inspect pilot ladder condition before each transfer",
+             "Masters to confirm safe transfer conditions with pilot station"],
+        ))
+
+    # ── 3. Visibility alert (one signal, highest applicable threshold) ────────
+    if vis_nm < 1.0:
+        r = PORT_RULES["vis_vts_restrictions"]
+        alerts.append(_conflict(
+            "WX-VIS", "weather_visibility", "WEATHER", "critical",
+            [v["id"] for v in all_active], [v["name"] for v in all_active],
+            None, None, fmt(now),
+            (f"Visibility {vis_nm:.1f}nm — below 1nm VTS restriction threshold ({r['rule_ref']}). "
+             f"No vessel movements may commence without explicit VTS approval."),
+            [r["action"],
+             f"Rule reference: {r['rule_ref']}",
+             "Contact VTS for approval before any departure or arrival",
+             "All vessels to maintain enhanced radar watch and sound fog signals"],
+        ))
+    elif vis_nm < 3.0:
+        r = PORT_RULES["vis_reduced_procedures"]
+        alerts.append(_conflict(
+            "WX-VIS", "weather_visibility", "WEATHER", "high",
+            [v["id"] for v in all_active], [v["name"] for v in all_active],
+            None, None, fmt(now),
+            (f"Visibility {vis_nm:.1f}nm — reduced visibility procedures in force ({r['rule_ref']}). "
+             f"All vessels to proceed at safe speed with enhanced radar watch."),
+            [r["action"],
+             f"Rule reference: {r['rule_ref']}",
+             "Confirm all vessels have functioning radar and AIS active",
+             "Notify inbound vessels to maintain enhanced lookout and sound appropriate signals"],
+        ))
+
+    return alerts
 
 
 def make_tides():
@@ -976,10 +1173,19 @@ def build_summary():
     vessels  = make_vessels(now)
     pilotage = make_pilotage(vessels, now)
     towage   = make_towage(vessels, now)
-    conflicts = detect_conflicts(vessels, berths, pilotage, towage, now)
-    guidance  = build_guidance(conflicts, vessels, berths, pilotage, towage, now)
     weather   = make_weather()
     tides     = make_tides()
+
+    # Operational conflicts + Beta 4 weather alerts merged and re-sorted
+    op_conflicts      = detect_conflicts(vessels, berths, pilotage, towage, now)
+    weather_alerts    = detect_weather_alerts(weather, vessels, now)
+    sev_order         = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    conflicts         = sorted(
+        op_conflicts + weather_alerts,
+        key=lambda c: (sev_order.get(c["severity"], 9), c["conflict_time"]),
+    )
+
+    guidance  = build_guidance(conflicts, vessels, berths, pilotage, towage, now)
 
     # Beta 3 additions
     berth_util = make_berth_utilisation(vessels, berths, now)
