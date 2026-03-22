@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Horizon — Port Coordination</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:         #0b1120;
+      --surface:    #131e30;
+      --surface2:   #1a2840;
+      --border:     #243350;
+      --text:       #cdd9f0;
+      --text-dim:   #6b82a8;
+      --text-bright:#e8f0ff;
+      --accent:     #38bdf8;
+      --accent-dim: #1e4a6e;
+      --critical:   #ef4444;
+      --high:       #f97316;
+      --medium:     #eab308;
+      --info:       #38bdf8;
+      --success:    #22c55e;
+      --v-berthed:  #22c55e;
+      --v-confirmed:#3b82f6;
+      --v-scheduled:#6b7280;
+      --v-at-risk:  #f97316;
+      --v-delayed:  #ef4444;
+      --header-h:   56px;
+      --cbar-h:     30px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+    html, body { height: 100%; overflow: hidden; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 13px; }
+
+    /* ── App shell ── */
+    #app { display: flex; flex-direction: column; height: 100vh; }
+
+    /* ── Header ── */
+    header {
+      height: var(--header-h); background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 16px;
+      flex-shrink: 0; z-index: 200; position: relative;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo img { height: 44px; width: 44px; border-radius: 6px; object-fit: contain; background: #0d1b2e; }
+    .logo-badge {
+      font-size: 10px; font-weight: 700; padding: 2px 6px;
+      background: var(--accent-dim); color: var(--accent);
+      border-radius: 4px; letter-spacing: 0.5px;
+    }
+    .header-mid { flex: 1; display: flex; justify-content: center; gap: 8px; }
+    .stat-chip {
+      display: flex; align-items: center; gap: 5px; padding: 4px 10px;
+      border-radius: 20px; background: var(--surface2); border: 1px solid var(--border);
+      font-size: 11px; color: var(--text-dim);
+    }
+    .stat-chip strong { color: var(--text-bright); font-size: 13px; }
+    .stat-chip.alert  { border-color: var(--critical); color: var(--critical); }
+    .stat-chip.alert strong { color: var(--critical); }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    #clock { font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; min-width: 72px; }
+    .btn-refresh {
+      padding: 6px 12px; border-radius: 6px;
+      background: var(--accent-dim); border: 1px solid var(--accent);
+      color: var(--accent); font-size: 11px; font-weight: 600;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .btn-refresh:hover { opacity: .8; }
+
+    /* ── Bell / Notifications ── */
+    .bell-btn {
+      position: relative; background: none; border: none; cursor: pointer;
+      color: var(--text-dim); font-size: 18px; padding: 4px 6px;
+      transition: color .15s; line-height: 1;
+    }
+    .bell-btn:hover { color: var(--text-bright); }
+    .bell-badge {
+      position: absolute; top: -1px; right: -1px;
+      min-width: 16px; height: 16px; border-radius: 8px; padding: 0 3px;
+      background: var(--critical); color: #fff; font-size: 9px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .bell-badge.hidden { display: none; }
+    #notif-panel {
+      display: none; position: absolute; top: calc(var(--header-h) + 2px); right: 16px;
+      width: 340px; max-height: 440px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,.6);
+      flex-direction: column; overflow: hidden; z-index: 500;
+    }
+    #notif-panel.open { display: flex; }
+    .notif-hdr {
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; font-weight: 700; color: var(--text-dim);
+      letter-spacing: .6px; text-transform: uppercase;
+    }
+    .notif-clear { font-size: 10px; font-weight: 600; color: var(--text-dim); background: none; border: none; cursor: pointer; padding: 2px 6px; }
+    .notif-clear:hover { color: var(--critical); }
+    .notif-list { flex: 1; overflow-y: auto; }
+    .notif-list::-webkit-scrollbar { width: 4px; }
+    .notif-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .notif-item { padding: 9px 14px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start; }
+    .notif-item.unread { background: rgba(56,189,248,.05); }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+    .notif-body { flex: 1; }
+    .notif-msg  { font-size: 12px; color: var(--text-bright); line-height: 1.4; }
+    .notif-ts   { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+    .notif-empty { padding: 20px; text-align: center; color: var(--text-dim); font-size: 12px; }
+
+    /* ── Conditions bar ── */
+    #conditions-bar {
+      height: var(--cbar-h); background: #0e1a2d;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px;
+      flex-shrink: 0; font-size: 11px; overflow: hidden; white-space: nowrap;
+    }
+    .cbar-seg { display: flex; align-items: center; gap: 5px; padding: 0 14px; border-right: 1px solid var(--border); }
+    .cbar-seg:first-child { padding-left: 0; }
+    .cbar-seg:last-child  { border-right: none; }
+    .cbar-val   { color: var(--text); font-weight: 600; }
+    .cbar-label { color: var(--text-dim); font-size: 10px; margin-right: 2px; }
+    .cbar-cond  { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: .4px; }
+    .cbar-cond.Excellent { background: rgba(34,197,94,.2);  color: #4ade80; }
+    .cbar-cond.Good      { background: rgba(56,189,248,.2); color: var(--accent); }
+    .cbar-cond.Moderate  { background: rgba(249,115,22,.2); color: var(--high); }
+    .cbar-cond.Poor      { background: rgba(239,68,68,.2);  color: var(--critical); }
+    .tide-bar-wrap { display: flex; align-items: center; gap: 6px; }
+    .tide-bar      { width: 60px; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .tide-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .6s; }
+    .tide-arrow         { font-size: 11px; }
+    .tide-arrow.Rising  { color: var(--accent); }
+    .tide-arrow.Falling { color: var(--text-dim); }
+    .tide-arrow.Slack   { color: var(--medium); }
+
+    /* ── Main 3-col ── */
+    .main { flex: 1; display: flex; overflow: hidden; }
+    .panel { display: flex; flex-direction: column; border-right: 1px solid var(--border); overflow: hidden; }
+    .panel-left   { width: 276px; flex-shrink: 0; }
+    .panel-center { flex: 1; min-width: 0; }
+    .panel-right  { width: 320px; flex-shrink: 0; border-right: none; }
+    .panel-hdr {
+      padding: 9px 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+      font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+      color: var(--text-dim); display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .panel-body { flex: 1; overflow-y: auto; overflow-x: hidden; }
+    .panel-body::-webkit-scrollbar { width: 4px; }
+    .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── Right panel inner tabs ── */
+    .rpanel-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+    .rpanel-tab {
+      flex: 1; padding: 8px 12px; text-align: center;
+      font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+      color: var(--text-dim); background: none; border: none; cursor: pointer;
+      border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
+    }
+    .rpanel-tab:hover { color: var(--text); }
+    .rpanel-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .rpanel-pane { display: none; flex: 1; overflow-y: auto; flex-direction: column; min-height: 0; }
+    .rpanel-pane.active { display: flex; }
+    .rpanel-pane::-webkit-scrollbar { width: 4px; }
+    .rpanel-pane::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── Center tabs ── */
+    .tab-bar { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+    .tab-btn {
+      padding: 9px 20px; font-size: 12px; font-weight: 600; letter-spacing: .4px;
+      color: var(--text-dim); background: none; border: none; cursor: pointer;
+      border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-pane { display: none; flex: 1; overflow: hidden; flex-direction: column; min-height: 0; }
+    .tab-pane.active { display: flex; }
+
+    /* ── Gantt ── */
+    #timeline-wrap { flex: 1; overflow: auto; padding: 12px; }
+    #gantt { display: block; }
+
+    /* ── Port Map ── */
+    #map-pane { flex: 1; position: relative; min-height: 0; }
+    #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+    .leaflet-container { background: #0b1120; }
+    .leaflet-popup-content-wrapper { background: var(--surface2); color: var(--text); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,.6); border-radius: 8px; }
+    .leaflet-popup-tip { background: var(--surface2); }
+    .leaflet-popup-content { font-size: 12px; line-height: 1.6; }
+    .leaflet-popup-content strong { color: var(--text-bright); }
+    .map-overlay {
+      position: absolute; z-index: 1000; pointer-events: none;
+      background: rgba(13,27,46,.88); border: 1px solid var(--border); border-radius: 8px;
+    }
+    .map-legend { bottom: 14px; left: 14px; padding: 10px 14px; font-size: 11px; color: var(--text-dim); }
+    .map-wind   { top: 14px; right: 14px; padding: 10px 12px; font-size: 11px; }
+    .legend-row   { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+    .legend-dot   { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .legend-title { font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 5px; }
+    .wind-compass { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .wind-arrow-wrap { position: relative; width: 40px; height: 40px; }
+    .wind-ring { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); position: absolute; inset: 0; }
+    #wind-arrow { position: absolute; top: 2px; left: 50%; margin-left: -2px; width: 4px; height: 18px; background: var(--accent); border-radius: 2px; transform-origin: 50% calc(100% + 2px); }
+    .wind-speed-text  { font-size: 13px; font-weight: 700; color: var(--text-bright); text-align: center; }
+    .wind-detail-text { font-size: 10px; color: var(--text-dim); text-align: center; }
+
+    /* ── Guidance ── */
+    .guidance-item { border-left: 3px solid var(--border); margin: 6px 10px; padding: 8px 10px; background: var(--surface2); border-radius: 0 6px 6px 0; cursor: pointer; }
+    .guidance-item.p-critical { border-left-color: var(--critical); }
+    .guidance-item.p-high     { border-left-color: var(--high); }
+    .guidance-item.p-medium   { border-left-color: var(--medium); }
+    .guidance-item.p-info     { border-left-color: var(--info); }
+    .guidance-hdr { display: flex; align-items: center; gap: 6px; }
+    .prio-dot     { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .guidance-msg { font-size: 12px; color: var(--text-bright); flex: 1; line-height: 1.4; }
+    .guidance-detail { display: none; margin-top: 6px; font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+    .guidance-item.open .guidance-detail { display: block; }
+
+    /* ── Conflict cards ── */
+    .conflict-card  { margin: 8px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .conflict-card.sev-critical { border-color: var(--critical); }
+    .conflict-card.sev-high     { border-color: var(--high); }
+    .conflict-card.sev-medium   { border-color: var(--medium); }
+    .conflict-hdr   { padding: 8px 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; cursor: pointer; }
+    .sev-badge      { font-size: 9px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; }
+    .sev-badge.critical { background: rgba(239,68,68,.2); color: var(--critical); }
+    .sev-badge.high     { background: rgba(249,115,22,.2); color: var(--high); }
+    .sev-badge.medium   { background: rgba(234,179,8,.2);  color: var(--medium); }
+    .signal-badge   { font-size: 9px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; }
+    .signal-badge.CONFLICT { background: rgba(239,68,68,.15); color: #ff8080; border: 1px solid rgba(239,68,68,.4); }
+    .signal-badge.WARNING  { background: rgba(249,115,22,.15); color: #ffb347; border: 1px solid rgba(249,115,22,.4); }
+    .signal-badge.ADVISORY { background: rgba(234,179,8,.15);  color: #fde047; border: 1px solid rgba(234,179,8,.4); }
+    .state-badge    { font-size: 9px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; padding: 2px 6px; border-radius: 10px; margin-left: auto; }
+    .state-badge.new          { background: rgba(56,189,248,.15); color: var(--accent); border: 1px solid rgba(56,189,248,.3); }
+    .state-badge.acknowledged { background: rgba(34,197,94,.15);  color: #4ade80; border: 1px solid rgba(34,197,94,.3); }
+    .state-badge.deferred     { background: rgba(107,114,128,.15); color: #9ca3af; border: 1px solid rgba(107,114,128,.3); }
+    .state-badge.dismissed    { background: rgba(107,114,128,.1);  color: #6b7280; border: 1px solid transparent; }
+    .conflict-title { font-size: 12px; font-weight: 600; color: var(--text-bright); flex: 1; min-width: 0; }
+    .conflict-body  { display: none; padding: 0 10px 10px; font-size: 11px; color: var(--text-dim); line-height: 1.6; }
+    .conflict-card.open .conflict-body { display: block; }
+    .conflict-desc  { margin-bottom: 8px; }
+    .signal-actions { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+    .sig-btn { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; border: 1px solid; cursor: pointer; transition: opacity .15s; }
+    .sig-btn:hover   { opacity: .8; }
+    .sig-btn.ack     { background: rgba(34,197,94,.1);  color: #4ade80; border-color: rgba(34,197,94,.4); }
+    .sig-btn.defer   { background: rgba(107,114,128,.1); color: #9ca3af; border-color: rgba(107,114,128,.4); }
+    .sig-btn.dismiss { background: rgba(239,68,68,.1);  color: #f87171; border-color: rgba(239,68,68,.3); }
+    .sig-btn.restore { background: rgba(56,189,248,.1); color: var(--accent); border-color: rgba(56,189,248,.3); }
+    .res-options-title { font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; }
+    .res-opt { padding: 3px 0 3px 12px; font-size: 11px; color: var(--text-dim); list-style: disc inside; }
+    .seq-section   { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+    .seq-title     { font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+    .seq-alt       { border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; margin-bottom: 5px; cursor: pointer; transition: border-color .15s, background .15s; }
+    .seq-alt:hover { border-color: var(--accent); background: rgba(56,189,248,.05); }
+    .seq-alt.selected { border-color: var(--accent); background: rgba(56,189,248,.1); }
+    .seq-alt-hdr   { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+    .seq-alt-label { font-size: 11px; font-weight: 600; color: var(--text-bright); flex: 1; }
+    .feasibility-badge { font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 3px; text-transform: uppercase; letter-spacing: .5px; }
+    .feasibility-badge.high   { background: rgba(34,197,94,.2);  color: #4ade80; }
+    .feasibility-badge.medium { background: rgba(234,179,8,.2);  color: #fde047; }
+    .feasibility-badge.low    { background: rgba(239,68,68,.2);  color: #f87171; }
+    .seq-cascade { font-size: 10px; color: var(--text-dim); padding: 3px 8px; background: rgba(0,0,0,.2); border-radius: 4px; margin-top: 3px; font-style: italic; }
+
+    /* ── Audit Log ── */
+    .audit-item { padding: 9px 12px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start; }
+    .audit-item:last-child { border-bottom: none; }
+    .audit-action-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .5px; flex-shrink: 0; margin-top: 1px; }
+    .audit-action-badge.ACK     { background: rgba(34,197,94,.15);  color: #4ade80; }
+    .audit-action-badge.DEFER   { background: rgba(107,114,128,.15); color: #9ca3af; }
+    .audit-action-badge.DISMISS { background: rgba(239,68,68,.15);   color: #f87171; }
+    .audit-action-badge.RESTORE { background: rgba(56,189,248,.15);  color: var(--accent); }
+    .audit-body   { flex: 1; }
+    .audit-signal { font-size: 11px; color: var(--text-bright); line-height: 1.4; }
+    .audit-meta   { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+    .audit-empty  { padding: 20px; text-align: center; color: var(--text-dim); font-size: 12px; }
+
+    /* ── Vessel table ── */
+    #vessel-section { border-top: 1px solid var(--border); flex-shrink: 0; }
+    #vessel-section .panel-hdr { cursor: pointer; }
+    #vessel-table-wrap { max-height: 190px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th { position: sticky; top: 0; background: var(--surface); padding: 6px 8px; text-align: left; font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-dim); border-bottom: 1px solid var(--border); }
+    td { padding: 5px 8px; font-size: 11px; border-bottom: 1px solid #1a2840; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+    .status-pill  { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+    .status-berthed   { background: rgba(34,197,94,.2);  color: var(--v-berthed); }
+    .status-confirmed { background: rgba(59,130,246,.2); color: var(--v-confirmed); }
+    .status-scheduled { background: rgba(107,114,128,.2);color: var(--v-scheduled); }
+    .status-at_risk   { background: rgba(249,115,22,.2); color: var(--v-at-risk); }
+    .status-delayed   { background: rgba(239,68,68,.2);  color: var(--v-delayed); }
+    .status-departed  { background: rgba(107,114,128,.1);color: #6b7280; }
+
+    /* ── Misc ── */
+    .empty { padding: 20px; text-align: center; color: var(--text-dim); font-size: 12px; }
+    .count-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 9px; padding: 0 4px; font-size: 10px; font-weight: 700; background: var(--critical); color: #fff; }
+    .count-badge.zero { background: var(--surface2); color: var(--text-dim); }
+    .count-badge.warn { background: var(--medium); color: #000; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="logo">
+      <img src="/logo" alt="Project Horizon" />
+      <span class="logo-badge">BETA 2</span>
+    </div>
+    <div class="header-mid">
+      <div class="stat-chip"><strong id="s-vessels">–</strong>&nbsp;vessels</div>
+      <div class="stat-chip"><strong id="s-berths">–</strong>&nbsp;berths</div>
+      <div class="stat-chip"><strong id="s-expected">–</strong>&nbsp;arriving 24h</div>
+      <div class="stat-chip" id="s-conflict-chip"><strong id="s-conflicts">–</strong>&nbsp;signals</div>
+    </div>
+    <div class="header-right">
+      <span id="clock">--:--:-- UTC</span>
+      <button class="bell-btn" onclick="toggleNotifPanel()" title="Notifications">
+        🔔<span class="bell-badge hidden" id="bell-badge">0</span>
+      </button>
+      <button class="btn-refresh" onclick="refresh()">↺ Refresh</button>
+    </div>
+    <!-- Notifications dropdown -->
+    <div id="notif-panel">
+      <div class="notif-hdr">
+        <span>Notifications</span>
+        <button class="notif-clear" onclick="clearNotifications()">Clear all</button>
+      </div>
+      <div class="notif-list" id="notif-list"><div class="notif-empty">No notifications</div></div>
+    </div>
+  </header>
+
+  <!-- ── Conditions bar ── -->
+  <div id="conditions-bar">
+    <div class="cbar-seg">
+      <span class="cbar-label">CONDITIONS</span>
+      <span id="cb-cond" class="cbar-cond">–</span>
+    </div>
+    <div class="cbar-seg">
+      <span class="cbar-label">WIND</span>
+      <span id="cb-wind" class="cbar-val">–</span>
+    </div>
+    <div class="cbar-seg">
+      <span class="cbar-label">SWELL</span>
+      <span id="cb-swell" class="cbar-val">–</span>
+    </div>
+    <div class="cbar-seg">
+      <span class="cbar-label">VIS</span>
+      <span id="cb-vis" class="cbar-val">–</span>
+    </div>
+    <div class="cbar-seg">
+      <span class="cbar-label">PRESSURE</span>
+      <span id="cb-pressure" class="cbar-val">–</span>
+    </div>
+    <div class="cbar-seg">
+      <span class="cbar-label">TIDE</span>
+      <div class="tide-bar-wrap">
+        <span id="cb-tide-state" class="tide-arrow">–</span>
+        <div class="tide-bar"><div class="tide-bar-fill" id="tide-bar-fill" style="width:50%"></div></div>
+        <span id="cb-tide-val" class="cbar-val">–</span>
+        <span id="cb-tide-next" style="color:var(--text-dim);font-size:10px;">–</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main ── -->
+  <div class="main">
+
+    <!-- Left: Guidance -->
+    <div class="panel panel-left">
+      <div class="panel-hdr">
+        <span>Guidance</span>
+        <span class="count-badge zero" id="guidance-count">0</span>
+      </div>
+      <div class="panel-body" id="guidance-list"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- Center: Timeline + Map -->
+    <div class="panel panel-center" style="display:flex;flex-direction:column;">
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('timeline')">Berth Timeline (48h)</button>
+        <button class="tab-btn" onclick="switchTab('map')">Port Map</button>
+      </div>
+      <div class="tab-pane active" id="tab-timeline" style="overflow:auto;">
+        <div id="timeline-wrap"><svg id="gantt"></svg></div>
+      </div>
+      <div class="tab-pane" id="tab-map">
+        <div id="map-pane">
+          <div id="map"></div>
+          <!-- Legend -->
+          <div class="map-overlay map-legend">
+            <div class="legend-title">Vessel Status</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#22c55e"></div><span>Berthed</span></div>
+            <div class="legend-row"><div class="legend-dot" style="background:#3b82f6"></div><span>Confirmed</span></div>
+            <div class="legend-row"><div class="legend-dot" style="background:#6b7280"></div><span>Scheduled</span></div>
+            <div class="legend-row"><div class="legend-dot" style="background:#f97316"></div><span>At Risk</span></div>
+            <div class="legend-title" style="margin-top:8px;">Infrastructure</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#38bdf8;border-radius:2px;height:5px;width:14px;"></div><span>Berth</span></div>
+            <div class="legend-row"><div class="legend-dot" style="background:#ef4444;opacity:.5;"></div><span>Active conflict</span></div>
+            <div id="tide-restriction-row" class="legend-row" style="display:none;margin-top:4px;">
+              <div class="legend-dot" style="background:#eab308;"></div>
+              <span style="color:#eab308;font-size:10px;">Tide restriction</span>
+            </div>
+          </div>
+          <!-- Wind compass overlay -->
+          <div class="map-overlay map-wind">
+            <div class="wind-compass">
+              <div class="wind-arrow-wrap">
+                <div class="wind-ring"></div>
+                <div id="wind-arrow"></div>
+              </div>
+              <div class="wind-speed-text" id="wind-spd">–</div>
+              <div class="wind-detail-text" id="wind-dir-label">–</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Signals + Audit -->
+    <div class="panel panel-right" style="display:flex;flex-direction:column;">
+      <div class="panel-hdr">
+        <span>Operations</span>
+        <span class="count-badge zero" id="conflict-count">0</span>
+      </div>
+      <div class="rpanel-tabs">
+        <button class="rpanel-tab active" onclick="switchRTab('signals')">Signals</button>
+        <button class="rpanel-tab" onclick="switchRTab('audit')">Audit Log</button>
+      </div>
+      <div class="rpanel-pane active" id="rpane-signals">
+        <div id="conflict-list"><div class="empty">Loading…</div></div>
+      </div>
+      <div class="rpanel-pane" id="rpane-audit">
+        <div id="audit-list"><div class="audit-empty">No audit entries yet</div></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- Vessel table -->
+  <div id="vessel-section">
+    <div class="panel-hdr" onclick="toggleVesselTable()">
+      <span>Vessel Roster</span>
+      <span id="vessel-count" style="font-size:11px;color:var(--text-dim);">▲ hide</span>
+    </div>
+    <div id="vessel-table-wrap">
+      <table>
+        <thead>
+          <tr><th>Vessel</th><th>Status</th><th>ETA</th><th>ETD</th><th>Berth</th><th>LOA</th><th>Cargo</th><th>Agent</th></tr>
+        </thead>
+        <tbody id="vessel-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   Horizon Beta 2
+═══════════════════════════════════════════════════════════════ */
+let _data=null, _map=null, _mapInit=false;
+let _vesselMarkers={}, _conflictRings=[];
+let _activeTab='timeline', _vesselTableOpen=true, _activeRTab='signals';
+
+/* ── Storage keys ── */
+const SIG_KEY='horizon_signal_states', AUDIT_KEY='horizon_audit_log', NOTIF_KEY='horizon_notifications';
+
+/* ── Signal state ── */
+function getSigStates(){try{return JSON.parse(localStorage.getItem(SIG_KEY)||'{}')}catch(e){return{}}}
+function getSigState(id){return getSigStates()[id]||'new'}
+function setSigState(id,state){const s=getSigStates();s[id]=state;localStorage.setItem(SIG_KEY,JSON.stringify(s))}
+
+/* ── Audit ── */
+function getAudit(){try{return JSON.parse(localStorage.getItem(AUDIT_KEY)||'[]')}catch(e){return[]}}
+function writeAudit(signalId,signalDesc,action){
+  const log=getAudit();
+  log.unshift({id:Date.now(),ts:new Date().toISOString(),signal_id:signalId,signal_desc:signalDesc,action,operator:'Operator'});
+  if(log.length>200)log.length=200;
+  localStorage.setItem(AUDIT_KEY,JSON.stringify(log));
+  renderAuditLog();
+}
+function renderAuditLog(){
+  const el=document.getElementById('audit-list'),log=getAudit();
+  if(!log.length){el.innerHTML='<div class="audit-empty">No audit entries yet</div>';return}
+  el.innerHTML=log.map(e=>`
+    <div class="audit-item">
+      <span class="audit-action-badge ${e.action}">${e.action}</span>
+      <div class="audit-body">
+        <div class="audit-signal">${esc(e.signal_desc||e.signal_id)}</div>
+        <div class="audit-meta">${fmtShort(e.ts)} &nbsp;·&nbsp; ${esc(e.operator)}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ── Notifications ── */
+function getNotifs(){try{return JSON.parse(localStorage.getItem(NOTIF_KEY)||'[]')}catch(e){return[]}}
+function saveNotifs(a){localStorage.setItem(NOTIF_KEY,JSON.stringify(a))}
+function pushNotif(type,message,color){
+  const n=getNotifs();
+  n.unshift({id:Date.now(),ts:new Date().toISOString(),type,message,color:color||'#38bdf8',read:false});
+  if(n.length>100)n.length=100;
+  saveNotifs(n);
+  renderNotifPanel();
+  updateBellBadge();
+}
+function renderNotifPanel(){
+  const el=document.getElementById('notif-list'),n=getNotifs();
+  if(!n.length){el.innerHTML='<div class="notif-empty">No notifications</div>';return}
+  el.innerHTML=n.map(x=>`
+    <div class="notif-item ${x.read?'':'unread'}">
+      <div class="notif-dot" style="background:${x.color}"></div>
+      <div class="notif-body">
+        <div class="notif-msg">${esc(x.message)}</div>
+        <div class="notif-ts">${fmtShort(x.ts)}</div>
+      </div>
+    </div>`).join('');
+}
+function updateBellBadge(){
+  const u=getNotifs().filter(n=>!n.read).length;
+  const b=document.getElementById('bell-badge');
+  b.textContent=u; b.classList.toggle('hidden',u===0);
+}
+function toggleNotifPanel(){
+  const p=document.getElementById('notif-panel');
+  p.classList.toggle('open');
+  if(p.classList.contains('open')){
+    saveNotifs(getNotifs().map(n=>({...n,read:true})));
+    renderNotifPanel(); updateBellBadge();
+  }
+}
+function clearNotifications(){saveNotifs([]);renderNotifPanel();updateBellBadge()}
+document.addEventListener('click',e=>{
+  const p=document.getElementById('notif-panel');
+  if(p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.bell-btn'))p.classList.remove('open');
+});
+
+/* ── Tab switching ── */
+function switchTab(name){
+  _activeTab=name;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&name==='timeline')||(i===1&&name==='map')));
+  document.getElementById('tab-timeline').classList.toggle('active',name==='timeline');
+  document.getElementById('tab-map').classList.toggle('active',name==='map');
+  if(name==='map'){
+    if(!_mapInit&&_data)setTimeout(()=>initMap(_data),80);
+    else if(_map)setTimeout(()=>_map.invalidateSize(),80);
+  }
+}
+function switchRTab(name){
+  _activeRTab=name;
+  document.querySelectorAll('.rpanel-tab').forEach((b,i)=>b.classList.toggle('active',(i===0&&name==='signals')||(i===1&&name==='audit')));
+  document.getElementById('rpane-signals').classList.toggle('active',name==='signals');
+  document.getElementById('rpane-audit').classList.toggle('active',name==='audit');
+  if(name==='audit')renderAuditLog();
+}
+
+/* ── Fetch & render ── */
+let _knownCIds=new Set();
+async function refresh(){
+  try{
+    const r=await fetch('/api/summary');
+    _data=await r.json();
+    render(_data);
+    if(_activeTab==='map'&&_mapInit)updateMapMarkers(_data);
+  }catch(e){console.error('Refresh failed',e)}
+}
+function render(d){
+  updateHeader(d);
+  renderConditionsBar(d.weather,d.tides);
+  renderGuidance(d.guidance||[]);
+  renderConflicts(d.conflicts||[]);
+  renderVesselTable(d.vessels||[]);
+  renderGantt(d);
+  // Notify new conflicts
+  (d.conflicts||[]).forEach(c=>{
+    if(!_knownCIds.has(c.id)){
+      _knownCIds.add(c.id);
+      const col=c.signal_type==='CONFLICT'?'#ef4444':c.signal_type==='WARNING'?'#f97316':'#eab308';
+      pushNotif('new_conflict',`New ${c.signal_type}: ${(c.description||c.conflict_type).slice(0,70)}`,col);
+    }
+  });
+  // Tide restriction notification (once per height change)
+  if(d.tides&&d.tides.berth_restrictions&&d.tides.berth_restrictions.length){
+    const k='tide_'+d.tides.current_height_m;
+    if(!sessionStorage.getItem(k)){
+      sessionStorage.setItem(k,'1');
+      pushNotif('tide_warning',`Tide ${d.tides.state} ${d.tides.current_height_m}m — restrictions: ${d.tides.berth_restrictions.join(', ')},'#eab308`);
+    }
+  }
+}
+
+/* ── Header ── */
+function updateHeader(d){
+  const ps=d.port_status||{};
+  document.getElementById('s-vessels').textContent =ps.vessels_in_port??'–';
+  document.getElementById('s-berths').textContent  =`${ps.berths_occupied??'–'}/${ps.berths_total??'–'}`;
+  document.getElementById('s-expected').textContent=ps.vessels_expected_24h??'–';
+  document.getElementById('s-conflicts').textContent=ps.active_conflicts??'–';
+  document.getElementById('s-conflict-chip').classList.toggle('alert',(ps.critical_conflicts||0)>0);
+}
+
+/* ── Conditions bar ── */
+function renderConditionsBar(wx,tide){
+  if(!wx)return;
+  const cel=document.getElementById('cb-cond');
+  cel.textContent=wx.conditions; cel.className=`cbar-cond ${wx.conditions}`;
+  document.getElementById('cb-wind').textContent    =`${wx.wind_speed_kts} kts ${wx.wind_direction_label}  BFT ${wx.wind_beaufort}`;
+  document.getElementById('cb-swell').textContent   =`${wx.swell_height_m}m ${wx.swell_direction_label} @ ${wx.swell_period_s}s`;
+  document.getElementById('cb-vis').textContent     =`${wx.visibility_nm} nm`;
+  document.getElementById('cb-pressure').textContent=`${wx.pressure_hpa} hPa`;
+  if(tide){
+    const arr=tide.state==='Rising'?'↑':tide.state==='Falling'?'↓':'↔';
+    const el=document.getElementById('cb-tide-state');
+    el.textContent=arr; el.className=`tide-arrow ${tide.state}`;
+    document.getElementById('cb-tide-val').textContent =`${tide.current_height_m}m`;
+    document.getElementById('cb-tide-next').textContent=`→ ${tide.next_event_type} ${fmtShort(tide.next_event_time)} (${tide.next_event_height_m}m)`;
+    const pct=Math.round(((tide.current_height_m-(tide.mean_height_m-tide.amplitude_m))/(tide.amplitude_m*2))*100);
+    document.getElementById('tide-bar-fill').style.width=Math.min(100,Math.max(0,pct))+'%';
+    const rr=document.getElementById('tide-restriction-row');
+    if(rr)rr.style.display=(tide.berth_restrictions&&tide.berth_restrictions.length)?'flex':'none';
+  }
+  // Wind overlay
+  document.getElementById('wind-spd').textContent      =`${wx.wind_speed_kts} kts`;
+  document.getElementById('wind-dir-label').textContent=wx.wind_direction_label;
+  document.getElementById('wind-arrow').style.transform=`rotate(${wx.wind_direction_deg}deg)`;
+}
+
+/* ── Guidance ── */
+function renderGuidance(items){
+  const el=document.getElementById('guidance-list'),badge=document.getElementById('guidance-count');
+  if(!items.length){el.innerHTML='<div class="empty">No guidance items</div>';badge.textContent='0';badge.className='count-badge zero';return}
+  badge.textContent=items.length;
+  badge.className='count-badge'+(items.some(i=>i.priority==='critical')?'':' zero');
+  el.innerHTML=items.map(g=>`
+    <div class="guidance-item p-${g.priority}" onclick="this.classList.toggle('open')">
+      <div class="guidance-hdr">
+        <div class="prio-dot" style="background:${priCol(g.priority)}"></div>
+        <div class="guidance-msg">${esc(g.message)}</div>
+      </div>
+      <div class="guidance-detail">
+        ${esc(g.detail||'')}
+        ${g.deadline?`<div style="margin-top:4px;color:var(--high);font-size:10px">⏰ ${fmtTime(g.deadline)}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+/* ── Signals ── */
+function renderConflicts(conflicts){
+  const el=document.getElementById('conflict-list'),badge=document.getElementById('conflict-count');
+  badge.textContent=conflicts.length;
+  badge.className='count-badge'+(conflicts.length===0?' zero':conflicts.some(c=>c.signal_type==='WARNING')?' warn':'');
+  if(!conflicts.length){el.innerHTML='<div class="empty">No active signals</div>';return}
+  el.innerHTML=conflicts.map(c=>{
+    const state=getSigState(c.id),sigType=c.signal_type||'ADVISORY';
+    const seqAlts=c.sequencing_alternatives||[],hasSeq=sigType==='CONFLICT'&&seqAlts.length>0;
+    const edesc=esc(c.description||'');
+    const btns=(()=>{
+      if(state==='new')return`<button class="sig-btn ack" onclick="sigAction('${c.id}','${edesc}','acknowledged',event)">✓ Acknowledge</button><button class="sig-btn defer" onclick="sigAction('${c.id}','${edesc}','deferred',event)">⏸ Defer</button><button class="sig-btn dismiss" onclick="sigAction('${c.id}','${edesc}','dismissed',event)">✕ Dismiss</button>`;
+      if(state==='acknowledged')return`<button class="sig-btn defer" onclick="sigAction('${c.id}','${edesc}','deferred',event)">⏸ Defer</button><button class="sig-btn dismiss" onclick="sigAction('${c.id}','${edesc}','dismissed',event)">✕ Dismiss</button><button class="sig-btn restore" onclick="sigAction('${c.id}','${edesc}','new',event)">↺ Restore</button>`;
+      if(state==='deferred')return`<button class="sig-btn ack" onclick="sigAction('${c.id}','${edesc}','acknowledged',event)">✓ Acknowledge</button><button class="sig-btn restore" onclick="sigAction('${c.id}','${edesc}','new',event)">↺ Restore</button>`;
+      return`<button class="sig-btn restore" onclick="sigAction('${c.id}','${edesc}','new',event)">↺ Restore</button>`;
+    })();
+    const seqSect=hasSeq?`<div class="seq-section"><div class="seq-title">⇄ Sequencing Alternatives</div>${seqAlts.map((alt,ai)=>`<div class="seq-alt" id="seq-${c.id}-${ai}" onclick="selectSeq('${c.id}',${ai})"><div class="seq-alt-hdr"><span class="seq-alt-label">${esc(alt.label)}</span><span class="feasibility-badge ${alt.feasibility}">${alt.feasibility}</span></div>${alt.cascade_impact?`<div class="seq-cascade">Cascade: ${esc(alt.cascade_impact)}</div>`:''}</div>`).join('')}</div>`:'';
+    return`<div class="conflict-card sev-${c.severity}" id="cc-${c.id}">
+      <div class="conflict-hdr" onclick="toggleConflict('${c.id}')">
+        <span class="sev-badge ${c.severity}">${c.severity.toUpperCase()}</span>
+        <span class="signal-badge ${sigType}">${sigType}</span>
+        <span class="conflict-title">${esc((c.description||c.conflict_type).slice(0,58))}</span>
+        <span class="state-badge ${state}">${state}</span>
+      </div>
+      <div class="conflict-body">
+        <div class="conflict-desc">${edesc}</div>
+        <div class="signal-actions">${btns}</div>
+        ${c.resolution_options&&c.resolution_options.length?`<div class="res-options-title">Resolution Options</div>${c.resolution_options.map(r=>`<div class="res-opt">• ${esc(r)}</div>`).join('')}`:''}
+        ${seqSect}
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleConflict(id){const c=document.getElementById('cc-'+id);if(c)c.classList.toggle('open')}
+function sigAction(id,desc,state,e){
+  e.stopPropagation();
+  setSigState(id,state);
+  const lbl={acknowledged:'ACK',deferred:'DEFER',dismissed:'DISMISS',new:'RESTORE'}[state]||state.toUpperCase();
+  writeAudit(id,desc,lbl);
+  const col={ACK:'#4ade80',DEFER:'#9ca3af',DISMISS:'#f87171',RESTORE:'#38bdf8'}[lbl]||'#38bdf8';
+  pushNotif('signal_change',`${lbl}: ${(desc||id).slice(0,70)}`,col);
+  if(_data)renderConflicts(_data.conflicts||[]);
+}
+function selectSeq(cid,ai){
+  const card=document.getElementById('cc-'+cid);
+  if(!card)return;
+  card.querySelectorAll('.seq-alt').forEach((el,i)=>el.classList.toggle('selected',i===ai));
+}
+
+/* ── Gantt ── */
+function renderGantt(d){
+  const berths=d.berths||[],vessels=d.vessels||[],conflicts=d.conflicts||[];
+  const cvids=new Set(); conflicts.forEach(c=>(c.vessel_ids||[]).forEach(id=>cvids.add(id)));
+  const now=Date.now(),t0=now,t1=now+48*3600*1000,tSpan=t1-t0;
+  const LEFT=110,ROW=34,PAD=10;
+  const W=Math.max(600,(document.getElementById('timeline-wrap').offsetWidth||800)-LEFT-PAD*2);
+  const H=berths.length*ROW+40;
+  const svg=document.getElementById('gantt');
+  svg.setAttribute('width',LEFT+W+PAD); svg.setAttribute('height',H);
+  svg.setAttribute('viewBox',`0 0 ${LEFT+W+PAD} ${H}`);
+  let html='';
+  for(let h=0;h<=48;h+=6){
+    const x=LEFT+(h/48)*W;
+    html+=`<line x1="${x}" y1="20" x2="${x}" y2="${H}" stroke="#243350" stroke-width="1"/>`;
+    html+=`<text x="${x}" y="14" text-anchor="middle" fill="#6b82a8" font-size="10">+${h}h</text>`;
+  }
+  berths.forEach((b,bi)=>{
+    const y=22+bi*ROW;
+    html+=`<rect x="0" y="${y}" width="${LEFT+W+PAD}" height="${ROW}" fill="${bi%2===0?'#0f1927':'#0b1520'}"/>`;
+    html+=`<text x="${LEFT-6}" y="${y+ROW/2+4}" text-anchor="end" fill="#6b82a8" font-size="11">${esc(b.name||b.id)}</text>`;
+    const bc=b.status==='maintenance'?'#eab308':b.status==='available'?'#22c55e':'#3b82f6';
+    html+=`<circle cx="${LEFT-22}" cy="${y+ROW/2}" r="4" fill="${bc}" opacity="0.7"/>`;
+    vessels.filter(v=>v.berth_id===b.id&&v.status!=='departed').forEach(v=>{
+      const vS=Math.max(t0,new Date(v.ata||v.eta).getTime()),vE=Math.min(t1,new Date(v.atd||v.etd).getTime());
+      if(vE<=t0||vS>=t1)return;
+      const xS=LEFT+((vS-t0)/tSpan)*W,xE=LEFT+((vE-t0)/tSpan)*W,bw=Math.max(4,xE-xS);
+      const col=statusColor(v.status),isC=cvids.has(v.id);
+      html+=`<rect x="${xS}" y="${y+4}" width="${bw}" height="${ROW-8}" rx="3" fill="${col}" fill-opacity="0.75" stroke="${isC?'#ef4444':col}" stroke-width="${isC?2:1}" stroke-dasharray="${isC?'4,3':'none'}"><title>${v.name} | ${v.status}</title></rect>`;
+      if(bw>40)html+=`<text x="${xS+bw/2}" y="${y+ROW/2+4}" text-anchor="middle" fill="#fff" fill-opacity="0.9" font-size="10" pointer-events="none">${esc(v.name.length>14?v.name.slice(0,12)+'…':v.name)}</text>`;
+    });
+  });
+  html+=`<line x1="${LEFT}" y1="20" x2="${LEFT}" y2="${H}" stroke="#38bdf8" stroke-width="2" opacity="0.8"/>`;
+  html+=`<text x="${LEFT}" y="10" text-anchor="middle" fill="#38bdf8" font-size="9" font-weight="bold">NOW</text>`;
+  svg.innerHTML=html;
+}
+
+/* ── Port Map ── */
+function initMap(d){
+  const geo=d.port_geo; if(!geo)return;
+  _map=L.map('map',{center:[geo.center.lat,geo.center.lon],zoom:geo.zoom||13,zoomControl:true});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(_map);
+  _mapInit=true; updateMapMarkers(d);
+  setTimeout(()=>_map.invalidateSize(),150);
+  setTimeout(()=>_map.invalidateSize(),500);
+}
+function updateMapMarkers(d){
+  if(!_map||!d)return;
+  const geo=d.port_geo||{},vessels=d.vessels||[],conflicts=d.conflicts||[];
+  const cvids=new Set(); conflicts.forEach(c=>(c.vessel_ids||[]).forEach(id=>cvids.add(id)));
+  _conflictRings.forEach(r=>_map.removeLayer(r)); _conflictRings=[];
+  if(geo.channel_waypoints)
+    L.polyline(geo.channel_waypoints.map(w=>[w.lat,w.lon]),{color:'#38bdf8',weight:2,opacity:.3,dashArray:'6,4'}).addTo(_map);
+  if(geo.anchorage)
+    L.circle([geo.anchorage.lat,geo.anchorage.lon],{radius:(geo.anchorage.radius_km||1.5)*1000,color:'#6b7280',fillColor:'#6b7280',fillOpacity:.06,weight:1,dashArray:'4,4'}).addTo(_map).bindPopup(`<strong>${geo.anchorage.label||'Anchorage'}</strong>`);
+  if(geo.pilot_boarding_ground){
+    const p=geo.pilot_boarding_ground;
+    L.marker([p.lat,p.lon],{icon:L.divIcon({className:'',html:`<div style="width:12px;height:12px;background:#a78bfa;border-radius:2px;border:2px solid #7c3aed;transform:rotate(45deg)"></div>`,iconSize:[12,12],iconAnchor:[6,6]})}).addTo(_map).bindPopup(`<strong>${p.label||'Pilot Boarding Ground'}</strong>`);
+  }
+  const bById={}; (d.berths||[]).forEach(b=>{bById[b.id]=b});
+  if(geo.berths){
+    Object.entries(geo.berths).forEach(([bId,bGeo])=>{
+      const b=bById[bId]||{};
+      const restricted=d.tides&&d.tides.berth_restrictions&&d.tides.berth_restrictions.includes(bId);
+      const col=restricted?'#eab308':b.status==='maintenance'?'#eab308':b.status==='available'?'#22c55e':'#3b82f6';
+      L.marker([bGeo.lat,bGeo.lon],{icon:L.divIcon({className:'',html:`<div style="width:16px;height:6px;background:${col};border-radius:2px;opacity:.85;border:1px solid ${col};box-shadow:0 0 5px ${col}66"></div>`,iconSize:[16,6],iconAnchor:[8,3]})}).addTo(_map).bindPopup(`<strong>${b.name||bId}</strong><br>Status: ${b.status||'–'}${restricted?'<br><span style="color:#eab308">⚠ Tide restriction</span>':''}`);
+    });
+  }
+  Object.values(_vesselMarkers).forEach(m=>_map.removeLayer(m)); _vesselMarkers={};
+  vessels.forEach(v=>{
+    if(!v.lat||!v.lon)return;
+    const col=statusColor(v.status),isC=cvids.has(v.id);
+    const m=L.marker([v.lat,v.lon],{icon:L.divIcon({className:'',html:`<div style="width:10px;height:10px;background:${col};border-radius:50%;border:2px solid ${isC?'#ef4444':col};box-shadow:0 0 ${isC?'8px #ef4444':'4px '+col}88;opacity:.92"></div>`,iconSize:[10,10],iconAnchor:[5,5]})}).addTo(_map);
+    m.bindPopup(`<strong>${v.name}</strong><br>Status: <span style="color:${col}">${v.status}</span><br>LOA: ${v.loa||'–'}m &nbsp;|&nbsp; Berth: ${v.berth_id||'TBA'}<br>ETA: ${fmtTime(v.eta)}${isC?'<br><span style="color:#ef4444;font-weight:600">⚠ Active conflict</span>':''}`);
+    _vesselMarkers[v.id]=m;
+    if(isC){const ring=L.circle([v.lat,v.lon],{radius:200,color:'#ef4444',fillColor:'#ef4444',fillOpacity:.05,weight:1.5,opacity:.45}).addTo(_map);_conflictRings.push(ring)}
+  });
+}
+
+/* ── Vessel table ── */
+function renderVesselTable(vessels){
+  const tb=document.getElementById('vessel-tbody');
+  if(!vessels.length){tb.innerHTML='<tr><td colspan="8" class="empty">No vessels</td></tr>';return}
+  tb.innerHTML=vessels.map(v=>`<tr>
+    <td><strong style="color:var(--text-bright)">${esc(v.name)}</strong><br><span style="color:var(--text-dim);font-size:10px">${esc(v.vessel_type||'')}</span></td>
+    <td><span class="status-pill status-${v.status}">${v.status}</span></td>
+    <td style="font-variant-numeric:tabular-nums">${fmtTime(v.eta)}</td>
+    <td style="font-variant-numeric:tabular-nums">${fmtTime(v.etd)}</td>
+    <td>${esc(v.berth_id||'TBA')}</td>
+    <td>${v.loa?v.loa+'m':'–'}</td>
+    <td>${esc(v.cargo||'–')}</td>
+    <td style="color:var(--text-dim)">${esc(v.agent||'–')}</td>
+  </tr>`).join('');
+}
+function toggleVesselTable(){
+  _vesselTableOpen=!_vesselTableOpen;
+  document.getElementById('vessel-table-wrap').style.display=_vesselTableOpen?'':'none';
+  document.getElementById('vessel-count').textContent=_vesselTableOpen?'▲ hide':'▼ show';
+}
+
+/* ── Helpers ── */
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function fmtTime(iso){if(!iso)return'–';try{return new Date(iso).toUTCString().slice(5,22)+' UTC'}catch(e){return String(iso)}}
+function fmtShort(iso){
+  if(!iso)return'–';
+  try{const d=new Date(iso);return`${String(d.getUTCDate()).padStart(2,'0')} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()]} ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')} UTC`}
+  catch(e){return String(iso)}
+}
+function statusColor(s){return{berthed:'#22c55e',confirmed:'#3b82f6',scheduled:'#6b7280',at_risk:'#f97316',delayed:'#ef4444',departed:'#374151'}[s]||'#6b7280'}
+function priCol(p){return{critical:'#ef4444',high:'#f97316',medium:'#eab308',info:'#38bdf8'}[p]||'#6b7280'}
+
+/* ── Clock ── */
+setInterval(()=>{
+  const d=new Date();
+  document.getElementById('clock').textContent=`${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}:${String(d.getUTCSeconds()).padStart(2,'0')} UTC`;
+},1000);
+
+/* ── Auto-refresh ── */
+setInterval(refresh,60000);
+
+/* ── Boot ── */
+renderAuditLog(); renderNotifPanel(); updateBellBadge(); refresh();
+</script>
+</body>
+</html>

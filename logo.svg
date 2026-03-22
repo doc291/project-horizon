@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- Background -->
+  <rect width="400" height="400" fill="#0d1b2e"/>
+
+  <!-- ── Teal colour ── #3ecfcf / #40d0d0 -->
+
+  <!-- PROJECT label -->
+  <text x="200" y="90" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-size="28" font-weight="400" letter-spacing="10"
+        fill="#3ecfcf">PROJECT</text>
+
+  <!-- ── Scene group, centred ── -->
+  <g transform="translate(200,220)">
+
+    <!-- Horizon arc (large quarter-circle from left to right) -->
+    <path d="M -145 10 A 155 120 0 0 1 145 10"
+          fill="none" stroke="#3ecfcf" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- Water / horizon line -->
+    <line x1="-160" y1="18" x2="160" y2="18" stroke="#3ecfcf" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Water wake - slight angular wave under vessels -->
+    <path d="M -80 28 L -50 18 L 0 28 L 50 18 L 90 28" fill="none" stroke="#3ecfcf" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+
+    <!-- ── Port crane (left) ── -->
+    <!-- Vertical mast -->
+    <rect x="-135" y="-75" width="10" height="90" rx="2" fill="#3ecfcf"/>
+    <!-- Horizontal boom -->
+    <rect x="-155" y="-75" width="70" height="8" rx="2" fill="#3ecfcf"/>
+    <!-- Diagonal support -->
+    <line x1="-130" y1="-67" x2="-100" y2="-10" stroke="#3ecfcf" stroke-width="5" stroke-linecap="round"/>
+    <!-- Left diagonal brace -->
+    <line x1="-130" y1="-67" x2="-155" y2="-20" stroke="#3ecfcf" stroke-width="4" stroke-linecap="round"/>
+    <!-- Hoist cable -->
+    <line x1="-120" y1="-68" x2="-120" y2="-45" stroke="#3ecfcf" stroke-width="2.5"/>
+    <!-- Hook block -->
+    <rect x="-126" y="-46" width="12" height="8" rx="1.5" fill="#3ecfcf"/>
+    <!-- Crane legs -->
+    <line x1="-140" y1="15" x2="-148" y2="40" stroke="#3ecfcf" stroke-width="5" stroke-linecap="round"/>
+    <line x1="-120" y1="15" x2="-112" y2="40" stroke="#3ecfcf" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- ── Large container ship (centre) ── -->
+    <!-- Hull -->
+    <path d="M -68 18 L -72 40 L 68 40 L 72 18 Z" fill="#3ecfcf"/>
+    <!-- Bow wave left -->
+    <path d="M -72 28 L -85 18" fill="none" stroke="#3ecfcf" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Superstructure / bridge -->
+    <rect x="-8" y="-15" width="42" height="34" rx="2" fill="#3ecfcf"/>
+    <!-- Bridge windows -->
+    <rect x="-3" y="-10" width="8" height="6" rx="1" fill="#0d1b2e" opacity="0.5"/>
+    <rect x="9"  y="-10" width="8" height="6" rx="1" fill="#0d1b2e" opacity="0.5"/>
+    <rect x="21" y="-10" width="8" height="6" rx="1" fill="#0d1b2e" opacity="0.5"/>
+    <!-- Funnel / stack -->
+    <rect x="22" y="-28" width="10" height="14" rx="2" fill="#3ecfcf"/>
+    <!-- Cargo containers -->
+    <rect x="-65" y="-2"  width="26" height="20" rx="1.5" fill="#3ecfcf" opacity="0.7"/>
+    <rect x="-65" y="-22" width="26" height="18" rx="1.5" fill="#3ecfcf" opacity="0.55"/>
+    <rect x="-37" y="-2"  width="26" height="20" rx="1.5" fill="#3ecfcf" opacity="0.7"/>
+
+    <!-- ── Small vessel (right, tugboat/pilot) ── -->
+    <!-- Hull -->
+    <path d="M 50 18 L 46 36 L 110 36 L 112 18 Z" fill="#3ecfcf" opacity="0.9"/>
+    <!-- Superstructure -->
+    <rect x="68" y="-5" width="30" height="24" rx="2" fill="#3ecfcf"/>
+    <!-- Mast -->
+    <line x1="80" y1="-5" x2="80" y2="-22" stroke="#3ecfcf" stroke-width="3" stroke-linecap="round"/>
+    <!-- Radar/top -->
+    <rect x="76" y="-26" width="8" height="5" rx="1" fill="#3ecfcf"/>
+    <!-- Porthole -->
+    <circle cx="76" cy="8" r="4" fill="#0d1b2e" opacity="0.4"/>
+  </g>
+
+  <!-- Horizon text -->
+  <text x="200" y="330" text-anchor="middle"
+        font-family="'Segoe UI', Georgia, system-ui, serif"
+        font-size="58" font-weight="300" letter-spacing="2"
+        fill="#3ecfcf">Horizon</text>
+</svg>
