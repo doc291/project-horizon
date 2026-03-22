@@ -226,7 +226,7 @@
     .conflict-card.sev-critical { border-color: var(--critical); }
     .conflict-card.sev-high     { border-color: var(--high); }
     .conflict-card.sev-medium   { border-color: var(--medium); }
-    .conflict-hdr   { padding: 8px 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; cursor: pointer; }
+    .conflict-hdr   { padding: 8px 10px; display: flex; align-items: flex-start; gap: 4px; flex-wrap: wrap; cursor: pointer; }
     .sev-badge      { font-size: 9px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; }
     .sev-badge.critical { background: rgba(239,68,68,.2); color: var(--critical); }
     .sev-badge.high     { background: rgba(249,115,22,.2); color: var(--high); }
@@ -982,10 +982,13 @@ function renderConflicts(conflicts){
     const hasDSW = sigType === 'CONFLICT' && c.decision_support;
     return`<div class="conflict-card sev-${c.severity}" id="cc-${c.id}">
       <div class="conflict-hdr" onclick="toggleConflict('${c.id}')">
-        <span class="sev-badge ${c.severity}">${c.severity.toUpperCase()}</span>
-        <span class="signal-badge ${sigType}">${sigType}</span>
-        <span class="conflict-title">${esc((c.description||c.conflict_type).slice(0,58))}</span>
-        ${hasDSW ? `<button class="sig-btn ack" style="margin-left:auto;flex-shrink:0;font-size:10px;padding:3px 8px;background:rgba(56,189,248,.15);color:var(--accent);border-color:rgba(56,189,248,.4);" onclick="event.stopPropagation();openDSW('${c.id}')">⚡ Decision Support</button>` : `<span class="state-badge ${state}">${state}</span>`}
+        <div style="display:flex;align-items:center;gap:6px;width:100%;flex-wrap:nowrap;">
+          <span class="sev-badge ${c.severity}">${c.severity.toUpperCase()}</span>
+          <span class="signal-badge ${sigType}">${sigType}</span>
+          ${!hasDSW ? `<span class="state-badge ${state}" style="margin-left:auto">${state}</span>` : ''}
+        </div>
+        <div class="conflict-title" style="width:100%;margin-top:5px;">${esc((c.description||c.conflict_type).slice(0,72))}</div>
+        ${hasDSW ? `<button class="sig-btn ack" style="width:100%;margin-top:7px;text-align:center;font-size:10px;padding:5px 8px;background:rgba(56,189,248,.12);color:var(--accent);border-color:rgba(56,189,248,.35);" onclick="event.stopPropagation();openDSW('${c.id}')">⚡ Open Decision Support</button>` : ''}
       </div>
       <div class="conflict-body">
         <div class="conflict-desc">${edesc}</div>
