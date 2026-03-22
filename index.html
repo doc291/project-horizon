@@ -137,9 +137,9 @@
     .tide-arrow.Rising  { color: var(--accent); }
     .tide-arrow.Falling { color: var(--text-dim); }
     .tide-arrow.Slack   { color: var(--medium); }
-    #cb-ukc.ukc-good     { color: #4ade80; }
-    #cb-ukc.ukc-warning  { color: var(--medium); }
-    #cb-ukc.ukc-critical { color: var(--critical); font-weight: 800; }
+    #cb-ukc.ukc-good,  #cb-aukc.ukc-good     { color: #4ade80; }
+    #cb-ukc.ukc-warning, #cb-aukc.ukc-warning  { color: var(--medium); }
+    #cb-ukc.ukc-critical,#cb-aukc.ukc-critical { color: var(--critical); font-weight: 800; }
 
     /* ── Main 3-col ── */
     .main { flex: 1; display: flex; overflow: hidden; }
@@ -603,9 +603,14 @@
       </div>
     </div>
     <div class="cbar-seg">
-      <span class="cbar-label">MIN UKC</span>
+      <span class="cbar-label" title="Under Keel Clearance — vessels currently berthed, live tide">BERTHED UKC</span>
       <span id="cb-ukc" class="cbar-val">–</span>
       <span id="cb-ukc-vessel" style="color:var(--text-dim);font-size:10px;margin-left:3px;">–</span>
+    </div>
+    <div class="cbar-seg" style="border-right:none;">
+      <span class="cbar-label" title="Predicted UKC for next inbound vessel at its assigned berth at ETA tide">ARRIVAL UKC</span>
+      <span id="cb-aukc" class="cbar-val">–</span>
+      <span id="cb-aukc-vessel" style="color:var(--text-dim);font-size:10px;margin-left:3px;">–</span>
     </div>
   </div>
 
@@ -897,7 +902,7 @@ async function refresh(){
 }
 function render(d){
   updateHeader(d);
-  renderConditionsBar(d.weather,d.tides,d.ukc);
+  renderConditionsBar(d.weather,d.tides,d.ukc,d.arrival_ukc);
   renderGuidance(d.guidance||[]);
   renderDecisions(d.conflicts||[]);
   renderConflicts(d.conflicts||[]);
@@ -934,7 +939,7 @@ function updateHeader(d){
 }
 
 /* ── Conditions bar ── */
-function renderConditionsBar(wx,tide,ukc){
+function renderConditionsBar(wx,tide,ukc,aukc){
   if(!wx)return;
   const cel=document.getElementById('cb-cond');
   cel.textContent=wx.conditions; cel.className=`cbar-cond ${wx.conditions}`;
@@ -953,13 +958,22 @@ function renderConditionsBar(wx,tide,ukc){
     const rr=document.getElementById('tide-restriction-row');
     if(rr)rr.style.display=(tide.berth_restrictions&&tide.berth_restrictions.length)?'flex':'none';
   }
-  // UKC
+  // BERTHED UKC — live clearance for vessels currently in berth
   if(ukc && ukc.min_ukc_m !== null){
     const uEl=document.getElementById('cb-ukc');
     const uVes=document.getElementById('cb-ukc-vessel');
     uEl.textContent=`${ukc.min_ukc_m}m`;
     uEl.className='cbar-val ukc-'+ukc.status;
     uVes.textContent=ukc.critical_vessel?`(${ukc.critical_vessel.replace(/^MV /,'')})`:'-';
+  }
+  // ARRIVAL UKC — predicted clearance for next inbound vessel at its ETA
+  if(aukc && aukc.min_ukc_m !== null){
+    const aEl=document.getElementById('cb-aukc');
+    const aVes=document.getElementById('cb-aukc-vessel');
+    aEl.textContent=`${aukc.min_ukc_m}m`;
+    aEl.className='cbar-val ukc-'+aukc.status;
+    const etaLabel=aukc.hrs_to_eta!=null?` in ${aukc.hrs_to_eta}h`:'';
+    aVes.textContent=aukc.critical_vessel?`(${aukc.critical_vessel.replace(/^MV /,'')}${etaLabel})`:'-';
   }
   // Wind overlay
   document.getElementById('wind-spd').textContent      =`${wx.wind_speed_kts} kts`;

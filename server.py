@@ -118,6 +118,20 @@ def vessel_position(v: dict, now: datetime) -> dict:
         # Offshore — further into Moreton Bay
         return {"lat": -27.345 + jlat * 3, "lon": 153.280 + jlon * 3}
 
+def _predict_tide_height(dt: datetime) -> float:
+    """
+    Predict tide height at any future (or past) datetime using the same
+    deterministic cosine model as make_tides().  Safe to call for ETA lookahead.
+    """
+    PERIOD = 12.42
+    MEAN   = 2.1
+    AMP    = 1.65
+    day_h  = hashlib.md5(f"tide-{dt.strftime('%Y%m%d')}".encode()).hexdigest()
+    phase_h = (int(day_h[0:4], 16) % int(PERIOD * 100)) / 100.0
+    t       = (dt.hour + dt.minute / 60.0 + phase_h) % PERIOD
+    return round(MEAN + AMP * math.cos(2 * math.pi * t / PERIOD), 2)
+
+
 # ── Mock data generation ──────────────────────────────────────────────────────
 
 # Chart datum depths (LAT) per berth in metres
@@ -751,6 +765,57 @@ def make_tides():
     }
 
 
+def compute_arrival_ukc(vessels: list, berths: list, now: datetime) -> dict:
+    """
+    Predicted UKC for each inbound vessel at its assigned berth at ETA.
+    Uses the deterministic tide model to forecast height at ETA.
+    Only looks ahead 48 h; ignores vessels already past ETA.
+    UKC = (berth LAT depth + predicted tide at ETA) − vessel draught
+    """
+    berth_depth = {b["id"]: b["lat_depth_m"] for b in berths}
+    entries = []
+    for v in vessels:
+        if v["status"] not in ("confirmed", "scheduled", "at_risk"):
+            continue
+        if not v.get("berth_id"):
+            continue
+        eta_dt = isoparse(v["eta"])
+        hrs_to_eta = (eta_dt - now).total_seconds() / 3600
+        if hrs_to_eta < 0 or hrs_to_eta > 48:
+            continue
+        predicted_tide = _predict_tide_height(eta_dt)
+        lat_d  = berth_depth.get(v["berth_id"], 12.0)
+        avail  = lat_d + predicted_tide
+        ukc    = round(avail - v["draught"], 2)
+        entries.append({
+            "vessel_id":        v["id"],
+            "vessel_name":      v["name"],
+            "berth_id":         v["berth_id"],
+            "eta":              v["eta"],
+            "hrs_to_eta":       round(hrs_to_eta, 1),
+            "ukc_m":            ukc,
+            "predicted_tide_m": predicted_tide,
+            "available_depth_m": round(avail, 2),
+            "vessel_draught_m": v["draught"],
+        })
+    if not entries:
+        return {"min_ukc_m": None, "critical_vessel": None, "critical_berth": None,
+                "critical_eta": None, "status": "no_vessels", "all": []}
+    entries.sort(key=lambda r: r["ukc_m"])
+    mn     = entries[0]
+    status = ("critical" if mn["ukc_m"] < 0.5 else
+              "warning"  if mn["ukc_m"] < 1.0 else "good")
+    return {
+        "min_ukc_m":       mn["ukc_m"],
+        "critical_vessel": mn["vessel_name"],
+        "critical_berth":  mn["berth_id"],
+        "critical_eta":    mn["eta"],
+        "hrs_to_eta":      mn["hrs_to_eta"],
+        "status":          status,
+        "all":             entries,
+    }
+
+
 # ── Beta 3: Berth Utilisation Forecast ────────────────────────────────────────
 
 def make_berth_utilisation(vessels, berths, now):
@@ -921,7 +986,8 @@ def build_summary():
     etd_risk   = compute_etd_risk(vessels, conflicts, weather, tides)
     dashboard  = make_dashboard(vessels, berths, conflicts, pilotage, towage,
                                 weather, tides, etd_risk, berth_util, now)
-    ukc        = compute_ukc(vessels, berths, tides["current_height_m"])
+    ukc          = compute_ukc(vessels, berths, tides["current_height_m"])
+    arrival_ukc  = compute_arrival_ukc(vessels, berths, now)
 
     occupied   = sum(1 for b in berths if b["status"] in ("occupied", "reserved"))
     available  = sum(1 for b in berths if b["status"] == "available")
@@ -963,6 +1029,7 @@ def build_summary():
         "etd_risk":          etd_risk,
         "dashboard":         dashboard,
         "ukc":               ukc,
+        "arrival_ukc":       arrival_ukc,
     }
 
 
