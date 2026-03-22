@@ -1249,10 +1249,24 @@ function toggleVesselTable(){
 
 /* ── Helpers ── */
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function fmtTime(iso){if(!iso)return'–';try{return new Date(iso).toUTCString().slice(5,22)+' UTC'}catch(e){return String(iso)}}
+/* Brisbane = UTC+10, no DST */
+const AEST_OFFSET_MS = 10 * 60 * 60 * 1000;
+function _aest(d){return new Date(d.getTime()+AEST_OFFSET_MS)}
+function _hm(d,utc){const h=utc?d.getUTCHours():d.getUTCHours(),m=utc?d.getUTCMinutes():d.getUTCMinutes();return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`}
+function _hmUTC(d){return`${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`}
+function _hmAEST(d){const a=_aest(d);return`${String(a.getUTCHours()).padStart(2,'0')}:${String(a.getUTCMinutes()).padStart(2,'0')}`}
+function fmtTime(iso){
+  if(!iso)return'–';
+  try{const d=new Date(iso);return`${_hmUTC(d)} UTC / ${_hmAEST(d)} AEST`}
+  catch(e){return String(iso)}
+}
 function fmtShort(iso){
   if(!iso)return'–';
-  try{const d=new Date(iso);return`${String(d.getUTCDate()).padStart(2,'0')} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()]} ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')} UTC`}
+  const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  try{
+    const d=new Date(iso);
+    return`${String(d.getUTCDate()).padStart(2,'0')} ${MO[d.getUTCMonth()]} ${_hmUTC(d)} UTC / ${_hmAEST(d)} AEST`
+  }
   catch(e){return String(iso)}
 }
 function statusColor(s){return{berthed:'#22c55e',confirmed:'#3b82f6',scheduled:'#6b7280',at_risk:'#f97316',delayed:'#ef4444',departed:'#374151'}[s]||'#6b7280'}
@@ -1261,7 +1275,10 @@ function priCol(p){return{critical:'#ef4444',high:'#f97316',medium:'#eab308',inf
 /* ── Clock ── */
 setInterval(()=>{
   const d=new Date();
-  document.getElementById('clock').textContent=`${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}:${String(d.getUTCSeconds()).padStart(2,'0')} UTC`;
+  const aest=_aest(d);
+  const utcStr=`${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}:${String(d.getUTCSeconds()).padStart(2,'0')} UTC`;
+  const aestStr=`${String(aest.getUTCHours()).padStart(2,'0')}:${String(aest.getUTCMinutes()).padStart(2,'0')}:${String(aest.getUTCSeconds()).padStart(2,'0')} AEST`;
+  document.getElementById('clock').textContent=`${utcStr} / ${aestStr}`;
 },1000);
 
 /* ── Auto-refresh ── */
@@ -1466,7 +1483,8 @@ function renderUtilisation(util){
       <div class="util-slots">`;
     (b.slots||[]).forEach(sl=>{
       const occ=(sl.occupants||[]).join(', ');
-      const tip=sl.status==='occupied'?`${occ} (${(sl.start||'').slice(11,16)}–${(sl.end||'').slice(11,16)} UTC)`:sl.status==='maintenance'?'Under maintenance':'Free';
+      const _ts=iso=>{ try{const d=new Date(iso);return`${_hmUTC(d)} UTC/${_hmAEST(d)} AEST`}catch(e){return(iso||'').slice(11,16)} };
+      const tip=sl.status==='occupied'?`${occ} (${_ts(sl.start)}–${_ts(sl.end)})`:sl.status==='maintenance'?'Under maintenance':'Free';
       html+=`<div class="util-slot ${sl.status}" title="${esc(tip)}"></div>`;
     });
     html+=`</div></div>`;
