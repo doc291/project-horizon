@@ -453,6 +453,70 @@
     .metric-val.low-risk{ color: #4ade80; }
     .metric-val.high-risk{color: #f87171; }
 
+    /* ── Beta 3: Dashboard ── */
+    #tab-dashboard { overflow-y: auto; }
+    .dash-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 10px; padding: 14px 14px 6px;
+    }
+    .kpi-tile {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .kpi-tile.kpi-alert { border-color: var(--critical); background: rgba(239,68,68,.05); }
+    .kpi-label { font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+    .kpi-value { font-size: 28px; font-weight: 800; color: var(--text-bright); font-variant-numeric: tabular-nums; line-height: 1; }
+    .kpi-value.good { color: #4ade80; }
+    .kpi-value.warn { color: var(--medium); }
+    .kpi-value.bad  { color: var(--critical); }
+    .kpi-sub  { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+
+    /* ETD risk section inside dashboard */
+    .risk-section { padding: 0 14px 14px; }
+    .risk-section-title {
+      font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase;
+      color: var(--text-dim); padding: 10px 0 8px; border-top: 1px solid var(--border);
+    }
+    .risk-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(36,51,80,.5); }
+    .risk-row:last-child { border-bottom: none; }
+    .risk-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--text-bright); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .risk-bar-wrap { width: 70px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+    .risk-bar-fill { height: 100%; border-radius: 3px; }
+    .risk-badge-sm { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; flex-shrink: 0; }
+    .risk-badge-sm.low      { background: rgba(34,197,94,.2);  color: #4ade80; }
+    .risk-badge-sm.medium   { background: rgba(234,179,8,.2);  color: #fde047; }
+    .risk-badge-sm.high     { background: rgba(249,115,22,.2); color: #f97316; }
+    .risk-badge-sm.critical { background: rgba(239,68,68,.2);  color: #f87171; }
+    .risk-factors-txt { font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; flex-shrink: 0; }
+
+    /* ── Beta 3: Berth Utilisation heatmap ── */
+    #tab-utilisation { overflow-y: auto; }
+    .util-wrap { padding: 12px 14px; }
+    .util-header-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+    }
+    .util-time-labels { display: flex; flex: 1; justify-content: space-between; font-size: 9px; color: var(--text-dim); }
+    .util-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .util-berth-name { width: 54px; font-size: 11px; font-weight: 600; color: var(--text-dim); flex-shrink: 0; }
+    .util-pct { width: 34px; font-size: 10px; font-weight: 700; text-align: right; flex-shrink: 0; }
+    .util-slots { display: flex; gap: 1px; flex: 1; height: 20px; }
+    .util-slot { flex: 1; border-radius: 2px; cursor: default; transition: opacity .1s; }
+    .util-slot:hover { opacity: .7; }
+    .util-slot.free        { background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.15); }
+    .util-slot.occupied    { background: var(--accent); opacity: .85; }
+    .util-slot.maintenance { background: var(--medium); opacity: .7; }
+    .util-legend { display: flex; gap: 16px; padding: 10px 14px; border-top: 1px solid var(--border); }
+    .util-legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text-dim); }
+    .util-legend-dot { width: 14px; height: 8px; border-radius: 2px; }
+
+    /* ── Beta 3: Risk badge in vessel table ── */
+    .risk-pill { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+    .risk-pill.low      { background: rgba(34,197,94,.15);  color: #4ade80; }
+    .risk-pill.medium   { background: rgba(234,179,8,.15);  color: #fde047; }
+    .risk-pill.high     { background: rgba(249,115,22,.2);  color: #f97316; }
+    .risk-pill.critical { background: rgba(239,68,68,.2);   color: #f87171; }
+
     /* DSW footer */
     .dsw-footer {
       padding: 14px 18px; border-top: 1px solid var(--border);
@@ -479,7 +543,7 @@
   <header>
     <div class="logo">
       <img src="/logo" alt="Project Horizon" />
-      <span class="logo-badge">BETA 2</span>
+      <span class="logo-badge">BETA 3</span>
     </div>
     <div class="header-mid">
       <div class="stat-chip"><strong id="s-vessels">–</strong>&nbsp;vessels</div>
@@ -552,12 +616,37 @@
     <!-- Center: Timeline + Map -->
     <div class="panel panel-center" style="display:flex;flex-direction:column;">
       <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('timeline')">Berth Timeline (48h)</button>
+        <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+        <button class="tab-btn" onclick="switchTab('timeline')">Berth Timeline</button>
+        <button class="tab-btn" onclick="switchTab('utilisation')">Utilisation</button>
         <button class="tab-btn" onclick="switchTab('map')">Port Map</button>
       </div>
-      <div class="tab-pane active" id="tab-timeline" style="overflow:auto;">
+
+      <!-- Dashboard tab -->
+      <div class="tab-pane active" id="tab-dashboard">
+        <div class="dash-grid" id="dash-kpi-grid"><div class="empty" style="grid-column:1/-1">Loading…</div></div>
+        <div class="risk-section">
+          <div class="risk-section-title">ETD Risk Ranking — All Active Vessels</div>
+          <div id="dash-risk-list"><div class="empty">Loading…</div></div>
+        </div>
+      </div>
+
+      <!-- Berth Timeline tab -->
+      <div class="tab-pane" id="tab-timeline" style="overflow:auto;">
         <div id="timeline-wrap"><svg id="gantt"></svg></div>
       </div>
+
+      <!-- Utilisation tab -->
+      <div class="tab-pane" id="tab-utilisation">
+        <div class="util-wrap" id="util-wrap"><div class="empty">Loading…</div></div>
+        <div class="util-legend">
+          <div class="util-legend-item"><div class="util-legend-dot" style="background:var(--accent)"></div>Occupied</div>
+          <div class="util-legend-item"><div class="util-legend-dot" style="background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.2)"></div>Free</div>
+          <div class="util-legend-item"><div class="util-legend-dot" style="background:var(--medium)"></div>Maintenance</div>
+        </div>
+      </div>
+
+      <!-- Port Map tab -->
       <div class="tab-pane" id="tab-map">
         <div id="map-pane">
           <div id="map"></div>
@@ -624,7 +713,7 @@
     <div id="vessel-table-wrap">
       <table>
         <thead>
-          <tr><th>Vessel</th><th>Status</th><th>ETA</th><th>ETD</th><th>Berth</th><th>LOA</th><th>Cargo</th><th>Agent</th></tr>
+          <tr><th>Vessel</th><th>Status</th><th title="ETD Risk Score 0-100">Risk</th><th>ETA</th><th>ETD</th><th>Berth</th><th>LOA</th><th>Cargo</th><th>Agent</th></tr>
         </thead>
         <tbody id="vessel-tbody"></tbody>
       </table>
@@ -691,7 +780,7 @@
 ═══════════════════════════════════════════════════════════════ */
 let _data=null, _map=null, _mapInit=false;
 let _vesselMarkers={}, _conflictRings=[];
-let _activeTab='timeline', _vesselTableOpen=true, _activeRTab='decisions';
+let _activeTab='dashboard', _vesselTableOpen=true, _activeRTab='decisions';
 
 /* ── Storage keys ── */
 const SIG_KEY='horizon_signal_states', AUDIT_KEY='horizon_audit_log', NOTIF_KEY='horizon_notifications';
@@ -766,15 +855,17 @@ document.addEventListener('click',e=>{
 });
 
 /* ── Tab switching ── */
+const _TABS = ['dashboard','timeline','utilisation','map'];
 function switchTab(name){
   _activeTab=name;
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&name==='timeline')||(i===1&&name==='map')));
-  document.getElementById('tab-timeline').classList.toggle('active',name==='timeline');
-  document.getElementById('tab-map').classList.toggle('active',name==='map');
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',_TABS[i]===name));
+  _TABS.forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===name));
   if(name==='map'){
     if(!_mapInit&&_data)setTimeout(()=>initMap(_data),80);
     else if(_map)setTimeout(()=>_map.invalidateSize(),80);
   }
+  if(name==='utilisation'&&_data)renderUtilisation(_data.berth_utilisation||[]);
+  if(name==='dashboard'&&_data)renderDashboard(_data.dashboard,_data.etd_risk||[]);
 }
 function switchRTab(name){
   _activeRTab=name;
@@ -802,8 +893,10 @@ function render(d){
   renderGuidance(d.guidance||[]);
   renderDecisions(d.conflicts||[]);
   renderConflicts(d.conflicts||[]);
-  renderVesselTable(d.vessels||[]);
+  renderVesselTable(d.vessels||[], d.etd_risk||[]);
   renderGantt(d);
+  renderDashboard(d.dashboard, d.etd_risk||[]);
+  if(_activeTab==='utilisation')renderUtilisation(d.berth_utilisation||[]);
   // Notify new conflicts
   (d.conflicts||[]).forEach(c=>{
     if(!_knownCIds.has(c.id)){
@@ -1095,19 +1188,25 @@ function updateMapMarkers(d){
 }
 
 /* ── Vessel table ── */
-function renderVesselTable(vessels){
+function renderVesselTable(vessels, etdRisk){
   const tb=document.getElementById('vessel-tbody');
-  if(!vessels.length){tb.innerHTML='<tr><td colspan="8" class="empty">No vessels</td></tr>';return}
-  tb.innerHTML=vessels.map(v=>`<tr>
+  if(!vessels.length){tb.innerHTML='<tr><td colspan="9" class="empty">No vessels</td></tr>';return}
+  const riskById={};
+  (etdRisk||[]).forEach(r=>riskById[r.vessel_id]=r);
+  tb.innerHTML=vessels.map(v=>{
+    const r=riskById[v.id];
+    const rCell=r?`<span class="risk-pill ${r.risk_level}" title="${esc((r.risk_factors||[]).join(', '))}">${r.risk_score}</span>`:'<span style="color:var(--text-dim)">–</span>';
+    return`<tr>
     <td><strong style="color:var(--text-bright)">${esc(v.name)}</strong><br><span style="color:var(--text-dim);font-size:10px">${esc(v.vessel_type||'')}</span></td>
     <td><span class="status-pill status-${v.status}">${v.status}</span></td>
+    <td>${rCell}</td>
     <td style="font-variant-numeric:tabular-nums">${fmtTime(v.eta)}</td>
     <td style="font-variant-numeric:tabular-nums">${fmtTime(v.etd)}</td>
     <td>${esc(v.berth_id||'TBA')}</td>
     <td>${v.loa?v.loa+'m':'–'}</td>
     <td>${esc(v.cargo||'–')}</td>
     <td style="color:var(--text-dim)">${esc(v.agent||'–')}</td>
-  </tr>`).join('');
+  </tr>`;}).join('');
 }
 function toggleVesselTable(){
   _vesselTableOpen=!_vesselTableOpen;
@@ -1246,6 +1345,100 @@ function closeDSW(e) {
   if (_dswTimerInterval) { clearInterval(_dswTimerInterval); _dswTimerInterval = null; }
   document.getElementById('dsw-overlay').classList.remove('open');
   _dswConflict = null; _dswSelectedAlt = null;
+}
+
+/* ── Beta 3: Dashboard ── */
+function renderDashboard(dash, etdRisk){
+  if(!dash)return;
+  const grid=document.getElementById('dash-kpi-grid');
+  const critAlert=dash.critical_conflicts>0;
+  const utilCls=dash.berth_utilisation_pct>=85?'warn':dash.berth_utilisation_pct>=55?'good':'';
+  const otdCls=dash.on_time_departure_pct>=90?'good':dash.on_time_departure_pct>=70?'warn':'bad';
+  const riskCls=dash.vessels_at_risk>2?'bad':dash.vessels_at_risk>0?'warn':'good';
+  const conflCls=dash.active_conflicts>0?'bad':'good';
+  grid.innerHTML=`
+    <div class="kpi-tile ${critAlert?'kpi-alert':''}">
+      <div class="kpi-label">Active Conflicts</div>
+      <div class="kpi-value ${conflCls}">${dash.active_conflicts}</div>
+      <div class="kpi-sub">${dash.critical_conflicts} critical</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-label">Berth Utilisation</div>
+      <div class="kpi-value ${utilCls}">${dash.berth_utilisation_pct}%</div>
+      <div class="kpi-sub">${dash.forecast_utilisation_48h}% forecast 48h avg</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-label">On-Time Departure</div>
+      <div class="kpi-value ${otdCls}">${dash.on_time_departure_pct}%</div>
+      <div class="kpi-sub">Vessels currently berthed</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-label">Avg Dwell Time</div>
+      <div class="kpi-value">${dash.avg_dwell_hours}h</div>
+      <div class="kpi-sub">Berthed vessels</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-label">Vessels at Risk</div>
+      <div class="kpi-value ${riskCls}">${dash.vessels_at_risk}</div>
+      <div class="kpi-sub">High or critical ETD risk</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-label">Vessels in Port</div>
+      <div class="kpi-value">${dash.vessels_in_port}</div>
+      <div class="kpi-sub">${dash.vessels_expected_24h} arriving within 24h</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-label">Pilot Ops (12h)</div>
+      <div class="kpi-value">${dash.pilot_ops_12h}</div>
+      <div class="kpi-sub">Scheduled movements</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-label">Tug Ops (12h)</div>
+      <div class="kpi-value">${dash.tug_ops_12h}</div>
+      <div class="kpi-sub">Scheduled assignments</div>
+    </div>`;
+
+  // ETD Risk ranking
+  const rEl=document.getElementById('dash-risk-list');
+  const nonLow=(etdRisk||[]).filter(r=>r.risk_level!=='low');
+  if(!nonLow.length){
+    rEl.innerHTML='<div style="padding:10px 0;font-size:12px;color:var(--text-dim)">✓ All vessels are low risk</div>';
+    return;
+  }
+  rEl.innerHTML=nonLow.map(r=>{
+    const col=r.risk_level==='critical'?'#ef4444':r.risk_level==='high'?'#f97316':r.risk_level==='medium'?'#eab308':'#4ade80';
+    return`<div class="risk-row">
+      <span class="risk-name">${esc(r.vessel_name)}</span>
+      <div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:${r.risk_score}%;background:${col}"></div></div>
+      <span class="risk-badge-sm ${r.risk_level}">${r.risk_score}</span>
+      <span class="risk-factors-txt" title="${esc((r.risk_factors||[]).join(', '))}">${esc((r.risk_factors||[]).join(' · '))}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ── Beta 3: Berth Utilisation Heatmap ── */
+function renderUtilisation(util){
+  const el=document.getElementById('util-wrap');
+  if(!util||!util.length){el.innerHTML='<div class="empty">No utilisation data</div>';return}
+  let html=`<div class="util-header-row">
+    <span style="width:54px"></span><span style="width:34px"></span>
+    <div class="util-time-labels">`;
+  for(let h=0;h<=48;h+=8)html+=`<span>+${h}h</span>`;
+  html+=`</div></div>`;
+  util.forEach(b=>{
+    const pctCol=b.utilisation_pct>=85?'var(--high)':b.utilisation_pct>=55?'var(--accent)':'var(--text-dim)';
+    html+=`<div class="util-row">
+      <span class="util-berth-name">${esc(b.berth_name)}</span>
+      <span class="util-pct" style="color:${pctCol}">${b.utilisation_pct}%</span>
+      <div class="util-slots">`;
+    (b.slots||[]).forEach(sl=>{
+      const occ=(sl.occupants||[]).join(', ');
+      const tip=sl.status==='occupied'?`${occ} (${(sl.start||'').slice(11,16)}–${(sl.end||'').slice(11,16)} UTC)`:sl.status==='maintenance'?'Under maintenance':'Free';
+      html+=`<div class="util-slot ${sl.status}" title="${esc(tip)}"></div>`;
+    });
+    html+=`</div></div>`;
+  });
+  el.innerHTML=html;
 }
 
 /* ── Boot ── */

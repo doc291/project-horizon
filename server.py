@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Project Horizon — Beta 2
+Project Horizon — Beta 3
 Self-contained server: zero external dependencies, pure Python 3 stdlib.
 
 Usage (local):
@@ -701,6 +701,158 @@ def make_tides():
     }
 
 
+# ── Beta 3: Berth Utilisation Forecast ────────────────────────────────────────
+
+def make_berth_utilisation(vessels, berths, now):
+    """48-hour berth occupancy forecast in 2-hour slots (24 slots total)."""
+    SLOT_H = 2
+    SLOTS  = 24
+    result = []
+    for b in berths:
+        slots = []
+        for s in range(SLOTS):
+            slot_start = now + timedelta(hours=s * SLOT_H)
+            slot_end   = slot_start + timedelta(hours=SLOT_H)
+            occupants  = []
+            for v in vessels:
+                if v["berth_id"] != b["id"] or v["status"] == "departed":
+                    continue
+                v_start = isoparse(v["ata"] or v["eta"])
+                v_end   = isoparse(v["atd"] or v["etd"])
+                if v_start < slot_end and v_end > slot_start:
+                    occupants.append(v["name"])
+            if b["status"] == "maintenance":
+                slot_status = "maintenance"
+            elif occupants:
+                slot_status = "occupied"
+            else:
+                slot_status = "free"
+            slots.append({
+                "slot":      s,
+                "start":     fmt(slot_start),
+                "end":       fmt(slot_end),
+                "status":    slot_status,
+                "occupants": occupants,
+            })
+        occ_slots = sum(1 for sl in slots if sl["status"] == "occupied")
+        result.append({
+            "berth_id":        b["id"],
+            "berth_name":      b["name"],
+            "terminal":        b["terminal"],
+            "utilisation_pct": round(occ_slots / SLOTS * 100),
+            "current_status":  b["status"],
+            "slots":           slots,
+        })
+    return result
+
+
+# ── Beta 3: ETD Risk Scoring ───────────────────────────────────────────────────
+
+def compute_etd_risk(vessels, conflicts, weather, tides):
+    """Score each vessel 0–100 for on-time departure risk."""
+    conflict_vids  = {vid for c in conflicts for vid in (c.get("vessel_ids") or [])}
+    wx_cond        = (weather or {}).get("conditions", "Good")
+    tide_restricted = set((tides or {}).get("berth_restrictions", []))
+    result = []
+    for v in vessels:
+        if v["status"] == "departed":
+            continue
+        score, factors = 0, []
+
+        # 1. Status base risk
+        base = {"at_risk": 35, "berthed": 5, "confirmed": 15, "scheduled": 8}.get(v["status"], 8)
+        score += base
+
+        # 2. Active conflict involvement
+        if v["id"] in conflict_vids:
+            score += 25
+            factors.append("Active conflict")
+
+        # 3. Weather conditions
+        wx_pts = {"Poor": 18, "Moderate": 9, "Good": 2, "Excellent": 0}.get(wx_cond, 5)
+        score += wx_pts
+        if wx_pts >= 9:
+            factors.append(f"{wx_cond} conditions")
+
+        # 4. ETA variance reported
+        if v.get("notes") and "variance" in (v.get("notes") or "").lower():
+            score += 15
+            factors.append("ETA variance reported")
+
+        # 5. Tidal restriction on assigned berth
+        if v.get("berth_id") in tide_restricted:
+            score += 12
+            factors.append("Tidal restriction")
+
+        # 6. Large vessel operational complexity
+        if v.get("loa", 0) > 220:
+            score += 5
+            factors.append("Large vessel")
+
+        score = min(100, score)
+        level = ("critical" if score >= 70 else
+                 "high"     if score >= 45 else
+                 "medium"   if score >= 25 else "low")
+        result.append({
+            "vessel_id":    v["id"],
+            "vessel_name":  v["name"],
+            "risk_score":   score,
+            "risk_level":   level,
+            "risk_factors": factors,
+        })
+    result.sort(key=lambda r: -r["risk_score"])
+    return result
+
+
+# ── Beta 3: Dashboard KPIs ─────────────────────────────────────────────────────
+
+def make_dashboard(vessels, berths, conflicts, pilotage, towage,
+                   weather, tides, etd_risk, berth_util, now):
+    """Build executive KPI block for the port operations dashboard."""
+    occupied   = sum(1 for b in berths if b["status"] in ("occupied", "reserved"))
+    active_b   = sum(1 for b in berths if b["status"] != "maintenance")
+    util_pct   = round(occupied / active_b * 100) if active_b else 0
+
+    berthed    = [v for v in vessels if v["status"] == "berthed"]
+    risky_ids  = {r["vessel_id"] for r in etd_risk if r["risk_level"] in ("high", "critical")}
+    on_time    = sum(1 for v in berthed if v["id"] not in risky_ids)
+    otd_pct    = round(on_time / len(berthed) * 100) if berthed else 100
+
+    dwell_hrs  = []
+    for v in berthed:
+        if v.get("ata"):
+            dwell_hrs.append((isoparse(v["etd"]) - isoparse(v["ata"])).total_seconds() / 3600)
+    avg_dwell  = round(sum(dwell_hrs) / len(dwell_hrs), 1) if dwell_hrs else 0
+
+    at_risk_n  = sum(1 for r in etd_risk if r["risk_level"] in ("high", "critical"))
+    crit_n     = sum(1 for c in conflicts if c["severity"] == "critical")
+    pilot_12h  = sum(1 for p in pilotage
+                     if 0 <= (isoparse(p["scheduled_time"]) - now).total_seconds() / 3600 <= 12)
+    tug_12h    = sum(1 for t in towage
+                     if 0 <= (isoparse(t["scheduled_time"]) - now).total_seconds() / 3600 <= 12)
+    avg_util_48h = round(
+        sum(b["utilisation_pct"] for b in berth_util) / len(berth_util)
+    ) if berth_util else 0
+
+    exp_24 = sum(1 for v in vessels
+                 if v["status"] not in ("berthed", "departed")
+                 and (isoparse(v["eta"]) - now).total_seconds() / 3600 <= 24)
+
+    return {
+        "berth_utilisation_pct":    util_pct,
+        "forecast_utilisation_48h": avg_util_48h,
+        "on_time_departure_pct":    otd_pct,
+        "avg_dwell_hours":          avg_dwell,
+        "vessels_at_risk":          at_risk_n,
+        "active_conflicts":         len(conflicts),
+        "critical_conflicts":       crit_n,
+        "pilot_ops_12h":            pilot_12h,
+        "tug_ops_12h":              tug_12h,
+        "vessels_in_port":          len(berthed),
+        "vessels_expected_24h":     exp_24,
+    }
+
+
 # ── Summary builder ────────────────────────────────────────────────────────────
 
 def build_summary():
@@ -711,6 +863,14 @@ def build_summary():
     towage   = make_towage(vessels, now)
     conflicts = detect_conflicts(vessels, berths, pilotage, towage, now)
     guidance  = build_guidance(conflicts, vessels, berths, pilotage, towage, now)
+    weather   = make_weather()
+    tides     = make_tides()
+
+    # Beta 3 additions
+    berth_util = make_berth_utilisation(vessels, berths, now)
+    etd_risk   = compute_etd_risk(vessels, conflicts, weather, tides)
+    dashboard  = make_dashboard(vessels, berths, conflicts, pilotage, towage,
+                                weather, tides, etd_risk, berth_util, now)
 
     occupied   = sum(1 for b in berths if b["status"] in ("occupied", "reserved"))
     available  = sum(1 for b in berths if b["status"] == "available")
@@ -739,15 +899,18 @@ def build_summary():
             "pilots_available": 3,
             "tugs_available": 4,
         },
-        "vessels":   vessels,
-        "berths":    berths,
-        "pilotage":  pilotage,
-        "towage":    towage,
-        "conflicts": conflicts,
-        "guidance":  guidance,
-        "port_geo":  PORT_GEO,
-        "weather":   make_weather(),
-        "tides":     make_tides(),
+        "vessels":          vessels,
+        "berths":           berths,
+        "pilotage":         pilotage,
+        "towage":           towage,
+        "conflicts":        conflicts,
+        "guidance":         guidance,
+        "port_geo":         PORT_GEO,
+        "weather":          weather,
+        "tides":            tides,
+        "berth_utilisation": berth_util,
+        "etd_risk":          etd_risk,
+        "dashboard":         dashboard,
     }
 
 
@@ -816,7 +979,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     print(f"╔══════════════════════════════════════╗")
-    print(f"║   Project Horizon  —  Beta 1         ║")
+    print(f"║   Project Horizon  —  Beta 3         ║")
     print(f"╠══════════════════════════════════════╣")
     print(f"║  http://localhost:{PORT}               ║")
     print(f"║  Press Ctrl+C to stop               ║")
