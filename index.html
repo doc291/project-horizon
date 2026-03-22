@@ -137,6 +137,9 @@
     .tide-arrow.Rising  { color: var(--accent); }
     .tide-arrow.Falling { color: var(--text-dim); }
     .tide-arrow.Slack   { color: var(--medium); }
+    #cb-ukc.ukc-good     { color: #4ade80; }
+    #cb-ukc.ukc-warning  { color: var(--medium); }
+    #cb-ukc.ukc-critical { color: var(--critical); font-weight: 800; }
 
     /* ── Main 3-col ── */
     .main { flex: 1; display: flex; overflow: hidden; }
@@ -599,6 +602,11 @@
         <span id="cb-tide-next" style="color:var(--text-dim);font-size:10px;">–</span>
       </div>
     </div>
+    <div class="cbar-seg">
+      <span class="cbar-label">MIN UKC</span>
+      <span id="cb-ukc" class="cbar-val">–</span>
+      <span id="cb-ukc-vessel" style="color:var(--text-dim);font-size:10px;margin-left:3px;">–</span>
+    </div>
   </div>
 
   <!-- ── Main ── -->
@@ -889,7 +897,7 @@ async function refresh(){
 }
 function render(d){
   updateHeader(d);
-  renderConditionsBar(d.weather,d.tides);
+  renderConditionsBar(d.weather,d.tides,d.ukc);
   renderGuidance(d.guidance||[]);
   renderDecisions(d.conflicts||[]);
   renderConflicts(d.conflicts||[]);
@@ -926,7 +934,7 @@ function updateHeader(d){
 }
 
 /* ── Conditions bar ── */
-function renderConditionsBar(wx,tide){
+function renderConditionsBar(wx,tide,ukc){
   if(!wx)return;
   const cel=document.getElementById('cb-cond');
   cel.textContent=wx.conditions; cel.className=`cbar-cond ${wx.conditions}`;
@@ -944,6 +952,14 @@ function renderConditionsBar(wx,tide){
     document.getElementById('tide-bar-fill').style.width=Math.min(100,Math.max(0,pct))+'%';
     const rr=document.getElementById('tide-restriction-row');
     if(rr)rr.style.display=(tide.berth_restrictions&&tide.berth_restrictions.length)?'flex':'none';
+  }
+  // UKC
+  if(ukc && ukc.min_ukc_m !== null){
+    const uEl=document.getElementById('cb-ukc');
+    const uVes=document.getElementById('cb-ukc-vessel');
+    uEl.textContent=`${ukc.min_ukc_m}m`;
+    uEl.className='cbar-val ukc-'+ukc.status;
+    uVes.textContent=ukc.critical_vessel?`(${ukc.critical_vessel.replace(/^MV /,'')})`:'-';
   }
   // Wind overlay
   document.getElementById('wind-spd').textContent      =`${wx.wind_speed_kts} kts`;

@@ -120,6 +120,16 @@ def vessel_position(v: dict, now: datetime) -> dict:
 
 # ── Mock data generation ──────────────────────────────────────────────────────
 
+# Chart datum depths (LAT) per berth in metres
+BERTH_LAT_DEPTHS = {
+    "B01": 13.5,   # Deep container berth — North Terminal
+    "B02": 12.0,   # Container/general — North Terminal
+    "B03": 10.2,   # Shallow — tide-restricted — North Terminal
+    "B04": 13.0,   # Deep bulk — South Terminal
+    "B05": 11.5,   # Bulk/general — South Terminal
+    "B06":  8.8,   # Shallow — tide-restricted — South Terminal
+}
+
 def make_berths(now: datetime) -> list:
     raw = [
         ("B01", "Berth 1",  "North Terminal", 350, 14.5, "occupied",     4, now + timedelta(hours=4)),
@@ -135,11 +145,49 @@ def make_berths(now: datetime) -> list:
         result.append({
             "id": bid, "name": name, "terminal": terminal,
             "max_loa": loa, "max_draught": draught,
+            "lat_depth_m": BERTH_LAT_DEPTHS.get(bid, 12.0),
             "status": status, "crane_count": cranes,
             "readiness_time": fmt(ready) if ready else None,
             "lat": geo.get("lat"), "lon": geo.get("lon"),
         })
     return result
+
+
+def compute_ukc(vessels: list, berths: list, tide_height_m: float) -> dict:
+    """
+    Compute minimum Under Keel Clearance across all currently berthed vessels.
+    UKC = (berth LAT depth + current tide height) - vessel draught
+    """
+    berth_depth = {b["id"]: b["lat_depth_m"] for b in berths}
+    entries = []
+    for v in vessels:
+        if v["status"] != "berthed" or not v.get("berth_id"):
+            continue
+        lat_d    = berth_depth.get(v["berth_id"], 12.0)
+        avail    = lat_d + tide_height_m
+        ukc      = round(avail - v["draught"], 2)
+        entries.append({
+            "vessel_id":        v["id"],
+            "vessel_name":      v["name"],
+            "berth_id":         v["berth_id"],
+            "ukc_m":            ukc,
+            "available_depth_m": round(avail, 2),
+            "vessel_draught_m": v["draught"],
+        })
+    if not entries:
+        return {"min_ukc_m": None, "critical_vessel": None,
+                "critical_berth": None, "status": "no_vessels", "all": []}
+    entries.sort(key=lambda r: r["ukc_m"])
+    mn = entries[0]
+    status = ("critical" if mn["ukc_m"] < 0.5 else
+              "warning"  if mn["ukc_m"] < 1.0 else "good")
+    return {
+        "min_ukc_m":      mn["ukc_m"],
+        "critical_vessel": mn["vessel_name"],
+        "critical_berth":  mn["berth_id"],
+        "status":          status,
+        "all":             entries,
+    }
 
 
 def make_vessels(now: datetime) -> list:
@@ -873,6 +921,7 @@ def build_summary():
     etd_risk   = compute_etd_risk(vessels, conflicts, weather, tides)
     dashboard  = make_dashboard(vessels, berths, conflicts, pilotage, towage,
                                 weather, tides, etd_risk, berth_util, now)
+    ukc        = compute_ukc(vessels, berths, tides["current_height_m"])
 
     occupied   = sum(1 for b in berths if b["status"] in ("occupied", "reserved"))
     available  = sum(1 for b in berths if b["status"] == "available")
@@ -913,6 +962,7 @@ def build_summary():
         "berth_utilisation": berth_util,
         "etd_risk":          etd_risk,
         "dashboard":         dashboard,
+        "ukc":               ukc,
     }
 
 
