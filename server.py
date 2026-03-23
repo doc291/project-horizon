@@ -135,11 +135,6 @@ def build_vessels_from_qships(data: dict) -> list:
     for v in data.get("vessels", []):
         if v.get("status") == "departed":
             continue
-        # Live vessels have "berth" (text name) but not "berth_id" (sim key)
-        # vessel_position uses berth_id — add a safe default before calling it
-        if "berth_id" not in v:
-            v = dict(v)
-            v["berth_id"] = None
         pos = vessel_position(v, now)
         v_out = dict(v)
         v_out["lat"] = pos["lat"]
@@ -1530,11 +1525,9 @@ class HorizonHandler(BaseHTTPRequestHandler):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    load_qships_data()
-    if _qships_data is None:
-        log.info("No valid qships_data.json — scraping in background")
-        threading.Thread(target=_run_scrape_background, daemon=True).start()
-    _schedule_scrapes()
+    # QShips auto-load disabled for board demo — simulation mode only.
+    # Re-enable by restoring load_qships_data() + _schedule_scrapes() here.
+    log.info("Starting in simulation mode")
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()
