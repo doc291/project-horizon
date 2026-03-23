@@ -226,9 +226,17 @@ def _scrape_with_api() -> list:
     rows_raw = []
 
     def _extract_table(table: dict):
-        """Pull columns + rows out of one WebX table object."""
+        """Pull columns + rows out of one WebX DataTableDTO object.
+
+        Structure:
+          table["MetaData"]["Columns"]  — column definitions
+          table["Data"]                 — list of row value-arrays
+        """
         t_cols = []
-        col_data = table.get("Columns") or table.get("columns") or []
+
+        # Columns live inside MetaData
+        meta     = table.get("MetaData") or {}
+        col_data = meta.get("Columns") or meta.get("columns") or []
         for col in col_data:
             if isinstance(col, dict):
                 name = (col.get("sName") or col.get("Name") or
@@ -237,20 +245,18 @@ def _scrape_with_api() -> list:
             elif isinstance(col, str):
                 t_cols.append(col)
 
-        t_rows = []
-        row_data = table.get("Rows") or table.get("rows") or []
+        # Rows live in Data (each row is a value-array)
+        t_rows   = []
+        row_data = table.get("Data") or table.get("data") or []
         for row in row_data:
-            if isinstance(row, dict):
-                values = row.get("Values") or row.get("values")
-                if values and t_cols:
-                    t_rows.append(dict(zip(t_cols, values)))
-                else:
-                    t_rows.append(row)
-            elif isinstance(row, list):
+            if isinstance(row, list):
                 if t_cols:
                     t_rows.append(dict(zip(t_cols, row)))
                 else:
                     t_rows.append({str(i): v for i, v in enumerate(row)})
+            elif isinstance(row, dict):
+                # Already a named dict — use as-is
+                t_rows.append(row)
         return t_cols, t_rows
 
     if isinstance(result, dict):
