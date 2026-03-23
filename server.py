@@ -1514,30 +1514,10 @@ class HorizonHandler(BaseHTTPRequestHandler):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # ── Beta 6 startup: load QShips data, scrape if stale ────────────────────
-    load_qships_data()
-
-    if _qships_data is None:
-        # No data file exists — try an initial scrape in background
-        log.info("No qships_data.json found — attempting initial scrape")
-        t = threading.Thread(target=_run_scrape_background, daemon=True)
-        t.start()
-    else:
-        # Check if data is older than 25 hours
-        try:
-            scraped = _qships_data.get("scraped_at", "")
-            if scraped:
-                scraped_dt = datetime.fromisoformat(scraped.replace("Z", "+00:00"))
-                age_h = (utcnow() - scraped_dt).total_seconds() / 3600
-                if age_h > 25:
-                    log.info("qships_data.json is %.1fh old — refreshing", age_h)
-                    t = threading.Thread(target=_run_scrape_background, daemon=True)
-                    t.start()
-        except Exception as e:
-            log.warning("Could not check scrape age: %s", e)
-
-    # Start scheduled scrape runner
-    _schedule_scrapes()
+    # ── QShips live data disabled for board demo — simulation mode only ───────
+    # Re-enable after demo by restoring load_qships_data() and _schedule_scrapes()
+    # Manual scrape still available via /api/scrape endpoint
+    log.info("Starting in simulation mode (QShips auto-load disabled)")
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()
