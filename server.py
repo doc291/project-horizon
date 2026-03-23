@@ -129,20 +129,68 @@ def _schedule_scrapes():
 
 
 def build_vessels_from_qships(data: dict) -> list:
-    """Convert qships_data.json vessels to server.py vessel dicts."""
+    """Convert qships_data.json vessels to server.py vessel dicts.
+
+    Patches every field that make_pilotage / make_towage / detect_conflicts
+    expect but that the QShips scraper does not populate.
+    """
     now = utcnow()
     vessels = []
     for v in data.get("vessels", []):
         if v.get("status") == "departed":
             continue
-        pos = vessel_position(v, now)
         v_out = dict(v)
-        v_out["lat"] = pos["lat"]
-        v_out["lon"] = pos["lon"]
-        # Ensure required fields have fallbacks
-        if not v_out.get("ata") and v_out.get("status") == "berthed":
-            v_out["ata"] = v_out.get("eta")
+
+        # ── loa: ensure numeric (None breaks "loa > 200" in make_towage) ───────
+        v_out["loa"] = float(v_out["loa"]) if v_out.get("loa") else 0.0
+
+        # ── berth_id: simulated berths use B01-B06 keys; live vessels have a
+        #    berth text name instead.  Set None so vessel_position falls through
+        #    gracefully to the ETA-based position path.
+        v_out.setdefault("berth_id", None)
+
+        # ── ETD: estimate if not supplied ────────────────────────────────────
+        if not v_out.get("etd"):
+            try:
+                eta_dt = isoparse(v_out["eta"])
+                hrs = 2 if v_out.get("status") == "berthed" else 12
+                v_out["etd"] = fmt(eta_dt + timedelta(hours=hrs))
+            except Exception:
+                v_out["etd"] = v_out.get("eta")
+
+        # ── ATA / ATD defaults ───────────────────────────────────────────────
+        if not v_out.get("ata"):
+            v_out["ata"] = v_out["eta"] if v_out.get("status") == "berthed" else None
         v_out.setdefault("atd", None)
+
+        # ── towage_required: derive from LOA + vessel type ───────────────────
+        if "towage_required" not in v_out:
+            loa_val = v_out["loa"]  # already numeric
+            vtype   = (v_out.get("type") or "").lower()
+            v_out["towage_required"] = bool(
+                loa_val > 100
+                or any(t in vtype for t in ("tanker", "bulk", "container", "ro-ro"))
+            )
+
+        # ── pilotage_required: all large ships need a pilot ──────────────────
+        v_out.setdefault("pilotage_required", True)
+
+        # ── Optional text fields ─────────────────────────────────────────────
+        v_out.setdefault("notes",     "")
+        v_out.setdefault("cargo",     "")
+        v_out.setdefault("agent",     "")
+        v_out.setdefault("flag",      "")
+        v_out.setdefault("call_sign", "")
+
+        # ── Geo position ─────────────────────────────────────────────────────
+        try:
+            pos = vessel_position(v_out, now)
+            v_out["lat"] = pos["lat"]
+            v_out["lon"] = pos["lon"]
+        except Exception:
+            v_out["lat"] = PORT_GEO["center"]["lat"]
+            v_out["lon"] = PORT_GEO["center"]["lon"]
+
         vessels.append(v_out)
     return vessels
 
@@ -1328,21 +1376,42 @@ def build_summary():
     is_live   = ds["source"] == "qships"
 
     if is_live:
-        vessels  = build_vessels_from_qships(_qships_data)
-        berths   = build_berths_from_qships(_qships_data)
-        port_name = _qships_data.get("port_name", "Port of Brisbane")
+        try:
+            vessels   = build_vessels_from_qships(_qships_data)
+            berths    = build_berths_from_qships(_qships_data)
+            port_name = _qships_data.get("port_name", "Port of Brisbane")
+        except Exception as exc:
+            log.error("Live vessel build failed (%s) — falling back to simulation", exc)
+            is_live   = False
+            berths    = make_berths(now)
+            vessels   = make_vessels(now)
+            port_name = "Port of Northhaven"
     else:
         berths   = make_berths(now)
         vessels  = make_vessels(now)
         port_name = "Port of Northhaven"
 
-    pilotage = make_pilotage(vessels, now)
-    towage   = make_towage(vessels, now)
+    try:
+        pilotage = make_pilotage(vessels, now)
+    except Exception as exc:
+        log.error("make_pilotage failed: %s — using empty list", exc)
+        pilotage = []
+
+    try:
+        towage = make_towage(vessels, now)
+    except Exception as exc:
+        log.error("make_towage failed: %s — using empty list", exc)
+        towage = []
+
     weather  = make_weather()
     tides    = make_tides()
 
     # Operational conflicts + Beta 4 weather alerts merged and re-sorted
-    op_conflicts   = detect_conflicts(vessels, berths, pilotage, towage, now, is_live=is_live)
+    try:
+        op_conflicts = detect_conflicts(vessels, berths, pilotage, towage, now, is_live=is_live)
+    except Exception as exc:
+        log.error("detect_conflicts failed: %s — using empty list", exc)
+        op_conflicts = []
     weather_alerts = detect_weather_alerts(weather, vessels, now)
     sev_order      = {"critical": 0, "high": 1, "medium": 2, "low": 3}
     conflicts      = sorted(
@@ -1525,9 +1594,8 @@ class HorizonHandler(BaseHTTPRequestHandler):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # QShips auto-load disabled for board demo — simulation mode only.
-    # Re-enable by restoring load_qships_data() + _schedule_scrapes() here.
-    log.info("Starting in simulation mode")
+    load_qships_data()
+    _schedule_scrapes()
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()

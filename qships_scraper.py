@@ -87,10 +87,17 @@ def _parse_aest_to_utc(date_str: str):
         return None
     date_str = date_str.strip()
 
-    # .NET /Date(ms)/ format
+    # .NET /Date(ms+tz)/ format — e.g. /Date(1774188523403+1000)/
+    # Must strip the +1000 timezone offset before parsing as int
     if date_str.startswith("/Date("):
         try:
-            ms = int(date_str[6:date_str.index(")")])
+            inner = date_str[6:date_str.index(")")]
+            # Strip +HHmm or -HHmm timezone suffix
+            for sep in ("+", "-"):
+                if sep in inner:
+                    inner = inner.split(sep)[0]
+                    break
+            ms = int(inner)
             dt = datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
             return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
         except Exception:
