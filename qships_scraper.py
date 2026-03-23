@@ -280,16 +280,28 @@ def _scrape_with_api() -> list:
     # Save compact debug summary — always valid JSON, never truncated mid-object
     try:
         tables = result.get("Tables") or [] if isinstance(result, dict) else []
+        first_table_keys = list(tables[0].keys()) if tables else []
+        # Peek at all values of the first table object (key + type + length if iterable)
+        first_table_peek = {}
+        if tables:
+            for k, v in tables[0].items():
+                if isinstance(v, list):
+                    first_table_peek[k] = f"list({len(v)})"
+                elif isinstance(v, dict):
+                    first_table_peek[k] = f"dict({list(v.keys())})"
+                else:
+                    first_table_peek[k] = repr(v)[:120]
         debug_summary = {
-            "http_status":      resp.status_code,
-            "response_bytes":   len(resp.content),
-            "top_level_keys":   list(payload.keys()) if isinstance(payload, dict) else str(type(payload)),
-            "result_keys":      list(result.keys()) if isinstance(result, dict) else None,
-            "table_count":      len(tables),
-            "table_row_counts": [len(t.get("Rows") or t.get("rows") or []) for t in tables],
-            "columns":          columns,
-            "row_count":        len(rows_raw),
-            "sample_rows":      rows_raw[:3],
+            "http_status":        resp.status_code,
+            "response_bytes":     len(resp.content),
+            "top_level_keys":     list(payload.keys()) if isinstance(payload, dict) else str(type(payload)),
+            "result_keys":        list(result.keys()) if isinstance(result, dict) else None,
+            "table_count":        len(tables),
+            "first_table_keys":   first_table_keys,
+            "first_table_peek":   first_table_peek,
+            "columns":            columns,
+            "row_count":          len(rows_raw),
+            "sample_rows":        rows_raw[:3],
         }
         DEBUG_FILE.write_text(json.dumps(debug_summary, indent=2, default=str), encoding="utf-8")
         log.info("Debug summary saved to %s (%d cols, %d rows)", DEBUG_FILE, len(columns), len(rows_raw))
