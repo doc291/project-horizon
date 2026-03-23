@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Project Horizon — Beta 4
+Project Horizon — Beta 5
 Self-contained server: zero external dependencies, pure Python 3 stdlib.
 
 Usage (local):
