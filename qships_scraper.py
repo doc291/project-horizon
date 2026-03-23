@@ -213,16 +213,6 @@ def _scrape_with_api() -> list:
         log.debug("Raw response (first 500): %s", resp.text[:500])
         return []
 
-    # Save raw response for debugging (helps identify column names on first run)
-    try:
-        DEBUG_FILE.write_text(
-            json.dumps(payload, indent=2, default=str)[:200_000],
-            encoding="utf-8",
-        )
-        log.info("Raw API response saved to %s", DEBUG_FILE)
-    except Exception:
-        pass
-
     # Step 4: Unwrap WCF envelope — handles 'd' wrapper and GetDataXResult
     result = payload
     for key in ("d", "GetDataXResult"):
@@ -271,6 +261,23 @@ def _scrape_with_api() -> list:
     log.info("Extracted %d raw rows from API response", len(rows_raw))
     if rows_raw:
         log.debug("Sample row keys: %s", list(rows_raw[0].keys()))
+
+    # Save compact debug summary — always valid JSON, never truncated mid-object
+    try:
+        debug_summary = {
+            "http_status":      resp.status_code,
+            "response_bytes":   len(resp.content),
+            "top_level_keys":   list(payload.keys()) if isinstance(payload, dict) else str(type(payload)),
+            "result_type":      str(type(result)),
+            "result_keys":      list(result.keys()) if isinstance(result, dict) else None,
+            "columns":          columns,
+            "row_count":        len(rows_raw),
+            "sample_rows":      rows_raw[:3],
+        }
+        DEBUG_FILE.write_text(json.dumps(debug_summary, indent=2, default=str), encoding="utf-8")
+        log.info("Debug summary saved to %s (%d cols, %d rows)", DEBUG_FILE, len(columns), len(rows_raw))
+    except Exception as e:
+        log.warning("Could not save debug summary: %s", e)
 
     return rows_raw
 
