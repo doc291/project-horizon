@@ -38,6 +38,8 @@ _qships_data  = None       # Loaded qships_data.json content (dict or None)
 _scrape_lock  = threading.Lock()
 _scraping     = False      # Flag: scrape in progress
 
+MAX_LIVE_VESSELS = 80   # Safety cap — conflict engine is O(n²); reject bad scrapes
+
 def load_qships_data():
     """Load qships_data.json from disk into _qships_data. Thread-safe."""
     global _qships_data
@@ -47,13 +49,22 @@ def load_qships_data():
         return
     try:
         data = json.loads(QSHIPS_FILE.read_text(encoding="utf-8"))
-        if not data.get("vessels"):
+        vessels = data.get("vessels") or []
+        if not vessels:
             log.warning("qships_data.json has no vessels — using simulation data")
+            _qships_data = None
+            return
+        if len(vessels) > MAX_LIVE_VESSELS:
+            log.warning(
+                "qships_data.json has %d vessels (cap=%d) — "
+                "scrape filter likely failed; using simulation data",
+                len(vessels), MAX_LIVE_VESSELS,
+            )
             _qships_data = None
             return
         _qships_data = data
         log.info("Loaded qships_data.json: %d vessels, scraped at %s",
-                 data.get("vessel_count", 0), data.get("scraped_at", "?"))
+                 len(vessels), data.get("scraped_at", "?"))
     except Exception as e:
         log.error("Failed to load qships_data.json: %s", e)
         _qships_data = None
@@ -1514,10 +1525,28 @@ class HorizonHandler(BaseHTTPRequestHandler):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # ── QShips live data disabled for board demo — simulation mode only ───────
-    # Re-enable after demo by restoring load_qships_data() and _schedule_scrapes()
-    # Manual scrape still available via /api/scrape endpoint
-    log.info("Starting in simulation mode (QShips auto-load disabled)")
+    # ── Beta 6 startup: load QShips data, scrape if missing/stale ────────────
+    load_qships_data()
+
+    if _qships_data is None:
+        log.info("No valid qships_data.json — attempting initial scrape in background")
+        t = threading.Thread(target=_run_scrape_background, daemon=True)
+        t.start()
+    else:
+        try:
+            scraped = _qships_data.get("scraped_at", "")
+            if scraped:
+                scraped_dt = datetime.fromisoformat(scraped.replace("Z", "+00:00"))
+                age_h = (utcnow() - scraped_dt).total_seconds() / 3600
+                if age_h > 25:
+                    log.info("qships_data.json is %.1fh old — refreshing", age_h)
+                    t = threading.Thread(target=_run_scrape_background, daemon=True)
+                    t.start()
+        except Exception as e:
+            log.warning("Could not check scrape age: %s", e)
+
+    # Start scheduled scrape runner (06:00 / 12:00 / 18:00 / 00:00 AEST)
+    _schedule_scrapes()
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()
