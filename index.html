@@ -701,12 +701,16 @@
       <!-- VTS View tab -->
       <div class="tab-pane" id="tab-vts">
         <div id="vts-pane">
-          <!-- Primary: MarineTraffic embed script -->
-          <div id="mt-embed" style="position:absolute;inset:0;"></div>
-          <!-- Fallback 1: MarineTraffic iframe — src set lazily on tab activation -->
-          <iframe id="vts-fallback" style="display:none;position:absolute;inset:0;width:100%;height:100%;border:none;" scrolling="no"></iframe>
-          <!-- Fallback 2: VesselFinder — src set lazily if MT also blocked -->
-          <iframe id="vts-fallback2" style="display:none;position:absolute;inset:0;width:100%;height:100%;border:none;" scrolling="no"></iframe>
+          <!-- Primary: MarineTraffic iframe — src set lazily on tab activation -->
+          <iframe id="vts-mt" style="display:none;position:absolute;inset:0;width:100%;height:100%;border:none;" scrolling="no"></iframe>
+          <!-- Fallback: VesselFinder — shown if MT blocks embedding -->
+          <iframe id="vts-vf" style="display:none;position:absolute;inset:0;width:100%;height:100%;border:none;" scrolling="no"></iframe>
+          <!-- Toggle bar -->
+          <div id="vts-toggle" style="display:none;position:absolute;top:10px;right:10px;z-index:10;background:rgba(13,27,46,.9);border:1px solid rgba(56,189,248,.3);border-radius:8px;padding:6px 10px;font-size:11px;color:#38bdf8;display:flex;gap:8px;align-items:center;">
+            <span>Map source:</span>
+            <button onclick="switchVTS('mt')" id="vts-btn-mt" style="background:rgba(56,189,248,.2);border:1px solid #38bdf8;color:#38bdf8;border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;">MarineTraffic</button>
+            <button onclick="switchVTS('vf')" id="vts-btn-vf" style="background:none;border:1px solid rgba(56,189,248,.3);color:var(--text-dim);border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;">VesselFinder</button>
+          </div>
         </div>
       </div>
 
@@ -1323,60 +1327,40 @@ function updateMapMarkers(d){
   });
 }
 
-/* ── VTS View — MarineTraffic embed ── */
+/* ── VTS View ── */
 let _vtsLoaded=false;
+const VTS_URLS={
+  mt:'https://www.marinetraffic.com/en/ais/embed/zoom:10/centery:-27.38/centerx:153.17/maptype:0/shownames:true/showmenu:false/remember:false',
+  vf:'https://www.vesselfinder.com/aismap?zoom=10&lat=-27.38&lon=153.17&width=100%25&height=100%25&names=true&mmsi=&track=false&fleet=false'
+};
+let _vtsActive='mt';
 function initVTS(){
   if(_vtsLoaded)return;
   _vtsLoaded=true;
-  const wrap=document.getElementById('mt-embed');
-  if(!wrap)return;
-  // Attempt embed.js method first
-  try{
-    const s=document.createElement('script');
-    s.src='https://www.marinetraffic.com/js/embed.js';
-    s.setAttribute('data-width','100%');
-    s.setAttribute('data-height','100%');
-    s.setAttribute('data-latitude','-27.38');
-    s.setAttribute('data-longitude','153.17');
-    s.setAttribute('data-zoom','10');
-    s.setAttribute('data-maptype','0');
-    s.setAttribute('data-shownames','true');
-    s.setAttribute('data-showmenu','false');
-    s.onerror=()=>{ wrap.style.display='none'; showVTSFallback(); };
-    wrap.appendChild(s);
-  }catch(e){
-    wrap.style.display='none';
-    showVTSFallback();
+  // Show toggle bar
+  const tog=document.getElementById('vts-toggle');
+  if(tog)tog.style.display='flex';
+  switchVTS('mt');
+}
+function switchVTS(src){
+  _vtsActive=src;
+  const mt=document.getElementById('vts-mt');
+  const vf=document.getElementById('vts-vf');
+  const bmt=document.getElementById('vts-btn-mt');
+  const bvf=document.getElementById('vts-btn-vf');
+  // Lazy-load src
+  if(src==='mt'){
+    if(!mt.src||mt.src===window.location.href)mt.src=VTS_URLS.mt;
+    mt.style.display='block'; vf.style.display='none';
+    if(bmt){bmt.style.background='rgba(56,189,248,.2)';bmt.style.borderColor='#38bdf8';bmt.style.color='#38bdf8';}
+    if(bvf){bvf.style.background='none';bvf.style.borderColor='rgba(56,189,248,.3)';bvf.style.color='var(--text-dim)';}
+  }else{
+    if(!vf.src||vf.src===window.location.href)vf.src=VTS_URLS.vf;
+    vf.style.display='block'; mt.style.display='none';
+    if(bvf){bvf.style.background='rgba(56,189,248,.2)';bvf.style.borderColor='#38bdf8';bvf.style.color='#38bdf8';}
+    if(bmt){bmt.style.background='none';bmt.style.borderColor='rgba(56,189,248,.3)';bmt.style.color='var(--text-dim)';}
   }
 }
-function showVTSFallback(){
-  const f1=document.getElementById('vts-fallback');
-  // Set src lazily — only now that the user has actually clicked VTS View
-  if(!f1.src||f1.src==='about:blank'||f1.src===window.location.href)
-    f1.src='https://www.marinetraffic.com/en/ais/embed/zoom:10/centery:-27.38/centerx:153.17/maptype:0/shownames:true/showmenu:false/remember:false';
-  f1.style.display='block';
-  // If MT iframe also fails after 6s, swap to VesselFinder
-  setTimeout(()=>{
-    try{
-      const doc=f1.contentDocument||f1.contentWindow?.document;
-      if(!doc||!doc.body||doc.body.innerHTML===''){
-        f1.style.display='none';
-        const f2=document.getElementById('vts-fallback2');
-        if(!f2.src||f2.src==='about:blank'||f2.src===window.location.href)
-          f2.src='https://www.vesselfinder.com/aismap?zoom=10&lat=-27.38&lon=153.17&width=100%25&height=100%25&names=true&mmsi=&track=false&fleet=false';
-        f2.style.display='block';
-      }
-    }catch(e){
-      f1.style.display='none';
-      const f2=document.getElementById('vts-fallback2');
-      if(!f2.src||f2.src==='about:blank'||f2.src===window.location.href)
-        f2.src='https://www.vesselfinder.com/aismap?zoom=10&lat=-27.38&lon=153.17&width=100%25&height=100%25&names=true&mmsi=&track=false&fleet=false';
-      f2.style.display='block';
-    }
-  },6000);
-}
-// Init embed when VTS tab is first activated
-const _origSwitchTab=switchTab;
 
 /* ── Pilotage tab ── */
 function renderPilotage(d){
