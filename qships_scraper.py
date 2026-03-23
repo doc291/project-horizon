@@ -321,61 +321,66 @@ def _scrape_with_api() -> list:
 # Data transformation
 # ---------------------------------------------------------------------------
 
+COMPLETED_STATUSES = {"RELS", "INVC", "COMP"}
+
 def _transform_movements(raw_rows: list, now_utc: datetime) -> list:
     vessels = []
     seen    = set()
+    window  = timedelta(days=7)
 
     for row in raw_rows:
-        # Filter to Brisbane rows when a port column is present
-        port = _find_col(
-            row,
-            "PORT", "PORT_NAME", "PortName", "Harbour", "HARBOUR",
-            "Location", "LOCATION",
-        )
-        if port and len(port) > 3:
-            if "brisbane" not in port.lower() and "bris" not in port.lower():
-                log.debug("Skipping non-Brisbane row (port=%r)", port)
-                continue
+        # ── Skip completed movements — they bloat the list and tank performance
+        status_code = _find_col(row, "STATUS_TYPE_CODE", "STATUS", "Status")
+        if status_code.upper() in COMPLETED_STATUSES:
+            continue
 
         name = _find_col(
             row,
-            "VESSEL_NAME", "VesselName", "Vessel", "VESSEL", "Name",
+            "VESSEL_NAME", "VesselName", "Vessel", "VESSEL",
             "SHIP_NAME", "ShipName",
         )
         if not name:
             continue
 
-        eta_raw = _find_col(
+        # ── Time: QShips uses START_TIME in /Date(ms+tz)/ format
+        eta_raw = _find_col(row, "START_TIME", "ETA", "ATA", "ARRIVAL_DATE", "Arrival")
+
+        # ── Skip movements outside the next 7-day window
+        eta_utc = _parse_aest_to_utc(eta_raw) if eta_raw else None
+        if eta_utc:
+            try:
+                eta_dt = datetime.strptime(eta_utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+                if eta_dt < now_utc - timedelta(hours=2) or eta_dt > now_utc + window:
+                    continue
+            except Exception:
+                pass
+
+        # ── Vessel type
+        vtype = _find_col(
             row,
-            "ETA", "ATA", "Eta", "Ata",
-            "ARRIVAL_DATE", "ArrivalDate", "Arrival",
-            "ARRIVAL", "ETD", "Etd",
+            "MSQ_SHIP_TYPE", "VESSEL_TYPE", "VesselType",
+            "Ship_Type", "ShipType",
         )
-        berth  = _find_col(
-            row,
-            "BERTH", "BERTH_NAME", "BerthName", "Terminal",
-            "TERMINAL", "Wharf", "WHARF",
-        )
-        vtype  = _find_col(
-            row,
-            "VESSEL_TYPE", "VesselType", "Type", "TYPE",
-            "Ship_Type", "ShipType", "SHIP_TYPE",
-        )
-        status = _find_col(
-            row,
-            "STATUS", "Status", "MOVEMENT_STATUS", "MovementStatus",
-            "MOVE_STATUS", "MoveStatus",
-        )
-        loa    = _find_col(row, "LOA", "Loa", "LENGTH", "Length", "loa")
+
+        # ── Berth: for arrivals use TO_LOCATION, for departures use FROM_LOCATION
+        job = _find_col(row, "JOB_TYPE_CODE", "JOB_TYPE")
+        if job.upper() in ("ARR", "EXT"):
+            berth = _find_col(row, "TO_LOCATION_NAME", "BERTH", "BERTH_NAME", "Terminal")
+        else:
+            berth = _find_col(row, "FROM_LOCATION_NAME", "BERTH", "BERTH_NAME", "Terminal")
+
+        # Skip movements that are purely sea/anchorage with no port berth
+        if berth.upper() in ("SEA", ""):
+            berth = _find_col(row, "TO_LOCATION_NAME", "FROM_LOCATION_NAME") or "TBD"
+
+        loa = _find_col(row, "LOA", "Loa", "LENGTH", "Length")
 
         vid = _stable_id(name, eta_raw)
         if vid in seen:
             continue
         seen.add(vid)
 
-        eta_utc = _parse_aest_to_utc(eta_raw) if eta_raw else None
         draught = _est_draught(vtype)
-
         try:
             loa_m = float(loa) if loa else None
         except ValueError:
@@ -385,7 +390,7 @@ def _transform_movements(raw_rows: list, now_utc: datetime) -> list:
             "id":          vid,
             "name":        name,
             "type":        vtype or "Unknown",
-            "status":      _map_status(status),
+            "status":      _map_status(status_code),
             "eta":         eta_utc or now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "berth":       berth or "TBD",
             "draught":     draught,
@@ -394,6 +399,7 @@ def _transform_movements(raw_rows: list, now_utc: datetime) -> list:
             "data_source": "live",
         })
 
+    log.info("_transform_movements: %d raw rows -> %d active vessels", len(raw_rows), len(vessels))
     return vessels
 
 
