@@ -25,7 +25,7 @@ def _overlap(start_a: datetime, end_a: datetime, start_b: datetime, end_b: datet
     return start_a < end_b and start_b < end_a
 
 
-def detect_berth_overlaps(vessels: List[Vessel]) -> List[Conflict]:
+def detect_berth_overlaps(vessels: List[Vessel], data_source: str = "simulated") -> List[Conflict]:
     """Two vessels assigned to the same berth at overlapping times."""
     conflicts = []
     n = _now()
@@ -70,11 +70,12 @@ def detect_berth_overlaps(vessels: List[Vessel]) -> List[Conflict]:
                                 f"Reassign {b.name} to an alternative berth",
                             ],
                             created_at=n,
+                            data_source=data_source,
                         ))
     return conflicts
 
 
-def detect_berth_readiness(vessels: List[Vessel], berths: List[Berth]) -> List[Conflict]:
+def detect_berth_readiness(vessels: List[Vessel], berths: List[Berth], data_source: str = "simulated") -> List[Conflict]:
     """Vessel arriving before its assigned berth will be ready."""
     conflicts = []
     n = _now()
@@ -111,11 +112,12 @@ def detect_berth_readiness(vessels: List[Vessel], berths: List[Berth]) -> List[C
                         f"Assign {v.name} to an alternative berth",
                     ],
                     created_at=n,
+                    data_source=data_source,
                 ))
     return conflicts
 
 
-def detect_pilotage_window(vessels: List[Vessel], pilotage: List[PilotageEvent]) -> List[Conflict]:
+def detect_pilotage_window(vessels: List[Vessel], pilotage: List[PilotageEvent], data_source: str = "simulated") -> List[Conflict]:
     """Pilotage event scheduled with insufficient notice."""
     conflicts = []
     n = _now()
@@ -146,6 +148,7 @@ def detect_pilotage_window(vessels: List[Vessel], pilotage: List[PilotageEvent])
                             f"Delay {v.name} ETA to allow full notice period",
                         ],
                         created_at=n,
+                        data_source="simulated",   # pilotage is always simulated
                     ))
     return conflicts
 
@@ -188,11 +191,12 @@ def detect_towage_contention(towage: List[TowageEvent]) -> List[Conflict]:
                             "Request tug availability from tug operator",
                         ],
                         created_at=n,
+                        data_source="simulated",   # towage is always simulated
                     ))
     return conflicts
 
 
-def detect_eta_variance(vessels: List[Vessel]) -> List[Conflict]:
+def detect_eta_variance(vessels: List[Vessel], data_source: str = "simulated") -> List[Conflict]:
     """Vessels with AT_RISK status indicating significant ETA uncertainty."""
     conflicts = []
     n = _now()
@@ -218,6 +222,7 @@ def detect_eta_variance(vessels: List[Vessel]) -> List[Conflict]:
                     "Notify berth terminal of potential schedule shift",
                 ],
                 created_at=n,
+                data_source=data_source,
             ))
     return conflicts
 

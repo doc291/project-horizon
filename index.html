@@ -62,6 +62,21 @@
     .stat-chip.alert strong { color: var(--critical); }
     .header-right { display: flex; align-items: center; gap: 10px; }
     #clock { font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; min-width: 72px; }
+    /* ── Data source indicator ── */
+    #ds-indicator { display:flex; align-items:center; gap:5px; font-size:10px; padding:3px 8px; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); white-space:nowrap; }
+    #ds-indicator.live { border-color:rgba(20,184,166,.4); background:rgba(20,184,166,.08); }
+    #ds-indicator.mock { border-color:var(--border); }
+    .ds-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+    .ds-dot.live { background:#14b8a6; box-shadow:0 0 4px rgba(20,184,166,.6); }
+    .ds-dot.mock { background:#6b7280; }
+    #ds-label { font-weight:700; color:var(--text); letter-spacing:.3px; }
+    #ds-label.live { color:#14b8a6; }
+    #ds-label.mock { color:var(--text-dim); }
+    #ds-time { color:var(--text-dim); font-size:9px; }
+    /* ── Data source badges on conflict cards ── */
+    .src-badge { font-size:8px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; padding:1px 5px; border-radius:3px; margin-top:3px; display:inline-block; }
+    .src-badge.live { background:rgba(20,184,166,.12); color:#14b8a6; border:1px solid rgba(20,184,166,.3); }
+    .src-badge.simulated { background:rgba(107,114,128,.12); color:#9ca3af; border:1px solid rgba(107,114,128,.25); }
     .btn-refresh {
       padding: 6px 12px; border-radius: 6px;
       background: var(--accent-dim); border: 1px solid var(--accent);
@@ -582,7 +597,7 @@
   <header>
     <div class="logo">
       <img src="/logo" alt="Project Horizon" />
-      <span class="logo-badge">BETA 5</span>
+      <span class="logo-badge">BETA 6</span>
     </div>
     <div class="header-mid">
       <div class="stat-chip"><strong id="s-vessels">–</strong>&nbsp;vessels</div>
@@ -591,6 +606,11 @@
       <div class="stat-chip" id="s-conflict-chip"><strong id="s-conflicts">–</strong>&nbsp;signals</div>
     </div>
     <div class="header-right">
+      <div id="ds-indicator" class="mock" title="Data source">
+        <span class="ds-dot mock" id="ds-dot"></span>
+        <span id="ds-label" class="mock">Simulation Data</span>
+        <span id="ds-time"></span>
+      </div>
       <span id="clock">--:--:-- UTC</span>
       <button class="bell-btn" onclick="toggleNotifPanel()" title="Notifications">
         🔔<span class="bell-badge hidden" id="bell-badge">0</span>
@@ -1041,6 +1061,27 @@ function updateHeader(d){
   document.getElementById('s-expected').textContent=ps.vessels_expected_24h??'–';
   document.getElementById('s-conflicts').textContent=ps.active_conflicts??'–';
   document.getElementById('s-conflict-chip').classList.toggle('alert',(ps.critical_conflicts||0)>0);
+  // Data source indicator
+  const isLive = d.data_source==='qships';
+  const ind=document.getElementById('ds-indicator');
+  const dot=document.getElementById('ds-dot');
+  const lbl=document.getElementById('ds-label');
+  const tme=document.getElementById('ds-time');
+  if(ind){
+    ind.className=isLive?'live':'mock';
+    dot.className='ds-dot '+(isLive?'live':'mock');
+    lbl.className=isLive?'live':'mock';
+    lbl.textContent=d.data_source_label||'Simulation Data';
+    if(isLive&&d.scraped_at){
+      try{
+        const sc=new Date(d.scraped_at);
+        const a=new Date(sc.getTime()+10*60*60*1000);
+        const hh=String(a.getUTCHours()).padStart(2,'0');
+        const mm=String(a.getUTCMinutes()).padStart(2,'0');
+        tme.textContent=`scraped ${hh}:${mm} AEST`;
+      }catch(e){tme.textContent='';}
+    }else{tme.textContent='';}
+  }
 }
 
 /* ── Conditions bar ── */
@@ -1157,6 +1198,7 @@ function renderDecisions(conflicts){
             <span class="signal-badge CONFLICT">CONFLICT</span>
           </div>
           <div class="dec-card-title">${esc(titleShort)}</div>
+          <div style="margin-bottom:6px;">${c.data_source==='live'?'<span class="src-badge live">Live Data</span>':'<span class="src-badge simulated">SmartOceanX \u2014 Placeholder</span>'}</div>
           <div class="dec-rec-row">
             <span class="dec-rec-star">★</span>
             <div class="dec-rec-body">
@@ -1213,6 +1255,7 @@ function renderConflicts(conflicts){
     })();
     const seqSect=hasSeq?`<div class="seq-section"><div class="seq-title">⇄ Sequencing Alternatives</div>${seqAlts.map((alt,ai)=>`<div class="seq-alt" id="seq-${c.id}-${ai}" onclick="selectSeq('${c.id}',${ai})"><div class="seq-alt-hdr"><span class="seq-alt-label">${esc(alt.label)}</span><span class="feasibility-badge ${alt.feasibility}">${alt.feasibility}</span></div>${alt.cascade_impact?`<div class="seq-cascade">Cascade: ${esc(alt.cascade_impact)}</div>`:''}</div>`).join('')}</div>`:'';
     const hasDSW = sigType === 'CONFLICT' && c.decision_support;
+    const srcBadge=(()=>{const s=c.data_source;if(!s||s==='simulated')return`<span class="src-badge simulated">SmartOceanX — Placeholder</span>`;return`<span class="src-badge live">Live Data</span>`;})();
     return`<div class="conflict-card sev-${c.severity}" id="cc-${c.id}">
       <div class="conflict-hdr" onclick="toggleConflict('${c.id}')">
         <div style="display:flex;align-items:center;gap:6px;width:100%;flex-wrap:nowrap;">
@@ -1221,6 +1264,7 @@ function renderConflicts(conflicts){
           ${!hasDSW ? `<span class="state-badge ${state}" style="margin-left:auto">${state}</span>` : ''}
         </div>
         <div class="conflict-title" style="width:100%;margin-top:5px;">${esc((c.description||c.conflict_type).slice(0,72))}</div>
+        <div style="margin-top:3px;">${srcBadge}</div>
         ${hasDSW ? `<button class="sig-btn ack" style="width:100%;margin-top:7px;text-align:center;font-size:10px;padding:5px 8px;background:rgba(56,189,248,.12);color:var(--accent);border-color:rgba(56,189,248,.35);" onclick="event.stopPropagation();openDSW('${c.id}')">⚡ Open Decision Support</button>` : ''}
       </div>
       <div class="conflict-body">

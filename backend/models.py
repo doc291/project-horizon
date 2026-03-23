@@ -125,6 +125,7 @@ class Conflict(BaseModel):
     description: str
     resolution_options: List[str]
     created_at: datetime
+    data_source: Optional[str] = "simulated"   # "live" | "simulated"
 
 
 class Guidance(BaseModel):
@@ -163,3 +164,5 @@ class OperationalSummary(BaseModel):
     towage: List[TowageEvent]
     conflicts: List[Conflict]
     guidance: List[Guidance]
+    data_source: Optional[str] = None     # "qships" | "mock"
+    scraped_at: Optional[str] = None      # ISO UTC timestamp from qships_data.json

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Project Horizon — Beta 5
+Project Horizon — Beta 6
 Self-contained server: zero external dependencies, pure Python 3 stdlib.
+Beta 6 adds live QShips vessel data for Port of Brisbane with a hybrid conflict engine.
 
 Usage (local):
     python3 server.py
@@ -15,13 +16,139 @@ import random
 import hashlib
 import math
 import os
+import threading
+import time
+import logging
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+log = logging.getLogger("horizon")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [horizon] %(levelname)s %(message)s",
+                    datefmt="%Y-%m-%dT%H:%M:%SZ")
+
 PORT = int(os.environ.get("PORT", 8000))
-INDEX_HTML = Path(__file__).parent / "index.html"
-LOGO_FILE  = Path(__file__).parent / "logo.svg"
+INDEX_HTML    = Path(__file__).parent / "index.html"
+LOGO_FILE     = Path(__file__).parent / "logo.svg"
+QSHIPS_FILE   = Path(__file__).parent / "qships_data.json"
+
+# ── QShips live data state ────────────────────────────────────────────────────
+
+_qships_data  = None       # Loaded qships_data.json content (dict or None)
+_scrape_lock  = threading.Lock()
+_scraping     = False      # Flag: scrape in progress
+
+def load_qships_data():
+    """Load qships_data.json from disk into _qships_data. Thread-safe."""
+    global _qships_data
+    if not QSHIPS_FILE.exists():
+        log.info("qships_data.json not found — using simulation data")
+        _qships_data = None
+        return
+    try:
+        data = json.loads(QSHIPS_FILE.read_text(encoding="utf-8"))
+        if not data.get("vessels"):
+            log.warning("qships_data.json has no vessels — using simulation data")
+            _qships_data = None
+            return
+        _qships_data = data
+        log.info("Loaded qships_data.json: %d vessels, scraped at %s",
+                 data.get("vessel_count", 0), data.get("scraped_at", "?"))
+    except Exception as e:
+        log.error("Failed to load qships_data.json: %s", e)
+        _qships_data = None
+
+
+def get_data_source() -> dict:
+    """Return current data source descriptor."""
+    if _qships_data:
+        return {
+            "source":     "qships",
+            "label":      "QShips Live — Brisbane",
+            "scraped_at": _qships_data.get("scraped_at"),
+        }
+    return {"source": "mock", "label": "Simulation Data", "scraped_at": None}
+
+
+def _run_scrape_background():
+    """Run scraper in background thread. Uses lock to prevent concurrent runs."""
+    global _scraping
+    with _scrape_lock:
+        if _scraping:
+            log.info("Scrape already in progress — skipping")
+            return
+        _scraping = True
+    try:
+        import qships_scraper
+        success = qships_scraper.run_scrape()
+        if success:
+            load_qships_data()
+    except ImportError:
+        log.warning("qships_scraper not available — skipping scrape")
+    except Exception as e:
+        log.error("Background scrape error: %s", e)
+    finally:
+        _scraping = False
+
+
+def _schedule_scrapes():
+    """
+    Schedule four scrapes per day at 06:00, 12:00, 18:00, 00:00 AEST (UTC+10).
+    AEST times → UTC: 20:00, 02:00, 08:00, 14:00 UTC.
+    Runs in a background daemon thread.
+    """
+    SCRAPE_UTC_HOURS = {20, 2, 8, 14}
+
+    def _loop():
+        last_hour_fired = -1
+        while True:
+            now_utc = datetime.now(tz=timezone.utc)
+            h = now_utc.hour
+            if h in SCRAPE_UTC_HOURS and h != last_hour_fired and now_utc.minute < 5:
+                last_hour_fired = h
+                log.info("Scheduled scrape triggered at %02d:%02d UTC", h, now_utc.minute)
+                t = threading.Thread(target=_run_scrape_background, daemon=True)
+                t.start()
+            elif h not in SCRAPE_UTC_HOURS:
+                last_hour_fired = -1   # reset so next window fires
+            time.sleep(60)
+
+    t = threading.Thread(target=_loop, daemon=True, name="scrape-scheduler")
+    t.start()
+
+
+def build_vessels_from_qships(data: dict) -> list:
+    """Convert qships_data.json vessels to server.py vessel dicts."""
+    now = utcnow()
+    vessels = []
+    for v in data.get("vessels", []):
+        if v.get("status") == "departed":
+            continue
+        pos = vessel_position(v, now)
+        v_out = dict(v)
+        v_out["lat"] = pos["lat"]
+        v_out["lon"] = pos["lon"]
+        # Ensure required fields have fallbacks
+        if not v_out.get("ata") and v_out.get("status") == "berthed":
+            v_out["ata"] = v_out.get("eta")
+        v_out.setdefault("atd", None)
+        vessels.append(v_out)
+    return vessels
+
+
+def build_berths_from_qships(data: dict) -> list:
+    """Convert qships_data.json berths to server.py berth dicts."""
+    berths = []
+    now = utcnow()
+    for b in data.get("berths", []):
+        b_out = dict(b)
+        # Add geo defaults (QShips berths won't have lat/lon)
+        b_out.setdefault("lat", None)
+        b_out.setdefault("lon", None)
+        b_out.setdefault("crane_count", 0)
+        b_out.setdefault("lat_depth_m", 13.0)
+        berths.append(b_out)
+    return berths
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -400,11 +527,12 @@ CLEARANCE_MINS = 60
 
 def _conflict(cid, ctype, signal_type, severity, vessel_ids, vessel_names,
                berth_id, berth_name, conflict_time, description, resolutions,
-               sequencing_alternatives=None, decision_support=None):
+               sequencing_alternatives=None, decision_support=None,
+               data_source="simulated"):
     return {
         "id": cid,
         "conflict_type": ctype,
-        "signal_type": signal_type,        # CONFLICT | WARNING | ADVISORY
+        "signal_type": signal_type,        # CONFLICT | WARNING | ADVISORY | WEATHER
         "severity": severity,
         "vessel_ids": vessel_ids,
         "vessel_names": vessel_names,
@@ -415,6 +543,7 @@ def _conflict(cid, ctype, signal_type, severity, vessel_ids, vessel_names,
         "resolution_options": resolutions,
         "sequencing_alternatives": sequencing_alternatives or [],
         "decision_support": decision_support,
+        "data_source": data_source,        # "live" | "simulated"
     }
 
 
@@ -438,8 +567,14 @@ def _build_decision_support(seq_alts, conflict_time_dt, now):
     }
 
 
-def detect_conflicts(vessels, berths, pilotage, towage, now):
+def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
+    """
+    Detect all operational conflicts.
+    When is_live=True (QShips data active), berth/ETA conflicts are tagged data_source="live".
+    Pilotage and towage conflicts are always tagged data_source="simulated".
+    """
     conflicts = []
+    vessel_data_source = "live" if is_live else "simulated"
 
     # ── 1. Berth overlaps ──────────────────────────────────────────────────────
     by_berth = {}
@@ -481,6 +616,7 @@ def detect_conflicts(vessels, berths, pilotage, towage, now):
                          f"Bring forward {a['name']} departure",
                          f"Reassign {b['name']} to an alternative berth"],
                         seq_alts, ds,
+                        data_source=vessel_data_source,
                     ))
 
     # ── 2. Berth not ready ────────────────────────────────────────────────────
@@ -503,6 +639,7 @@ def detect_conflicts(vessels, berths, pilotage, towage, now):
                         [f"Hold {v['name']} at anchorage for {gap}min",
                          "Accelerate departure of current occupant",
                          f"Assign {v['name']} to an alternative berth"],
+                        data_source=vessel_data_source,
                     ))
 
     # ── 3. Short pilotage notice ───────────────────────────────────────────────
@@ -522,6 +659,7 @@ def detect_conflicts(vessels, berths, pilotage, towage, now):
                         [f"Confirm availability with {pil['pilot_name']} immediately",
                          "Request stand-by pilot cover",
                          f"Delay {v['name']} ETA to restore notice period"],
+                        data_source="simulated",   # pilotage always simulated
                     ))
 
     # ── 4. Tug double-booking ─────────────────────────────────────────────────
@@ -555,6 +693,7 @@ def detect_conflicts(vessels, berths, pilotage, towage, now):
                         ["Reassign a spare tug to the later operation",
                          "Adjust one operation time to avoid overlap",
                          "Confirm tug availability with tug operator"],
+                        data_source="simulated",   # towage always simulated
                     ))
 
     # ── 5. ETA variance ───────────────────────────────────────────────────────
@@ -569,6 +708,7 @@ def detect_conflicts(vessels, berths, pilotage, towage, now):
                 ["Request updated ETA from ship's agent",
                  "Place pilotage and towage on standby",
                  "Notify berth terminal of potential schedule shift"],
+                data_source=vessel_data_source,
             ))
 
     sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -1169,68 +1309,85 @@ def make_dashboard(vessels, berths, conflicts, pilotage, towage,
 
 def build_summary():
     now = utcnow()
-    berths   = make_berths(now)
-    vessels  = make_vessels(now)
+
+    # ── Beta 6: Hybrid data layer ──────────────────────────────────────────────
+    # Use QShips live vessels + berths when available, fall back to simulation.
+    # Pilotage and towage are always simulated (not available on public QShips).
+    ds        = get_data_source()
+    is_live   = ds["source"] == "qships"
+
+    if is_live:
+        vessels  = build_vessels_from_qships(_qships_data)
+        berths   = build_berths_from_qships(_qships_data)
+        port_name = _qships_data.get("port_name", "Port of Brisbane")
+    else:
+        berths   = make_berths(now)
+        vessels  = make_vessels(now)
+        port_name = "Port of Northhaven"
+
     pilotage = make_pilotage(vessels, now)
     towage   = make_towage(vessels, now)
-    weather   = make_weather()
-    tides     = make_tides()
+    weather  = make_weather()
+    tides    = make_tides()
 
     # Operational conflicts + Beta 4 weather alerts merged and re-sorted
-    op_conflicts      = detect_conflicts(vessels, berths, pilotage, towage, now)
-    weather_alerts    = detect_weather_alerts(weather, vessels, now)
-    sev_order         = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-    conflicts         = sorted(
+    op_conflicts   = detect_conflicts(vessels, berths, pilotage, towage, now, is_live=is_live)
+    weather_alerts = detect_weather_alerts(weather, vessels, now)
+    sev_order      = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    conflicts      = sorted(
         op_conflicts + weather_alerts,
         key=lambda c: (sev_order.get(c["severity"], 9), c["conflict_time"]),
     )
 
-    guidance  = build_guidance(conflicts, vessels, berths, pilotage, towage, now)
+    guidance   = build_guidance(conflicts, vessels, berths, pilotage, towage, now)
 
     # Beta 3 additions
     berth_util = make_berth_utilisation(vessels, berths, now)
     etd_risk   = compute_etd_risk(vessels, conflicts, weather, tides)
     dashboard  = make_dashboard(vessels, berths, conflicts, pilotage, towage,
                                 weather, tides, etd_risk, berth_util, now)
-    ukc          = compute_ukc(vessels, berths, tides["current_height_m"])
-    arrival_ukc  = compute_arrival_ukc(vessels, berths, now)
+    ukc        = compute_ukc(vessels, berths, tides["current_height_m"])
+    arrival_ukc = compute_arrival_ukc(vessels, berths, now)
 
     occupied   = sum(1 for b in berths if b["status"] in ("occupied", "reserved"))
     available  = sum(1 for b in berths if b["status"] == "available")
     in_port    = sum(1 for v in vessels if v["status"] == "berthed")
     exp_24     = sum(1 for v in vessels
                      if v["status"] not in ("berthed", "departed")
-                     and (isoparse(v["eta"]) - now).total_seconds() / 3600 <= 24)
+                     and v.get("eta") and (isoparse(v["eta"]) - now).total_seconds() / 3600 <= 24)
     dep_24     = sum(1 for v in vessels
                      if v["status"] == "berthed"
-                     and (isoparse(v["etd"]) - now).total_seconds() / 3600 <= 24)
+                     and v.get("etd") and (isoparse(v["etd"]) - now).total_seconds() / 3600 <= 24)
     critical   = sum(1 for c in conflicts if c["severity"] == "critical")
 
     return {
-        "port_name": "Port of Northhaven",
-        "generated_at": fmt(now),
+        "port_name":       port_name,
+        "generated_at":    fmt(now),
         "lookahead_hours": 48,
+        "data_source":     ds["source"],
+        "data_source_label": ds["label"],
+        "scraped_at":      ds["scraped_at"],
         "port_status": {
-            "berths_occupied": occupied,
-            "berths_available": available,
-            "berths_total": len(berths),
-            "vessels_in_port": in_port,
+            "berths_occupied":    occupied,
+            "berths_available":   available,
+            "berths_total":       len(berths),
+            "vessels_in_port":    in_port,
             "vessels_expected_24h": exp_24,
             "vessels_departing_24h": dep_24,
-            "active_conflicts": len(conflicts),
+            "active_conflicts":   len(conflicts),
             "critical_conflicts": critical,
-            "pilots_available": 3,
-            "tugs_available": 4,
+            "pilots_available":   3,
+            "tugs_available":     4,
         },
-        "vessels":          vessels,
-        "berths":           berths,
-        "pilotage":         pilotage,
-        "towage":           towage,
-        "conflicts":        conflicts,
-        "guidance":         guidance,
-        "port_geo":         PORT_GEO,
-        "weather":          weather,
-        "tides":            tides,
+        "vessels":           vessels,
+        "berths":            berths,
+        "pilotage":          pilotage,
+        "towage":            towage,
+        "conflicts":         conflicts,
+        "guidance":          guidance,
+        "port_geo":          PORT_GEO,
+        "weather":           weather,
+        "tides":             tides,
         "berth_utilisation": berth_util,
         "etd_risk":          etd_risk,
         "dashboard":         dashboard,
@@ -1250,14 +1407,45 @@ class HorizonHandler(BaseHTTPRequestHandler):
         path = self.path.split("?")[0]
         if path == "/api/summary":
             self._json(build_summary())
+        elif path == "/api/scrape":
+            self._scrape()
         elif path == "/health":
-            self._json({"status": "ok", "time": fmt(utcnow())})
+            ds = get_data_source()
+            self._json({"status": "ok", "time": fmt(utcnow()),
+                        "data_source": ds["source"], "scraped_at": ds["scraped_at"]})
         elif path in ("/", "/index.html"):
             self._html()
         elif path == "/logo":
             self._logo()
         else:
             self.send_error(404)
+
+    def _scrape(self):
+        """Trigger a manual scrape on demand and wait for it to complete."""
+        global _scraping
+        if _scraping:
+            self._json({"status": "scraping_in_progress",
+                        "message": "A scrape is already running. Try again shortly."})
+            return
+        log.info("Manual scrape triggered via /api/scrape")
+        # Run synchronously in this request thread (blocks until done)
+        try:
+            import qships_scraper
+            success = qships_scraper.run_scrape()
+            if success:
+                load_qships_data()
+            ds = get_data_source()
+            self._json({
+                "status":        "ok" if success else "failed",
+                "vessel_count":  _qships_data.get("vessel_count", 0) if _qships_data else 0,
+                "scraped_at":    ds["scraped_at"],
+                "source":        ds["label"],
+            })
+        except ImportError:
+            self._json({"status": "error",
+                        "message": "qships_scraper not installed — run: pip install playwright beautifulsoup4 && playwright install chromium"})
+        except Exception as e:
+            self._json({"status": "error", "message": str(e)})
 
     def _json(self, data):
         body = json.dumps(data, default=str).encode()
@@ -1302,11 +1490,38 @@ class HorizonHandler(BaseHTTPRequestHandler):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # ── Beta 6 startup: load QShips data, scrape if stale ────────────────────
+    load_qships_data()
+
+    if _qships_data is None:
+        # No data file exists — try an initial scrape in background
+        log.info("No qships_data.json found — attempting initial scrape")
+        t = threading.Thread(target=_run_scrape_background, daemon=True)
+        t.start()
+    else:
+        # Check if data is older than 25 hours
+        try:
+            scraped = _qships_data.get("scraped_at", "")
+            if scraped:
+                scraped_dt = datetime.fromisoformat(scraped.replace("Z", "+00:00"))
+                age_h = (utcnow() - scraped_dt).total_seconds() / 3600
+                if age_h > 25:
+                    log.info("qships_data.json is %.1fh old — refreshing", age_h)
+                    t = threading.Thread(target=_run_scrape_background, daemon=True)
+                    t.start()
+        except Exception as e:
+            log.warning("Could not check scrape age: %s", e)
+
+    # Start scheduled scrape runner
+    _schedule_scrapes()
+
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
+    ds = get_data_source()
     print(f"╔══════════════════════════════════════╗")
-    print(f"║   Project Horizon  —  Beta 3         ║")
+    print(f"║   Project Horizon  —  Beta 6         ║")
     print(f"╠══════════════════════════════════════╣")
     print(f"║  http://localhost:{PORT}               ║")
+    print(f"║  Data: {ds['label']:<29}║")
     print(f"║  Press Ctrl+C to stop               ║")
     print(f"╚══════════════════════════════════════╝")
     try:
