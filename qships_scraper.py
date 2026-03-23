@@ -1,67 +1,65 @@
-#!/usr/bin/env python3
 """
-QShips Scraper — Project Horizon Beta 6
-Scrapes live vessel movement data from the QShips public website for the Port of Brisbane.
-Writes results to qships_data.json in the same directory as this file.
+qships_scraper.py — Project Horizon Beta 6
 
-Strategy:
-  1. Try requests + BeautifulSoup (no browser required — works on Railway)
-  2. Fall back to Playwright headless browser if requests approach gets no table rows
+Scrapes live vessel movements from the QShips public JSON API (GetDataX).
+No browser/Playwright required — plain requests + JSON parsing.
 
-Usage:
-    python3 qships_scraper.py
-
-Dependencies:
-    beautifulsoup4 (pip install beautifulsoup4)
-    requests (stdlib urllib fallback if requests not installed)
-    playwright (optional — pip install playwright && playwright install chromium)
+API discovered via browser DevTools:
+  POST https://qships.tmr.qld.gov.au/webx/services/wxdata.svc/GetDataX
+  reportCode: MSQ-WEB-0001, filterName: "Next 7 days", DOMAIN_ID: -1
 """
 
-import hashlib
 import json
+import hashlib
 import logging
-import re
-import sys
-import urllib.request
-import urllib.parse
+import threading
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [qships] %(levelname)s %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%SZ",
-)
-log = logging.getLogger("qships")
+log = logging.getLogger(__name__)
 
 OUTPUT_FILE = Path(__file__).parent / "qships_data.json"
+DEBUG_FILE  = Path(__file__).parent / "qships_debug.json"
 
-QSHIPS_URL   = "https://qships.tmr.qld.gov.au/webx/"
-USER_AGENT   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+BASE_URL    = "https://qships.tmr.qld.gov.au"
+MAIN_URL    = f"{BASE_URL}/webx/"
+API_URL     = f"{BASE_URL}/webx/services/wxdata.svc/GetDataX"
 
-# AEST is UTC+10, no DST
-AEST_OFFSET = timedelta(hours=10)
+USER_AGENT  = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/120.0.0.0 Safari/537.36"
+)
 
-# Draught estimates by vessel type (QShips public data doesn't include draught)
-DRAUGHT_ESTIMATES = {
-    "Tanker":           11.0,
-    "Bulk Carrier":     10.5,
-    "Container":        11.5,
-    "Vehicles Carrier": 8.0,
-    "General Cargo":    7.5,
-    "Passenger":        7.0,
+AEST = timezone(timedelta(hours=10))
+
+API_PAYLOAD = {
+    "token": None,
+    "reportCode": "MSQ-WEB-0001",
+    "dataSource": None,
+    "filterName": "Next 7 days",
+    "parameters": [
+        {
+            "__type": "ParameterValueDTO:#WebX.Core.DTO",
+            "sName": "DOMAIN_ID",
+            "iValueType": 0,
+            "aoValues": [{"Value": -1}]
+        }
+    ],
+    "metaVersion": 0,
 }
-DRAUGHT_DEFAULT = 9.0
 
-# Terminal name mapping from berth/location substrings
-TERMINAL_MAP = [
-    ("Fisherman Island",    "Fisherman Islands Terminal"),
-    ("DBCT",                "Dalrymple Bay Coal Terminal"),
-    ("BP",                  "BP Terminal"),
-    ("Pinkenba",            "Pinkenba Terminal"),
-]
+VESSEL_TYPE_DRAUGHT = {
+    "tanker":       11.0,
+    "bulk carrier": 10.5,
+    "container":    11.5,
+    "general cargo": 9.0,
+    "ro-ro":         8.5,
+    "passenger":     8.0,
+    "tug":           4.0,
+    "barge":         3.5,
+}
 
-# QShips status → Horizon VesselStatus mapping
 QSTATUS_MAP = {
     "PLAN": "scheduled",
     "SCHD": "scheduled",
@@ -72,385 +70,374 @@ QSTATUS_MAP = {
     "INVC": "departed",
 }
 
+_scrape_lock = threading.Lock()
 
-# ── Field transformation helpers ──────────────────────────────────────────────
 
-def _parse_aest_to_utc(raw: str):
-    raw = raw.strip()
-    if not raw:
-        return None
-    for fmt in ("%d-%m-%y %H:%M", "%d-%m-%Y %H:%M", "%d/%m/%Y %H:%M", "%d/%m/%y %H:%M"):
-        try:
-            dt_aest = datetime.strptime(raw, fmt)
-            dt_utc = dt_aest - AEST_OFFSET
-            return dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
-        except ValueError:
-            pass
-    return None
-
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _stable_id(name: str, eta_raw: str) -> str:
     return hashlib.md5(f"{name}-{eta_raw}".encode()).hexdigest()[:12]
 
 
-def _draught_for_type(vessel_type: str) -> float:
-    for key, val in DRAUGHT_ESTIMATES.items():
-        if key.lower() in vessel_type.lower():
-            return val
-    return DRAUGHT_DEFAULT
+def _parse_aest_to_utc(date_str: str):
+    """Parse multiple common date formats from QShips and convert AEST -> UTC."""
+    if not date_str:
+        return None
+    date_str = date_str.strip()
 
-
-def _terminal_for_location(location: str) -> str:
-    for fragment, terminal in TERMINAL_MAP:
-        if fragment.lower() in location.lower():
-            return terminal
-    return "Brisbane Port"
-
-
-def _parse_loa(raw: str) -> float:
-    cleaned = re.sub(r"[^\d.]", "", raw)
-    try:
-        return float(cleaned)
-    except (ValueError, TypeError):
-        return 0.0
-
-
-def _map_status(qstatus: str, direction: str) -> str:
-    base = QSTATUS_MAP.get(qstatus.upper(), "scheduled")
-    if base == "berthed" and direction in ("DEP", "REM"):
-        return "departed"
-    return base
-
-
-def _is_at_risk(qstatus: str, eta_utc_str, now_utc: datetime) -> bool:
-    if qstatus.upper() not in ("PLAN", "SCHD"):
-        return False
-    if not eta_utc_str:
-        return False
-    try:
-        eta_dt = datetime.fromisoformat(eta_utc_str.replace("Z", "+00:00"))
-        return 0 <= (eta_dt - now_utc).total_seconds() / 3600 <= 6
-    except (ValueError, TypeError):
-        return False
-
-
-def _parse_rows(rows) -> list:
-    movements = []
-    for row in rows:
-        cells = row.find_all(["td", "th"])
-        if len(cells) < 2:
-            continue
-        texts = [c.get_text(strip=True) for c in cells]
-        if len(texts) < 10:
-            continue
-        if texts[0].upper() in ("JOB TYPE", "TYPE", "MOVEMENT", "JOB"):
-            continue
+    # .NET /Date(ms)/ format
+    if date_str.startswith("/Date("):
         try:
-            movements.append({
-                "job_type":      texts[0].strip(),
-                "ship":          texts[1].strip(),
-                "ship_type":     texts[2].strip(),
-                "loa_raw":       texts[3].strip(),
-                "agency":        texts[4].strip(),
-                "start_time":    texts[5].strip(),
-                "end_time":      texts[6].strip(),
-                "from_location": texts[7].strip(),
-                "to_location":   texts[8].strip(),
-                "status_raw":    texts[9].strip(),
-                "last_port":     texts[10].strip() if len(texts) > 10 else "",
-                "next_port":     texts[11].strip() if len(texts) > 11 else "",
-                "voyage_number": texts[12].strip() if len(texts) > 12 else "",
-            })
-        except (IndexError, AttributeError):
+            ms = int(date_str[6:date_str.index(")")])
+            dt = datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+            return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        except Exception:
+            pass
+
+    formats = [
+        "%d-%m-%y %H:%M",
+        "%d/%m/%Y %H:%M",
+        "%d-%m-%Y %H:%M",
+        "%d/%m/%y %H:%M",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S.%f",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+    ]
+    for fmt in formats:
+        try:
+            dt = datetime.strptime(date_str, fmt)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=AEST)
+            return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        except ValueError:
             continue
-    return movements
+
+    log.warning("Could not parse date: %r", date_str)
+    return None
 
 
-def _transform_movements(movements: list, now_utc: datetime) -> list:
+def _map_status(raw: str) -> str:
+    if not raw:
+        return "scheduled"
+    return QSTATUS_MAP.get(raw.strip().upper(), "scheduled")
+
+
+def _est_draught(vessel_type: str) -> float:
+    if not vessel_type:
+        return 9.0
+    vt = vessel_type.lower()
+    for key, val in VESSEL_TYPE_DRAUGHT.items():
+        if key in vt:
+            return val
+    return 9.0
+
+
+def _is_at_risk(eta_utc) -> bool:
+    if not eta_utc:
+        return False
+    try:
+        eta = datetime.strptime(eta_utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        diff = abs((eta - datetime.now(timezone.utc)).total_seconds())
+        return diff < 7200
+    except Exception:
+        return False
+
+
+def _find_col(row: dict, *candidates) -> str:
+    """Case-insensitive key lookup across candidate column names."""
+    row_lower = {k.lower(): v for k, v in row.items()}
+    for c in candidates:
+        val = row_lower.get(c.lower())
+        if val is not None:
+            return str(val).strip()
+    return ""
+
+
+# ---------------------------------------------------------------------------
+# API scraper
+# ---------------------------------------------------------------------------
+
+def _scrape_with_api() -> list:
+    """
+    POST to QShips GetDataX API and return a list of raw row dicts.
+    """
+    try:
+        import requests as req_lib
+    except ImportError:
+        log.error("requests library not available")
+        return []
+
+    session = req_lib.Session()
+    session.headers.update({"User-Agent": USER_AGENT})
+
+    # Step 1: GET main page to acquire ASP.NET session cookie
+    try:
+        log.info("Fetching QShips main page to establish session...")
+        r = session.get(MAIN_URL, timeout=30)
+        log.info("Main page HTTP %d  (cookies: %s)",
+                 r.status_code, list(session.cookies.keys()))
+    except Exception as exc:
+        log.warning("Main page GET failed (will try API anyway): %s", exc)
+
+    # Step 2: POST to GetDataX
+    session.headers.update({
+        "Accept":           "application/json, text/javascript, */*; q=0.01",
+        "Content-Type":     "application/json; charset=UTF-8",
+        "Origin":           BASE_URL,
+        "Referer":          MAIN_URL,
+        "X-Requested-With": "XMLHttpRequest",
+    })
+
+    try:
+        log.info("Calling QShips GetDataX API...")
+        resp = session.post(
+            API_URL,
+            data=json.dumps(API_PAYLOAD),
+            timeout=45,
+        )
+        log.info("GetDataX HTTP %d  (%.1f KB)",
+                 resp.status_code, len(resp.content) / 1024)
+        resp.raise_for_status()
+    except Exception as exc:
+        log.error("GetDataX API request failed: %s", exc)
+        return []
+
+    # Step 3: Parse JSON
+    try:
+        payload = resp.json()
+    except Exception as exc:
+        log.error("JSON decode failed: %s", exc)
+        log.debug("Raw response (first 500): %s", resp.text[:500])
+        return []
+
+    # Save raw response for debugging (helps identify column names on first run)
+    try:
+        DEBUG_FILE.write_text(
+            json.dumps(payload, indent=2, default=str)[:200_000],
+            encoding="utf-8",
+        )
+        log.info("Raw API response saved to %s", DEBUG_FILE)
+    except Exception:
+        pass
+
+    # Step 4: Unwrap WCF envelope — handles 'd' wrapper and GetDataXResult
+    result = payload
+    for key in ("d", "GetDataXResult"):
+        if isinstance(payload, dict) and key in payload:
+            result = payload[key]
+            break
+
+    # Step 5: Extract columns + rows
+    columns  = []
+    rows_raw = []
+
+    if isinstance(result, dict):
+        col_data = (
+            result.get("Columns") or result.get("columns") or
+            result.get("ColumnDefinitions") or []
+        )
+        row_data = (
+            result.get("Rows") or result.get("rows") or
+            result.get("Data")  or result.get("data") or []
+        )
+
+        for col in col_data:
+            if isinstance(col, dict):
+                name = (col.get("sName") or col.get("Name") or
+                        col.get("name") or col.get("ColumnName") or "")
+                columns.append(str(name))
+            elif isinstance(col, str):
+                columns.append(col)
+
+        for row in row_data:
+            if isinstance(row, dict):
+                values = row.get("Values") or row.get("values")
+                if values and columns:
+                    rows_raw.append(dict(zip(columns, values)))
+                else:
+                    rows_raw.append(row)
+            elif isinstance(row, list):
+                if columns:
+                    rows_raw.append(dict(zip(columns, row)))
+                else:
+                    rows_raw.append({str(i): v for i, v in enumerate(row)})
+
+    elif isinstance(result, list):
+        rows_raw = [r for r in result if isinstance(r, dict)]
+
+    log.info("Extracted %d raw rows from API response", len(rows_raw))
+    if rows_raw:
+        log.debug("Sample row keys: %s", list(rows_raw[0].keys()))
+
+    return rows_raw
+
+
+# ---------------------------------------------------------------------------
+# Data transformation
+# ---------------------------------------------------------------------------
+
+def _transform_movements(raw_rows: list, now_utc: datetime) -> list:
     vessels = []
-    for m in movements:
-        name      = m["ship"]
-        eta_raw   = m["start_time"]
-        etd_raw   = m["end_time"]
-        direction = m["job_type"].upper()[:3]
-        qstatus   = m["status_raw"].upper()
-        vessel_type = m["ship_type"]
-        loa       = _parse_loa(m["loa_raw"])
-        eta_utc   = _parse_aest_to_utc(eta_raw)
-        etd_utc   = _parse_aest_to_utc(etd_raw)
-        status    = _map_status(qstatus, direction)
-        at_risk   = _is_at_risk(qstatus, eta_utc, now_utc)
-        if at_risk:
-            status = "at_risk"
-        if status == "departed":
+    seen    = set()
+
+    for row in raw_rows:
+        # Filter to Brisbane rows when a port column is present
+        port = _find_col(
+            row,
+            "PORT", "PORT_NAME", "PortName", "Harbour", "HARBOUR",
+            "Location", "LOCATION",
+        )
+        if port and len(port) > 3:
+            if "brisbane" not in port.lower() and "bris" not in port.lower():
+                log.debug("Skipping non-Brisbane row (port=%r)", port)
+                continue
+
+        name = _find_col(
+            row,
+            "VESSEL_NAME", "VesselName", "Vessel", "VESSEL", "Name",
+            "SHIP_NAME", "ShipName",
+        )
+        if not name:
             continue
-        draught  = _draught_for_type(vessel_type)
-        vid      = _stable_id(name, eta_raw)
-        berth_id = m["to_location"] if direction in ("ARR", "EXT") else m["from_location"]
+
+        eta_raw = _find_col(
+            row,
+            "ETA", "ATA", "Eta", "Ata",
+            "ARRIVAL_DATE", "ArrivalDate", "Arrival",
+            "ARRIVAL", "ETD", "Etd",
+        )
+        berth  = _find_col(
+            row,
+            "BERTH", "BERTH_NAME", "BerthName", "Terminal",
+            "TERMINAL", "Wharf", "WHARF",
+        )
+        vtype  = _find_col(
+            row,
+            "VESSEL_TYPE", "VesselType", "Type", "TYPE",
+            "Ship_Type", "ShipType", "SHIP_TYPE",
+        )
+        status = _find_col(
+            row,
+            "STATUS", "Status", "MOVEMENT_STATUS", "MovementStatus",
+            "MOVE_STATUS", "MoveStatus",
+        )
+        loa    = _find_col(row, "LOA", "Loa", "LENGTH", "Length", "loa")
+
+        vid = _stable_id(name, eta_raw)
+        if vid in seen:
+            continue
+        seen.add(vid)
+
+        eta_utc = _parse_aest_to_utc(eta_raw) if eta_raw else None
+        draught = _est_draught(vtype)
+
+        try:
+            loa_m = float(loa) if loa else None
+        except ValueError:
+            loa_m = None
+
         vessels.append({
-            "id":                vid,
-            "name":              name,
-            "imo":               "unknown",
-            "vessel_type":       vessel_type,
-            "flag":              "unknown",
-            "loa":               loa,
-            "draught":           draught,
-            "cargo_type":        vessel_type,
-            "status":            status,
-            "berth_id":          berth_id,
-            "eta":               eta_utc or "",
-            "etd":               etd_utc or "",
-            "ata":               eta_utc if status == "berthed" else None,
-            "atd":               None,
-            "pilotage_required": True,
-            "towage_required":   loa > 150,
-            "agent":             m["agency"],
-            "notes":             "Draught estimated — QShips public data",
-            "qships_status":     qstatus,
-            "movement_direction": direction,
-            "from_location":     m["from_location"],
-            "last_port":         m["last_port"],
-            "next_port":         m["next_port"],
-            "voyage_number":     m["voyage_number"],
+            "id":          vid,
+            "name":        name,
+            "type":        vtype or "Unknown",
+            "status":      _map_status(status),
+            "eta":         eta_utc or now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "berth":       berth or "TBD",
+            "draught":     draught,
+            "loa":         loa_m,
+            "at_risk":     _is_at_risk(eta_utc),
+            "data_source": "live",
         })
+
     return vessels
 
 
 def _build_berths(vessels: list) -> list:
-    berth_ids = set(v["berth_id"] for v in vessels if v.get("berth_id"))
-    berths = []
-    for bid in sorted(berth_ids):
-        if not bid:
+    berth_map = {}
+    for v in vessels:
+        b = v.get("berth", "TBD")
+        if not b or b == "TBD":
             continue
-        occupying = [v for v in vessels if v.get("berth_id") == bid and v["status"] == "berthed"]
-        reserved  = [v for v in vessels if v.get("berth_id") == bid
-                     and v["status"] in ("confirmed", "scheduled", "at_risk")]
-        if occupying:
-            status = "occupied"
-            readiness = max((v["etd"] for v in occupying if v.get("etd")), default=None)
-        elif reserved:
-            status = "reserved"
-            readiness = None
-        else:
-            status = "available"
-            readiness = None
-        berths.append({
-            "id":             bid,
-            "name":           bid,
-            "terminal":       _terminal_for_location(bid),
-            "max_loa":        350.0,
-            "max_draught":    14.5,
-            "lat_depth_m":    13.0,
-            "status":         status,
-            "readiness_time": readiness,
-            "crane_count":    0,
-            "notes":          None,
-        })
-    return berths
+        if b not in berth_map:
+            berth_map[b] = {
+                "id":      f"b-{hashlib.md5(b.encode()).hexdigest()[:6]}",
+                "name":    b,
+                "vessels": [],
+            }
+        berth_map[b]["vessels"].append(v["id"])
+    return list(berth_map.values())
 
 
-# ── Strategy 1: requests (no browser) ─────────────────────────────────────────
-
-def _scrape_with_requests(soup_parser) -> list:
-    """
-    Attempt to fetch QShips using requests (or urllib) and parse the HTML directly.
-    Returns list of raw movement dicts, or empty list if the approach fails.
-    """
-    try:
-        import requests as req_lib
-        log.info("Fetching QShips with requests")
-        session = req_lib.Session()
-        session.headers.update({"User-Agent": USER_AGENT})
-        # Initial page load
-        resp = session.get(QSHIPS_URL, timeout=30)
-        resp.raise_for_status()
-        html = resp.text
-    except ImportError:
-        log.info("requests not available, using urllib")
-        try:
-            req = urllib.request.Request(QSHIPS_URL, headers={"User-Agent": USER_AGENT})
-            with urllib.request.urlopen(req, timeout=30) as r:
-                html = r.read().decode("utf-8", errors="replace")
-        except Exception as e:
-            log.warning("urllib fetch failed: %s", e)
-            return []
-    except Exception as e:
-        log.warning("requests fetch failed: %s", e)
-        return []
-
-    try:
-        from bs4 import BeautifulSoup
-    except ImportError:
-        log.error("beautifulsoup4 not installed")
-        return []
-
-    soup = BeautifulSoup(html, "html.parser")
-
-    # Look for any table on the page
-    tables = soup.find_all("table")
-    log.info("requests approach: found %d tables", len(tables))
-
-    all_rows = []
-    for table in tables:
-        tbody = table.find("tbody")
-        rows  = tbody.find_all("tr") if tbody else table.find_all("tr")[1:]
-        parsed = _parse_rows(rows)
-        if parsed:
-            all_rows.extend(parsed)
-            log.info("Parsed %d rows from table", len(parsed))
-
-    return all_rows
-
-
-# ── Strategy 2: Playwright (full headless browser) ────────────────────────────
-
-def _scrape_with_playwright() -> list:
-    """
-    Full Playwright headless browser scrape.
-    Falls back when requests approach returns no rows (JS-rendered content).
-    """
-    try:
-        from playwright.sync_api import sync_playwright
-        from bs4 import BeautifulSoup
-    except ImportError as e:
-        log.error("Playwright not available: %s", e)
-        return []
-
-    log.info("Falling back to Playwright headless browser")
-    all_rows = []
-
-    try:
-        with sync_playwright() as pw:
-            browser = pw.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-dev-shm-usage"],
-            )
-            context = browser.new_context(user_agent=USER_AGENT)
-            page = context.new_page()
-
-            log.info("Playwright: navigating to QShips")
-            page.goto(QSHIPS_URL, wait_until="networkidle", timeout=60000)
-
-            # Click Ship Movements tab
-            try:
-                page.get_by_text("Ship Movements").first.click()
-                page.wait_for_load_state("networkidle", timeout=15000)
-            except Exception as e:
-                log.warning("Could not click Ship Movements tab: %s", e)
-
-            # Select Brisbane from port dropdown
-            for sel in ["select[name*='port']", "select[id*='port']", "#portSelect"]:
-                try:
-                    page.select_option(sel, label="Brisbane", timeout=3000)
-                    page.wait_for_load_state("networkidle", timeout=10000)
-                    break
-                except Exception:
-                    pass
-
-            # Click Next 7 Days filter
-            for label in ["Next 7 Days", "7 Days", "Next 7"]:
-                try:
-                    page.get_by_text(label).first.click(timeout=3000)
-                    page.wait_for_load_state("networkidle", timeout=10000)
-                    break
-                except Exception:
-                    pass
-
-            # Set Show entries to maximum
-            for count in [500, 200, 100]:
-                for sel in ["select[name='DataTables_Table_0_length']",
-                            "select[name*='length']",
-                            ".dataTables_length select"]:
-                    try:
-                        page.select_option(sel, str(count), timeout=3000)
-                        page.wait_for_load_state("networkidle", timeout=10000)
-                        break
-                    except Exception:
-                        pass
-                break
-
-            page_num = 1
-            while True:
-                html = page.content()
-                soup = BeautifulSoup(html, "html.parser")
-                table = (soup.find("table", id="DataTables_Table_0")
-                         or soup.find("table", class_=re.compile("dataTable|movements", re.I))
-                         or soup.find("table"))
-                if not table:
-                    log.warning("No table on page %d", page_num)
-                    break
-                tbody = table.find("tbody")
-                rows  = tbody.find_all("tr") if tbody else table.find_all("tr")[1:]
-                page_rows = _parse_rows(rows)
-                all_rows.extend(page_rows)
-                log.info("Page %d: %d rows", page_num, len(page_rows))
-                try:
-                    nxt = page.locator("#DataTables_Table_0_next:not(.disabled)").first
-                    cls = nxt.get_attribute("class", timeout=2000) or ""
-                    if nxt.is_visible(timeout=2000) and "disabled" not in cls:
-                        nxt.click()
-                        page.wait_for_load_state("networkidle", timeout=10000)
-                        page_num += 1
-                    else:
-                        break
-                except Exception:
-                    break
-
-            browser.close()
-    except Exception as e:
-        log.error("Playwright scrape failed: %s", e, exc_info=True)
-
-    return all_rows
-
-
-# ── Main entry point ───────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
 
 def run_scrape() -> bool:
     """
-    Run scrape. Returns True on success, False on failure.
-    Never overwrites qships_data.json with a failed/empty result.
+    Run a QShips scrape.  Returns True on success, False on failure.
+    Never overwrites good data with empty/failed results.
     """
-    log.info("Starting QShips scrape — Port of Brisbane")
-    now_utc = datetime.now(tz=timezone.utc).replace(microsecond=0)
+    with _scrape_lock:
+        now_utc = datetime.now(timezone.utc)
 
-    # Try lightweight requests approach first
-    raw_rows = _scrape_with_requests(None)
+        raw_rows = _scrape_with_api()
 
-    # If requests returned nothing, try Playwright
-    if not raw_rows:
-        log.info("requests approach returned no rows — trying Playwright")
-        raw_rows = _scrape_with_playwright()
+        if not raw_rows:
+            log.error("QShips API returned no rows — scrape failed")
+            return False
 
-    if not raw_rows:
-        log.error("Both scrape strategies returned no rows — aborting")
-        return False
+        vessels = _transform_movements(raw_rows, now_utc)
 
-    vessels = _transform_movements(raw_rows, now_utc)
-    berths  = _build_berths(vessels)
+        if not vessels:
+            log.warning(
+                "API returned %d rows but none mapped to valid Brisbane vessels. "
+                "Check qships_debug.json for raw column names.",
+                len(raw_rows),
+            )
+            return False
 
-    log.info("Transformed: %d vessels, %d berths", len(vessels), len(berths))
+        berths = _build_berths(vessels)
 
-    if not vessels:
-        log.error("No vessels after transformation — aborting write")
-        return False
+        output = {
+            "scraped_at":    now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "scrape_source": "qships-api",
+            "port_name":     "Port of Brisbane",
+            "vessels":       vessels,
+            "berths":        berths,
+        }
 
-    output = {
-        "scraped_at":    now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "scrape_source": "QShips — Maritime Safety Queensland — Public Data",
-        "port":          "Brisbane",
-        "port_name":     "Port of Brisbane",
-        "data_type":     "live",
-        "vessel_count":  len(vessels),
-        "berth_count":   len(berths),
-        "vessels":       vessels,
-        "berths":        berths,
-    }
+        OUTPUT_FILE.write_text(json.dumps(output, indent=2), encoding="utf-8")
+        log.info(
+            "Scrape complete — %d vessels, %d berths -> %s",
+            len(vessels), len(berths), OUTPUT_FILE,
+        )
+        return True
 
-    OUTPUT_FILE.write_text(json.dumps(output, indent=2, default=str), encoding="utf-8")
-    log.info("Written to %s", OUTPUT_FILE)
-    return True
 
+# ---------------------------------------------------------------------------
+# CLI test
+# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    import sys
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s %(levelname)-7s %(message)s",
+        datefmt="%H:%M:%S",
+    )
     success = run_scrape()
-    sys.exit(0 if success else 1)
+    if success:
+        data = json.loads(OUTPUT_FILE.read_text())
+        print(f"\nScrape succeeded — {len(data['vessels'])} vessels")
+        for v in data["vessels"][:5]:
+            print(f"  {v['name']:30s}  {v['berth']:20s}  {v['status']:12s}  {v['eta']}")
+    else:
+        print("\nScrape FAILED — check logs above and qships_debug.json if it exists")
+        if DEBUG_FILE.exists():
+            raw = json.loads(DEBUG_FILE.read_text())
+            print("Debug file top-level keys:",
+                  list(raw.keys()) if isinstance(raw, dict) else type(raw))
+        sys.exit(1)
