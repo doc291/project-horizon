@@ -1486,7 +1486,17 @@ class HorizonHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?")[0]
         if path == "/api/summary":
-            self._json(build_summary())
+            try:
+                self._json(build_summary())
+            except Exception as exc:
+                log.error("build_summary crashed: %s — forcing simulation fallback", exc)
+                global _qships_data
+                _qships_data = None
+                try:
+                    self._json(build_summary())
+                except Exception as exc2:
+                    log.error("Simulation fallback also crashed: %s", exc2)
+                    self.send_error(500)
         elif path == "/api/scrape":
             self._scrape()
         elif path == "/api/debug":
@@ -1594,8 +1604,8 @@ class HorizonHandler(BaseHTTPRequestHandler):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    load_qships_data()
-    _schedule_scrapes()
+    # Simulation mode — QShips live data available on demand via /api/scrape
+    log.info("Starting in simulation mode")
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()
