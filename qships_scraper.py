@@ -221,39 +221,54 @@ def _scrape_with_api() -> list:
             break
 
     # Step 5: Extract columns + rows
+    # Response structure: d.Tables = [ { Columns: [...], Rows: [...] }, ... ]
     columns  = []
     rows_raw = []
 
-    if isinstance(result, dict):
-        col_data = (
-            result.get("Columns") or result.get("columns") or
-            result.get("ColumnDefinitions") or []
-        )
-        row_data = (
-            result.get("Rows") or result.get("rows") or
-            result.get("Data")  or result.get("data") or []
-        )
-
+    def _extract_table(table: dict):
+        """Pull columns + rows out of one WebX table object."""
+        t_cols = []
+        col_data = table.get("Columns") or table.get("columns") or []
         for col in col_data:
             if isinstance(col, dict):
                 name = (col.get("sName") or col.get("Name") or
                         col.get("name") or col.get("ColumnName") or "")
-                columns.append(str(name))
+                t_cols.append(str(name))
             elif isinstance(col, str):
-                columns.append(col)
+                t_cols.append(col)
 
+        t_rows = []
+        row_data = table.get("Rows") or table.get("rows") or []
         for row in row_data:
             if isinstance(row, dict):
                 values = row.get("Values") or row.get("values")
-                if values and columns:
-                    rows_raw.append(dict(zip(columns, values)))
+                if values and t_cols:
+                    t_rows.append(dict(zip(t_cols, values)))
                 else:
-                    rows_raw.append(row)
+                    t_rows.append(row)
             elif isinstance(row, list):
-                if columns:
-                    rows_raw.append(dict(zip(columns, row)))
+                if t_cols:
+                    t_rows.append(dict(zip(t_cols, row)))
                 else:
-                    rows_raw.append({str(i): v for i, v in enumerate(row)})
+                    t_rows.append({str(i): v for i, v in enumerate(row)})
+        return t_cols, t_rows
+
+    if isinstance(result, dict):
+        tables = result.get("Tables") or result.get("tables") or []
+        if tables:
+            # Multi-table response — take first table with rows
+            for table in tables:
+                t_cols, t_rows = _extract_table(table)
+                if t_rows:
+                    columns  = t_cols
+                    rows_raw = t_rows
+                    break
+            if not rows_raw and tables:
+                # No table had rows — still capture columns from first table for debug
+                columns, _ = _extract_table(tables[0])
+        else:
+            # Flat structure — Columns/Rows directly on result
+            columns, rows_raw = _extract_table(result)
 
     elif isinstance(result, list):
         rows_raw = [r for r in result if isinstance(r, dict)]
@@ -264,12 +279,14 @@ def _scrape_with_api() -> list:
 
     # Save compact debug summary — always valid JSON, never truncated mid-object
     try:
+        tables = result.get("Tables") or [] if isinstance(result, dict) else []
         debug_summary = {
             "http_status":      resp.status_code,
             "response_bytes":   len(resp.content),
             "top_level_keys":   list(payload.keys()) if isinstance(payload, dict) else str(type(payload)),
-            "result_type":      str(type(result)),
             "result_keys":      list(result.keys()) if isinstance(result, dict) else None,
+            "table_count":      len(tables),
+            "table_row_counts": [len(t.get("Rows") or t.get("rows") or []) for t in tables],
             "columns":          columns,
             "row_count":        len(rows_raw),
             "sample_rows":      rows_raw[:3],
