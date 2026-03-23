@@ -1409,6 +1409,8 @@ class HorizonHandler(BaseHTTPRequestHandler):
             self._json(build_summary())
         elif path == "/api/scrape":
             self._scrape()
+        elif path == "/api/debug":
+            self._scrape_debug()
         elif path == "/health":
             ds = get_data_source()
             self._json({"status": "ok", "time": fmt(utcnow()),
@@ -1443,9 +1445,48 @@ class HorizonHandler(BaseHTTPRequestHandler):
             })
         except ImportError:
             self._json({"status": "error",
-                        "message": "qships_scraper not installed — run: pip install playwright beautifulsoup4 && playwright install chromium"})
+                        "message": "qships_scraper module not found"})
         except Exception as e:
             self._json({"status": "error", "message": str(e)})
+
+    def _scrape_debug(self):
+        """Return diagnostic info: raw API response + scraper state."""
+        debug_file = Path(__file__).parent / "qships_debug.json"
+        out = {
+            "qships_data_exists":  (Path(__file__).parent / "qships_data.json").exists(),
+            "debug_file_exists":   debug_file.exists(),
+            "data_source":         get_data_source(),
+            "scraping_in_progress": _scraping,
+        }
+        if debug_file.exists():
+            try:
+                raw = json.loads(debug_file.read_text(encoding="utf-8"))
+                # Summarise the structure without dumping megabytes
+                if isinstance(raw, dict):
+                    out["debug_top_keys"] = list(raw.keys())
+                    # Unwrap d / GetDataXResult
+                    inner = raw.get("d") or raw.get("GetDataXResult") or raw
+                    if isinstance(inner, dict):
+                        out["inner_keys"] = list(inner.keys())
+                        cols = inner.get("Columns") or inner.get("columns") or []
+                        rows = (inner.get("Rows") or inner.get("rows") or
+                                inner.get("Data") or inner.get("data") or [])
+                        out["column_count"] = len(cols)
+                        out["row_count"]    = len(rows)
+                        out["columns_sample"] = cols[:10]
+                        out["first_row"]    = rows[0] if rows else None
+                    elif isinstance(inner, list):
+                        out["result_is_list"] = True
+                        out["list_length"]    = len(inner)
+                        out["first_item"]     = inner[0] if inner else None
+                else:
+                    out["debug_type"] = str(type(raw))
+            except Exception as e:
+                out["debug_parse_error"] = str(e)
+        else:
+            # No debug file means the API call itself failed before writing anything
+            out["note"] = "No debug file written — API call likely failed (network error or HTTP error)"
+        self._json(out)
 
     def _json(self, data):
         body = json.dumps(data, default=str).encode()
