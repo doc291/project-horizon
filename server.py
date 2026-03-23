@@ -129,20 +129,53 @@ def _schedule_scrapes():
 
 
 def build_vessels_from_qships(data: dict) -> list:
-    """Convert qships_data.json vessels to server.py vessel dicts."""
+    """Convert qships_data.json vessels to server.py vessel dicts.
+
+    Live vessels from the scraper only have the fields written by
+    _transform_movements().  Every field accessed with v["key"] (not v.get())
+    anywhere in the pipeline must be given a safe default here.
+    """
     now = utcnow()
     vessels = []
     for v in data.get("vessels", []):
         if v.get("status") == "departed":
             continue
-        pos = vessel_position(v, now)
         v_out = dict(v)
+
+        # ── Fields needed by vessel_position ─────────────────────────────────
+        v_out.setdefault("berth_id", None)   # sim uses numeric IDs; live uses names
+
+        pos = vessel_position(v_out, now)
         v_out["lat"] = pos["lat"]
         v_out["lon"] = pos["lon"]
-        # Ensure required fields have fallbacks
-        if not v_out.get("ata") and v_out.get("status") == "berthed":
-            v_out["ata"] = v_out.get("eta")
+
+        # ── Fields needed by make_pilotage / make_towage ──────────────────────
+        # etd: estimate as eta + 12h for arrivals, or eta + 2h for berthed vessels
+        if not v_out.get("etd"):
+            try:
+                eta_dt = isoparse(v_out["eta"])
+                offset = timedelta(hours=2) if v_out.get("status") == "berthed" else timedelta(hours=12)
+                v_out["etd"] = fmt(eta_dt + offset)
+            except Exception:
+                v_out["etd"] = v_out.get("eta")
+
+        # towage_required: true for large vessels (LOA > 100m) or tankers/bulk
+        if "towage_required" not in v_out:
+            loa = v_out.get("loa") or 0
+            vtype = (v_out.get("type") or "").lower()
+            v_out["towage_required"] = (
+                loa > 100 or
+                any(t in vtype for t in ("tanker", "bulk", "container", "ro-ro"))
+            )
+
+        # ── Other fields accessed directly elsewhere ──────────────────────────
+        v_out.setdefault("ata", v_out.get("eta") if v_out.get("status") == "berthed" else None)
         v_out.setdefault("atd", None)
+        v_out.setdefault("cargo", "")
+        v_out.setdefault("agent", "")
+        v_out.setdefault("flag", "")
+        v_out.setdefault("call_sign", "")
+
         vessels.append(v_out)
     return vessels
 
@@ -1525,9 +1558,10 @@ class HorizonHandler(BaseHTTPRequestHandler):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # QShips auto-load disabled for board demo — simulation mode only.
-    # Re-enable by restoring load_qships_data() + _schedule_scrapes() here.
-    log.info("Starting in simulation mode")
+    load_qships_data()
+    if _qships_data is None:
+        threading.Thread(target=_run_scrape_background, daemon=True).start()
+    _schedule_scrapes()
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()
