@@ -129,63 +129,20 @@ def _schedule_scrapes():
 
 
 def build_vessels_from_qships(data: dict) -> list:
-    """Convert qships_data.json vessels to server.py vessel dicts.
-
-    Every field accessed anywhere in the pipeline with v["key"] syntax
-    must be given a safe default here — missing keys cause silent KeyErrors
-    that kill /api/summary without a response.
-    """
+    """Convert qships_data.json vessels to server.py vessel dicts."""
     now = utcnow()
     vessels = []
     for v in data.get("vessels", []):
         if v.get("status") == "departed":
             continue
+        pos = vessel_position(v, now)
         v_out = dict(v)
-
-        # berth_id: simulation uses coded IDs; live data only has berth name
-        v_out.setdefault("berth_id", None)
-
-        # etd: estimate from eta — 2h dwell for berthed, 12h for inbound
-        if not v_out.get("etd"):
-            try:
-                eta_dt = isoparse(v_out["eta"])
-                hrs = 2 if v_out.get("status") == "berthed" else 12
-                v_out["etd"] = fmt(eta_dt + timedelta(hours=hrs))
-            except Exception:
-                v_out["etd"] = v_out.get("eta")
-
-        # ata / atd: arrival/departure actuals
-        if not v_out.get("ata"):
-            v_out["ata"] = v_out["eta"] if v_out.get("status") == "berthed" else None
+        v_out["lat"] = pos["lat"]
+        v_out["lon"] = pos["lon"]
+        # Ensure required fields have fallbacks
+        if not v_out.get("ata") and v_out.get("status") == "berthed":
+            v_out["ata"] = v_out.get("eta")
         v_out.setdefault("atd", None)
-
-        # towage_required: large vessels or certain types need tugs
-        if "towage_required" not in v_out:
-            loa   = v_out.get("loa") or 0
-            vtype = (v_out.get("type") or "").lower()
-            v_out["towage_required"] = bool(
-                loa > 100 or
-                any(t in vtype for t in ("tanker", "bulk", "container", "ro-ro"))
-            )
-
-        # notes: used in ETA variance conflict description
-        v_out.setdefault("notes", "")
-
-        # misc fields referenced elsewhere
-        v_out.setdefault("cargo",     "")
-        v_out.setdefault("agent",     "")
-        v_out.setdefault("flag",      "")
-        v_out.setdefault("call_sign", "")
-
-        # lat/lon from vessel_position (needs berth_id set above)
-        try:
-            pos = vessel_position(v_out, now)
-            v_out["lat"] = pos["lat"]
-            v_out["lon"] = pos["lon"]
-        except Exception:
-            v_out["lat"] = -27.383
-            v_out["lon"] = 153.173
-
         vessels.append(v_out)
     return vessels
 
@@ -1371,18 +1328,12 @@ def build_summary():
     is_live   = ds["source"] == "qships"
 
     if is_live:
-        try:
-            vessels   = build_vessels_from_qships(_qships_data)
-            berths    = build_berths_from_qships(_qships_data)
-            port_name = _qships_data.get("port_name", "Port of Brisbane")
-        except Exception as e:
-            log.error("Live data processing failed (%s) — falling back to simulation", e)
-            is_live   = False
-            ds        = {"source": "mock", "label": "Simulation Data", "scraped_at": None}
-
-    if not is_live:
-        berths    = make_berths(now)
-        vessels   = make_vessels(now)
+        vessels  = build_vessels_from_qships(_qships_data)
+        berths   = build_berths_from_qships(_qships_data)
+        port_name = _qships_data.get("port_name", "Port of Brisbane")
+    else:
+        berths   = make_berths(now)
+        vessels  = make_vessels(now)
         port_name = "Port of Northhaven"
 
     pilotage = make_pilotage(vessels, now)
@@ -1574,10 +1525,9 @@ class HorizonHandler(BaseHTTPRequestHandler):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    load_qships_data()
-    if _qships_data is None:
-        threading.Thread(target=_run_scrape_background, daemon=True).start()
-    _schedule_scrapes()
+    # QShips auto-load disabled for board demo — simulation mode only.
+    # Re-enable by restoring load_qships_data() + _schedule_scrapes() here.
+    log.info("Starting in simulation mode")
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()
