@@ -441,11 +441,20 @@ def run_scrape() -> bool:
 
         if not vessels:
             log.warning(
-                "API returned %d rows but none mapped to valid Brisbane vessels. "
+                "API returned %d rows but none mapped to active vessels. "
                 "Check qships_debug.json for raw column names.",
                 len(raw_rows),
             )
             return False
+
+        # Sort by ETA proximity and cap at 50 — keeps conflict engine fast
+        # and ensures the most operationally relevant vessels are shown
+        try:
+            vessels.sort(key=lambda v: v.get("eta") or "9999")
+        except Exception:
+            pass
+        vessels = vessels[:50]
+        log.info("Capped to %d vessels after sort-by-ETA", len(vessels))
 
         berths = _build_berths(vessels)
 
