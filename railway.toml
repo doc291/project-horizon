@@ -1,5 +1,5 @@
 [build]
-buildCommand = "pip install -r requirements.txt && playwright install chromium --with-deps"
+buildCommand = "pip install -r requirements.txt && (playwright install chromium --with-deps || echo 'Playwright chromium install skipped — scraper will fall back to simulation data')"
 
 [deploy]
 startCommand = "python3 server.py"
