@@ -1076,10 +1076,13 @@ function renderConditionsBar(wx,tide,ukc,aukc){
     const etaLabel=aukc.hrs_to_eta!=null?` in ${aukc.hrs_to_eta}h`:'';
     aVes.textContent=aukc.critical_vessel?`(${aukc.critical_vessel.replace(/^MV /,'')}${etaLabel})`:'-';
   }
-  // Wind overlay
-  document.getElementById('wind-spd').textContent      =`${wx.wind_speed_kts} kts`;
-  document.getElementById('wind-dir-label').textContent=wx.wind_direction_label;
-  document.getElementById('wind-arrow').style.transform=`rotate(${wx.wind_direction_deg}deg)`;
+  // Wind overlay (elements only present if map pane rendered)
+  const wSpd=document.getElementById('wind-spd');
+  const wDir=document.getElementById('wind-dir-label');
+  const wArr=document.getElementById('wind-arrow');
+  if(wSpd)wSpd.textContent=`${wx.wind_speed_kts} kts`;
+  if(wDir)wDir.textContent=wx.wind_direction_label;
+  if(wArr)wArr.style.transform=`rotate(${wx.wind_direction_deg}deg)`;
 }
 
 /* ── Guidance ── */
