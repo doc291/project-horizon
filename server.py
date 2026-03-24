@@ -318,6 +318,8 @@ def _predict_tide_height(dt: datetime) -> float:
     return round(MEAN + AMP * math.cos(2 * math.pi * t / PERIOD), 2)
 
 
+CHANNEL_DEPTH_M = 12.5   # Dredged navigation channel depth (chart datum)
+
 # ── Mock data generation ──────────────────────────────────────────────────────
 
 # Chart datum depths (LAT) per berth in metres
@@ -1364,6 +1366,176 @@ def make_dashboard(vessels, berths, conflicts, pilotage, towage,
     }
 
 
+# ── Beta 7: DUKC / ESG / Safety Score ─────────────────────────────────────────
+
+def _safety_score_for_conflict(c: dict, weather: dict, tides: dict) -> str:
+    """
+    Roll up conflict severity + weather + tide into Low / Medium / High.
+    Used to enrich each conflict card in the decision panel.
+    """
+    sev   = c.get("severity", "low")
+    vis   = weather.get("visibility_nm",   10.0)
+    swell = weather.get("swell_height_m",   0.5)
+    wind  = weather.get("wind_speed_kts",   8.0)
+    tide  = tides.get("current_height_m",   1.5)
+
+    score = {"critical": 4, "high": 3, "medium": 2, "low": 1}.get(sev, 1)
+
+    # Weather contribution
+    if vis < 1 or swell > 2.5 or wind > 30:
+        score += 3
+    elif vis < 3 or swell > 1.5 or wind > 20:
+        score += 2
+    elif vis < 5 or swell > 1.0 or wind > 15:
+        score += 1
+
+    # Low tide adds caution
+    if tide < 0.8:
+        score += 1
+
+    if score >= 6:
+        return "high"
+    elif score >= 4:
+        return "medium"
+    return "low"
+
+
+def make_dukc_series(vessels: list, berths: list) -> dict:
+    """
+    Generate Dynamic UKC time series (48 h) for navigation channel and each
+    active vessel.  Uses the deterministic tide model already in use.
+    """
+    now = utcnow()
+    berth_depth = {b["id"]: b["lat_depth_m"] for b in berths}
+
+    # Build shared 49-point hourly tide series (0 … 48 h)
+    tide_pts = []
+    for h in range(49):
+        dt = now + timedelta(hours=h)
+        tide_pts.append({"h": h, "t": fmt(dt), "tide": _predict_tide_height(dt)})
+
+    # Channel series — deepest draught vessel drives the critical UKC
+    active = [v for v in vessels if v.get("status") != "departed"]
+    max_dr = max((v.get("draught") or 9.0 for v in active), default=9.0)
+    channel_pts = []
+    for tp in tide_pts:
+        ukc = round(CHANNEL_DEPTH_M + tp["tide"] - max_dr, 2)
+        channel_pts.append({**tp, "ukc": ukc, "safe": ukc >= 0.5})
+
+    # Per-vessel series
+    vessel_series = []
+    for v in active:
+        draught  = v.get("draught") or 9.0
+        bid      = v.get("berth_id")
+        lat_d    = berth_depth.get(bid, CHANNEL_DEPTH_M) if bid else CHANNEL_DEPTH_M
+        pts      = []
+        for tp in tide_pts:
+            ukc = round(lat_d + tp["tide"] - draught, 2)
+            pts.append({**tp, "ukc": ukc, "safe": ukc >= 0.5})
+
+        min_ukc = min(p["ukc"] for p in pts)
+
+        # Identify contiguous safe windows
+        windows, in_w, w_start = [], False, None
+        for p in pts:
+            if p["safe"] and not in_w:
+                in_w, w_start = True, p["t"]
+            elif not p["safe"] and in_w:
+                in_w = False
+                windows.append({"start": w_start, "end": p["t"]})
+        if in_w:
+            windows.append({"start": w_start, "end": pts[-1]["t"]})
+
+        vessel_series.append({
+            "vessel_id":      v["id"],
+            "vessel_name":    v["name"],
+            "vessel_type":    v.get("vessel_type") or v.get("type") or "–",
+            "draught_m":      draught,
+            "berth_id":       bid,
+            "berth_depth_m":  round(lat_d, 1),
+            "min_ukc_m":      min_ukc,
+            "tide_restricted": min_ukc < 0.5,
+            "safe_windows":   windows,
+            "points":         pts,
+        })
+
+    return {
+        "channel_depth_m":      CHANNEL_DEPTH_M,
+        "max_vessel_draught_m": round(max_dr, 1),
+        "tide_series":          tide_pts,
+        "channel_points":       channel_pts,
+        "vessels":              vessel_series,
+    }
+
+
+_ESG_REASONS = [
+    "Favourable SE current — advance arrival captures tide-assisted approach",
+    "Tide window alignment — delay optimises flood-tide UKC margin",
+    "Berth congestion avoidance — adjusted ETA prevents anchorage wait",
+    "Current-optimised track — Brisbane Current adjustment reduces fuel burn",
+    "Tidal gate optimisation — realigned ETA achieves maximum depth window",
+]
+
+
+def make_esg_data(vessels: list, now: datetime) -> dict:
+    """
+    Simulate Ocean Intelligence voyage efficiency optimisation data.
+    Conservative, believable figures — clearly labelled as projections.
+    """
+    items = []
+    for v in vessels:
+        if v.get("status") == "departed":
+            continue
+        loa   = float(v.get("loa") or 0)
+        h_val = int(hashlib.md5(v["id"].encode()).hexdigest(), 16)
+
+        optimised = (h_val % 4) != 0   # ~75 % of calls get optimised
+
+        adj_mins  = 15 + (h_val % 76)
+
+        # Fuel saving scales with vessel size (tonnes HFO)
+        base_fuel = 3.5 if loa > 250 else 2.5 if loa > 180 else 1.5 if loa > 120 else 0.8
+        fuel_t    = round(base_fuel * (1 + (h_val % 50) / 100), 1) if optimised else 0.0
+        co2_t     = round(fuel_t * 3.14, 1)   # IMO HFO CO₂ factor
+        cost_usd  = int(fuel_t * 650)          # ~USD 650 / tonne HFO
+
+        reason = (_ESG_REASONS[h_val % len(_ESG_REASONS)]
+                  if optimised else "No optimisation required for this voyage")
+
+        items.append({
+            "vessel_id":           v["id"],
+            "vessel_name":         v["name"],
+            "vessel_type":         v.get("vessel_type") or v.get("type") or "–",
+            "loa_m":               loa or None,
+            "optimised":           optimised,
+            "arrival_adj_mins":    adj_mins if optimised else 0,
+            "fuel_saving_t":       fuel_t,
+            "co2_saving_t":        co2_t,
+            "cost_saving_usd":     cost_usd,
+            "optimisation_reason": reason,
+        })
+
+    total_co2  = round(sum(i["co2_saving_t"]  for i in items), 1)
+    total_fuel = round(sum(i["fuel_saving_t"] for i in items), 1)
+    total_cost = sum(i["cost_saving_usd"]     for i in items)
+    n_opt      = sum(1 for i in items if i["optimised"])
+    proj       = 30 * 4   # rough 30-day projection multiplier (4 calls / day)
+
+    return {
+        "vessels": items,
+        "summary": {
+            "calls_this_period":     len(items),
+            "calls_optimised":       n_opt,
+            "co2_saved_t":           total_co2,
+            "fuel_saved_t":          total_fuel,
+            "cost_saved_usd":        total_cost,
+            "monthly_co2_proj_t":    int(total_co2  * proj / max(len(items), 1)),
+            "monthly_fuel_proj_t":   int(total_fuel * proj / max(len(items), 1)),
+            "monthly_cost_proj_usd": int(total_cost * proj / max(len(items), 1)),
+        },
+    }
+
+
 # ── Summary builder ────────────────────────────────────────────────────────────
 
 def build_summary():
@@ -1421,6 +1593,10 @@ def build_summary():
 
     guidance   = build_guidance(conflicts, vessels, berths, pilotage, towage, now)
 
+    # Beta 7: enrich every conflict with a consolidated safety score
+    for c in conflicts:
+        c["safety_score"] = _safety_score_for_conflict(c, weather, tides)
+
     # Beta 3 additions
     berth_util = make_berth_utilisation(vessels, berths, now)
     etd_risk   = compute_etd_risk(vessels, conflicts, weather, tides)
@@ -1428,6 +1604,10 @@ def build_summary():
                                 weather, tides, etd_risk, berth_util, now)
     ukc        = compute_ukc(vessels, berths, tides["current_height_m"])
     arrival_ukc = compute_arrival_ukc(vessels, berths, now)
+
+    # Beta 7 additions
+    dukc = make_dukc_series(vessels, berths)
+    esg  = make_esg_data(vessels, now)
 
     occupied   = sum(1 for b in berths if b["status"] in ("occupied", "reserved"))
     available  = sum(1 for b in berths if b["status"] == "available")
@@ -1473,6 +1653,8 @@ def build_summary():
         "dashboard":         dashboard,
         "ukc":               ukc,
         "arrival_ukc":       arrival_ukc,
+        "dukc":              dukc,
+        "esg":               esg,
     }
 
 

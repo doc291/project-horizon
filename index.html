@@ -692,6 +692,8 @@
         <button class="tab-btn" onclick="switchTab('pilotage')">Pilotage</button>
         <button class="tab-btn" onclick="switchTab('towage')">Towage</button>
         <button class="tab-btn" onclick="switchTab('lines')">Lines</button>
+        <button class="tab-btn" onclick="switchTab('dukc')">DUKC</button>
+        <button class="tab-btn" onclick="switchTab('esg')">ESG</button>
       </div>
 
       <!-- Dashboard tab -->
@@ -817,6 +819,76 @@
           </div>
         </div>
       </div>
+      <!-- DUKC tab -->
+      <div class="tab-pane" id="tab-dukc" style="overflow-y:auto;padding:16px;gap:12px;flex-direction:column;">
+        <div class="ops-summary-bar" id="dukc-summary-bar">
+          <div class="ops-stat"><div class="ops-stat-label">Channel Depth (CD)</div><div class="ops-stat-value" id="dukc-ch-depth">–</div></div>
+          <div class="ops-stat"><div class="ops-stat-label">Max Vessel Draught</div><div class="ops-stat-value" id="dukc-max-dr">–</div></div>
+          <div class="ops-stat"><div class="ops-stat-label">Min Channel UKC (48h)</div><div class="ops-stat-value" id="dukc-min-ukc">–</div></div>
+          <div class="ops-stat"><div class="ops-stat-label">Tide-Restricted Vessels</div><div class="ops-stat-value" id="dukc-restricted">–</div></div>
+        </div>
+
+        <!-- Channel UKC chart -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">Navigation Channel — UKC over 48h (deepest vessel)</div>
+          <svg id="dukc-chart" width="100%" height="120" style="display:block;"></svg>
+          <div style="display:flex;gap:16px;margin-top:6px;font-size:10px;color:var(--text-dim);">
+            <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:12px;height:3px;background:#38bdf8;border-radius:2px;"></span>UKC</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:12px;height:3px;background:#6ee7b7;border-radius:2px;opacity:.7"></span>Tide</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:12px;height:3px;background:#ef4444;border-radius:2px;stroke-dasharray:3"></span>Min safe (0.5m)</span>
+          </div>
+        </div>
+
+        <!-- Vessel DUKC table -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:4px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-dim);padding:10px 12px;border-bottom:1px solid var(--border);">Vessel Clearance Summary</div>
+          <div style="overflow-x:auto;">
+            <table class="ops-table">
+              <thead><tr><th>Vessel</th><th>Type</th><th>Draught</th><th>Berth Depth</th><th>Min UKC (48h)</th><th>Tide Restricted</th><th>Next Safe Window</th></tr></thead>
+              <tbody id="dukc-vessel-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ESG tab -->
+      <div class="tab-pane" id="tab-esg" style="overflow-y:auto;padding:16px;gap:12px;flex-direction:column;">
+        <div class="smartocean-banner">
+          <span>◎</span>
+          <span><strong>Ocean Intelligence Integration</strong> — Projected Data &nbsp;·&nbsp; Live voyage optimisation data will replace these projections once the Ocean Intelligence integration is active</span>
+        </div>
+
+        <!-- Summary KPIs -->
+        <div class="ops-summary-bar" style="flex-wrap:wrap;">
+          <div class="ops-stat"><div class="ops-stat-label">Calls Optimised</div><div class="ops-stat-value good" id="esg-calls-opt">–</div></div>
+          <div class="ops-stat"><div class="ops-stat-label">CO₂ Saved (period)</div><div class="ops-stat-value good" id="esg-co2">–</div></div>
+          <div class="ops-stat"><div class="ops-stat-label">Fuel Saved (period)</div><div class="ops-stat-value" id="esg-fuel">–</div></div>
+          <div class="ops-stat"><div class="ops-stat-label">Cost Saved (period)</div><div class="ops-stat-value good" id="esg-cost">–</div></div>
+        </div>
+
+        <!-- Monthly projections -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">30-Day Projection (estimated)</div>
+          <div style="display:flex;gap:24px;flex-wrap:wrap;">
+            <div><div style="font-size:10px;color:var(--text-dim);margin-bottom:2px;">CO₂ Avoided</div><div style="font-size:22px;font-weight:800;color:#6ee7b7;" id="esg-proj-co2">–</div><div style="font-size:10px;color:var(--text-dim);">tonnes</div></div>
+            <div><div style="font-size:10px;color:var(--text-dim);margin-bottom:2px;">Fuel Saved</div><div style="font-size:22px;font-weight:800;color:var(--text-bright);" id="esg-proj-fuel">–</div><div style="font-size:10px;color:var(--text-dim);">tonnes HFO</div></div>
+            <div><div style="font-size:10px;color:var(--text-dim);margin-bottom:2px;">Cost Reduction</div><div style="font-size:22px;font-weight:800;color:#6ee7b7;" id="esg-proj-cost">–</div><div style="font-size:10px;color:var(--text-dim);">USD (est.)</div></div>
+          </div>
+          <div style="margin-top:8px;font-size:10px;color:var(--text-dim);font-style:italic;">Projections based on current period performance. Actual savings subject to Ocean Intelligence live data.</div>
+        </div>
+
+        <!-- Per-vessel table -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:4px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-dim);padding:10px 12px;border-bottom:1px solid var(--border);">Voyage Optimisation — Vessel Breakdown</div>
+          <div style="overflow-x:auto;">
+            <table class="ops-table">
+              <thead><tr><th>Vessel</th><th>Type</th><th>Status</th><th>ETA Adj.</th><th>Fuel Saved</th><th>CO₂ Saved</th><th>Cost Saved</th><th>Optimisation Reason</th></tr></thead>
+              <tbody id="esg-vessel-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Right: Decisions + Signals + Audit -->
@@ -852,7 +924,7 @@
     <div id="vessel-table-wrap">
       <table>
         <thead>
-          <tr><th>Vessel</th><th>Status</th><th title="ETD Risk Score 0-100">Risk</th><th>ETA</th><th>ETD</th><th>Berth</th><th>LOA</th><th>Cargo</th><th>Agent</th></tr>
+          <tr><th>Vessel</th><th>Status</th><th title="ETD Risk Score 0-100">Risk</th><th>ETA</th><th>ETD</th><th>Berth</th><th>LOA</th><th>Draft</th><th>Cargo</th><th>Agent</th></tr>
         </thead>
         <tbody id="vessel-tbody"></tbody>
       </table>
@@ -994,7 +1066,7 @@ document.addEventListener('click',e=>{
 });
 
 /* ── Tab switching ── */
-const _TABS = ['dashboard','timeline','utilisation','vts','pilotage','towage','lines'];
+const _TABS = ['dashboard','timeline','utilisation','vts','pilotage','towage','lines','dukc','esg'];
 function switchTab(name){
   _activeTab=name;
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',_TABS[i]===name));
@@ -1005,6 +1077,8 @@ function switchTab(name){
   if(name==='pilotage'&&_data)renderPilotage(_data);
   if(name==='towage'&&_data)renderTowage(_data);
   if(name==='lines'&&_data)renderLines(_data);
+  if(name==='dukc'&&_data)renderDUKC(_data.dukc);
+  if(name==='esg'&&_data)renderESG(_data.esg);
 }
 function switchRTab(name){
   _activeRTab=name;
@@ -1035,6 +1109,8 @@ function render(d){
   renderGantt(d);
   renderDashboard(d.dashboard, d.etd_risk||[]);
   if(_activeTab==='utilisation')renderUtilisation(d.berth_utilisation||[]);
+  if(_activeTab==='dukc')renderDUKC(d.dukc);
+  if(_activeTab==='esg')renderESG(d.esg);
   // Notify new conflicts
   (d.conflicts||[]).forEach(c=>{
     if(!_knownCIds.has(c.id)){
@@ -1196,6 +1272,7 @@ function renderDecisions(conflicts){
           <div class="dec-card-badges">
             <span class="sev-badge ${c.severity}">${c.severity.toUpperCase()}</span>
             <span class="signal-badge CONFLICT">CONFLICT</span>
+            ${(()=>{const ss=c.safety_score||'low';const lbl={'low':'LOW RISK','medium':'MED RISK','high':'HIGH RISK'}[ss]||ss.toUpperCase();const col={'low':'#6ee7b7','medium':'#fbbf24','high':'#ef4444'}[ss]||'#6ee7b7';return`<span style="font-size:9px;font-weight:700;letter-spacing:.5px;padding:2px 6px;border-radius:3px;border:1px solid ${col};color:${col};margin-left:auto;">${lbl}</span>`;})()}
           </div>
           <div class="dec-card-title">${esc(titleShort)}</div>
           <div style="margin-bottom:6px;">${c.data_source==='live'?'<span class="src-badge live">Live Data</span>':'<span class="src-badge simulated">SmartOceanX \u2014 Placeholder</span>'}</div>
@@ -1555,10 +1632,126 @@ function renderLines(d){
   }).join('');
 }
 
+/* ── DUKC tab ── */
+function renderDUKC(dukc){
+  if(!dukc)return;
+  const chPts = dukc.channel_points||[];
+  const vessels = dukc.vessels||[];
+
+  // Summary bar
+  document.getElementById('dukc-ch-depth').textContent = dukc.channel_depth_m+'m';
+  document.getElementById('dukc-max-dr').textContent   = dukc.max_vessel_draught_m+'m';
+  const minChUKC = chPts.length ? Math.min(...chPts.map(p=>p.ukc)) : null;
+  const minUKCEl = document.getElementById('dukc-min-ukc');
+  if(minChUKC!==null){
+    minUKCEl.textContent = minChUKC.toFixed(1)+'m';
+    minUKCEl.className   = 'ops-stat-value '+(minChUKC<0.5?'crit':minChUKC<1.0?'warn':'good');
+  }
+  const restricted = vessels.filter(v=>v.tide_restricted).length;
+  const restEl = document.getElementById('dukc-restricted');
+  restEl.textContent = restricted;
+  restEl.className   = 'ops-stat-value '+(restricted>0?'warn':'good');
+
+  // SVG channel UKC chart
+  const svg = document.getElementById('dukc-chart');
+  const W = svg.parentElement.clientWidth - 24 || 600;
+  const H = 110;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio','none');
+  if(!chPts.length){svg.innerHTML='';return;}
+
+  const tidePts = dukc.tide_series||[];
+  const allUKC  = chPts.map(p=>p.ukc);
+  const allTide = tidePts.map(p=>p.tide);
+  const minY = Math.min(...allUKC, 0) - 0.3;
+  const maxY = Math.max(...allUKC, ...allTide) + 0.3;
+  const xS = (h) => (h/48)*W;
+  const yS = (v) => H - ((v - minY)/(maxY - minY))*H;
+
+  // Tide area
+  let tPath = tidePts.map((p,i)=>`${i===0?'M':'L'}${xS(p.h).toFixed(1)},${yS(p.tide).toFixed(1)}`).join(' ');
+  tPath += ` L${xS(48).toFixed(1)},${H} L0,${H} Z`;
+
+  // UKC line
+  const uPath = chPts.map((p,i)=>`${i===0?'M':'L'}${xS(p.h).toFixed(1)},${yS(p.ukc).toFixed(1)}`).join(' ');
+
+  // Min safe line at 0.5m
+  const safeY = yS(0.5).toFixed(1);
+
+  // X axis labels every 6h
+  const xLabels = [0,6,12,18,24,30,36,42,48].map(h=>`<text x="${xS(h).toFixed(1)}" y="${H-2}" font-size="9" fill="#64748b" text-anchor="middle">+${h}h</text>`).join('');
+
+  svg.innerHTML = `
+    <defs><linearGradient id="tideGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6ee7b7" stop-opacity=".25"/><stop offset="100%" stop-color="#6ee7b7" stop-opacity=".02"/></linearGradient></defs>
+    <path d="${tPath}" fill="url(#tideGrad)" stroke="none"/>
+    <line x1="0" y1="${safeY}" x2="${W}" y2="${safeY}" stroke="#ef4444" stroke-width="1" stroke-dasharray="4,3" opacity=".7"/>
+    <text x="4" y="${(parseFloat(safeY)-3).toFixed(0)}" font-size="8" fill="#ef4444" opacity=".7">0.5m min</text>
+    <path d="${uPath}" fill="none" stroke="#38bdf8" stroke-width="2"/>
+    ${xLabels}`;
+
+  // Vessel table
+  const tbody = document.getElementById('dukc-vessel-tbody');
+  if(!vessels.length){tbody.innerHTML='<tr><td colspan="7" class="empty">No active vessels</td></tr>';return;}
+  tbody.innerHTML = vessels.map(v=>{
+    const ukCls = v.min_ukc_m < 0.5 ? 'color:#ef4444;font-weight:700' : v.min_ukc_m < 1.0 ? 'color:#f97316' : 'color:#6ee7b7';
+    const restr = v.tide_restricted
+      ? '<span style="color:#ef4444;font-weight:700">⚠ Yes</span>'
+      : '<span style="color:#6ee7b7">No</span>';
+    const nextWin = v.safe_windows&&v.safe_windows.length ? fmtShort(v.safe_windows[0].start) : '–';
+    return`<tr>
+      <td><strong style="color:var(--text-bright)">${esc(v.vessel_name)}</strong></td>
+      <td style="color:var(--text-dim);font-size:11px">${esc(v.vessel_type)}</td>
+      <td>${v.draught_m}m</td>
+      <td>${v.berth_depth_m}m</td>
+      <td style="${ukCls}">${v.min_ukc_m.toFixed(1)}m</td>
+      <td>${restr}</td>
+      <td style="font-variant-numeric:tabular-nums;font-size:11px">${nextWin}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── ESG tab ── */
+function renderESG(esg){
+  if(!esg)return;
+  const s = esg.summary||{};
+  const vessels = esg.vessels||[];
+
+  // Summary bar
+  document.getElementById('esg-calls-opt').textContent = `${s.calls_optimised||0} / ${s.calls_this_period||0}`;
+  document.getElementById('esg-co2').textContent        = (s.co2_saved_t||0)+'t CO₂';
+  document.getElementById('esg-fuel').textContent       = (s.fuel_saved_t||0)+'t HFO';
+  document.getElementById('esg-cost').textContent       = '$'+(s.cost_saved_usd||0).toLocaleString();
+
+  // Monthly projections
+  document.getElementById('esg-proj-co2').textContent  = (s.monthly_co2_proj_t||0).toLocaleString();
+  document.getElementById('esg-proj-fuel').textContent = (s.monthly_fuel_proj_t||0).toLocaleString();
+  document.getElementById('esg-proj-cost').textContent = '$'+(s.monthly_cost_proj_usd||0).toLocaleString();
+
+  // Vessel table
+  const tbody = document.getElementById('esg-vessel-tbody');
+  if(!vessels.length){tbody.innerHTML='<tr><td colspan="8" class="empty">No vessel data</td></tr>';return;}
+  tbody.innerHTML = vessels.map(v=>{
+    const optBadge = v.optimised
+      ? '<span style="color:#6ee7b7;font-weight:700">✓ Optimised</span>'
+      : '<span style="color:var(--text-dim)">–</span>';
+    const adj = v.arrival_adj_mins ? `+${v.arrival_adj_mins} min` : '–';
+    return`<tr>
+      <td><strong style="color:var(--text-bright)">${esc(v.vessel_name)}</strong></td>
+      <td style="color:var(--text-dim);font-size:11px">${esc(v.vessel_type)}</td>
+      <td>${optBadge}</td>
+      <td style="font-variant-numeric:tabular-nums">${adj}</td>
+      <td>${v.fuel_saving_t ? v.fuel_saving_t+'t' : '–'}</td>
+      <td style="color:#6ee7b7">${v.co2_saving_t ? v.co2_saving_t+'t' : '–'}</td>
+      <td>${v.cost_saving_usd ? '$'+v.cost_saving_usd.toLocaleString() : '–'}</td>
+      <td style="color:var(--text-dim);font-size:11px">${esc(v.optimisation_reason)}</td>
+    </tr>`;
+  }).join('');
+}
+
 /* ── Vessel table ── */
 function renderVesselTable(vessels, etdRisk){
   const tb=document.getElementById('vessel-tbody');
-  if(!vessels.length){tb.innerHTML='<tr><td colspan="9" class="empty">No vessels</td></tr>';return}
+  if(!vessels.length){tb.innerHTML='<tr><td colspan="10" class="empty">No vessels</td></tr>';return}
   const riskById={};
   (etdRisk||[]).forEach(r=>riskById[r.vessel_id]=r);
   tb.innerHTML=vessels.map(v=>{
@@ -1572,6 +1765,7 @@ function renderVesselTable(vessels, etdRisk){
     <td style="font-variant-numeric:tabular-nums">${fmtTime(v.etd)}</td>
     <td>${esc(v.berth_id||'TBA')}</td>
     <td>${v.loa?v.loa+'m':'–'}</td>
+    <td>${v.draught?v.draught+'m':'–'}</td>
     <td>${esc(v.cargo||'–')}</td>
     <td style="color:var(--text-dim)">${esc(v.agent||'–')}</td>
   </tr>`;}).join('');
