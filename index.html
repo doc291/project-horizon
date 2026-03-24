@@ -882,7 +882,7 @@
           <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-dim);padding:10px 12px;border-bottom:1px solid var(--border);">Voyage Optimisation — Vessel Breakdown</div>
           <div style="overflow-x:auto;">
             <table class="ops-table">
-              <thead><tr><th>Vessel</th><th>Type</th><th>Status</th><th>ETA Adj.</th><th>Fuel Saved</th><th>CO₂ Saved</th><th>Cost Saved</th><th>Optimisation Reason</th></tr></thead>
+              <thead><tr><th>Vessel</th><th>Type</th><th>Status</th><th>ETA Adj.</th><th>Fuel Saved</th><th>CO₂ Saved</th><th>Cost Saved</th><th>Outcome</th><th>Optimisation Reason</th></tr></thead>
               <tbody id="esg-vessel-tbody"></tbody>
             </table>
           </div>
@@ -1005,7 +1005,21 @@ function setSigState(id,state){const s=getSigStates();s[id]=state;localStorage.s
 function getAudit(){try{return JSON.parse(localStorage.getItem(AUDIT_KEY)||'[]')}catch(e){return[]}}
 function writeAudit(signalId,signalDesc,action){
   const log=getAudit();
-  log.unshift({id:Date.now(),ts:new Date().toISOString(),signal_id:signalId,signal_desc:signalDesc,action,operator:'Operator'});
+  // When a conflict is acknowledged, simulate a confirmed saving outcome
+  let confirmedSaving=null;
+  if(action==='ACK'&&_data){
+    const c=(_data.conflicts||[]).find(x=>x.id===signalId);
+    if(c&&c.decision_support){
+      const rec=((c.decision_support.options||[]).find(o=>o.id===c.decision_support.recommended_option_id));
+      if(rec&&rec.cost_label){confirmedSaving=rec.cost_label;}
+    }
+    // Also check ESG vessels for a matching vessel saving
+    if(!confirmedSaving&&c&&c.vessel_name&&_data.esg){
+      const ev=(_data.esg.vessels||[]).find(v=>v.vessel_name===c.vessel_name&&v.optimised);
+      if(ev)confirmedSaving='$'+ev.cost_saving_usd.toLocaleString()+' fuel saving';
+    }
+  }
+  log.unshift({id:Date.now(),ts:new Date().toISOString(),signal_id:signalId,signal_desc:signalDesc,action,operator:'Operator',confirmed_saving:confirmedSaving});
   if(log.length>200)log.length=200;
   localStorage.setItem(AUDIT_KEY,JSON.stringify(log));
   renderAuditLog();
@@ -1019,6 +1033,7 @@ function renderAuditLog(){
       <div class="audit-body">
         <div class="audit-signal">${esc(e.signal_desc||e.signal_id)}</div>
         <div class="audit-meta">${fmtShort(e.ts)} &nbsp;·&nbsp; ${esc(e.operator)}</div>
+        ${e.confirmed_saving?`<div style="margin-top:4px;font-size:10px;font-weight:700;color:#6ee7b7;">✓ Saving confirmed: ${esc(e.confirmed_saving)}</div>`:''}
       </div>
     </div>`).join('');
 }
@@ -1735,6 +1750,9 @@ function renderESG(esg){
       ? '<span style="color:#6ee7b7;font-weight:700">✓ Optimised</span>'
       : '<span style="color:var(--text-dim)">–</span>';
     const adj = v.arrival_adj_mins ? `+${v.arrival_adj_mins} min` : '–';
+    const outcomeBadge = v.optimised
+      ? '<span style="color:#6ee7b7;font-weight:700;font-size:11px;">✓ Saving Verified</span>'
+      : '<span style="color:var(--text-dim);font-size:11px;">– N/A</span>';
     return`<tr>
       <td><strong style="color:var(--text-bright)">${esc(v.vessel_name)}</strong></td>
       <td style="color:var(--text-dim);font-size:11px">${esc(v.vessel_type)}</td>
@@ -1743,6 +1761,7 @@ function renderESG(esg){
       <td>${v.fuel_saving_t ? v.fuel_saving_t+'t' : '–'}</td>
       <td style="color:#6ee7b7">${v.co2_saving_t ? v.co2_saving_t+'t' : '–'}</td>
       <td>${v.cost_saving_usd ? '$'+v.cost_saving_usd.toLocaleString() : '–'}</td>
+      <td>${outcomeBadge}</td>
       <td style="color:var(--text-dim);font-size:11px">${esc(v.optimisation_reason)}</td>
     </tr>`;
   }).join('');
