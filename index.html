@@ -551,8 +551,19 @@
     .risk-section { padding: 0 14px 14px; }
     .risk-section-title {
       font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase;
-      color: var(--text-dim); padding: 10px 0 8px; border-top: 1px solid var(--border);
+      color: var(--text-dim); padding: 10px 0 6px; border-top: 1px solid var(--border);
     }
+    .risk-col-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 0 0 6px; border-bottom: 1px solid var(--border);
+      font-size: 9px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+      color: #334155;
+    }
+    .risk-col-vessel  { flex: 1; min-width: 0; }
+    .risk-col-type    { width: 90px; flex-shrink: 0; text-align: center; }
+    .risk-col-score   { width: 42px; flex-shrink: 0; text-align: center; }
+    .risk-col-bar     { width: 90px; flex-shrink: 0; }
+    .risk-col-factors { flex: 1; min-width: 0; }
     .risk-row { padding: 7px 0; border-bottom: 1px solid rgba(36,51,80,.5); }
     .risk-row:last-child { border-bottom: none; }
     .risk-row-main { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
@@ -797,6 +808,15 @@
         <div class="dash-grid" id="dash-kpi-grid"><div class="empty" style="grid-column:1/-1">Loading…</div></div>
         <div class="risk-section">
           <div class="risk-section-title">ETD Risk Ranking — All Active Vessels</div>
+          <div class="risk-col-header">
+            <span class="risk-col-vessel">Vessel</span>
+            <span class="risk-col-type">Signal Type</span>
+            <span class="risk-col-score">Score</span>
+          </div>
+          <div class="risk-col-header" style="padding-top:4px;border-bottom:none;padding-bottom:2px;">
+            <span class="risk-col-bar">Risk Level</span>
+            <span class="risk-col-factors">Active Factors</span>
+          </div>
           <div id="dash-risk-list"><div class="empty">Loading…</div></div>
         </div>
       </div>

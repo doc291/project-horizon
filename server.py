@@ -15,6 +15,8 @@ import json
 import uuid
 import random
 import hashlib
+import hmac
+import secrets
 import math
 import os
 import threading
@@ -23,6 +25,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs
 
 # ── Port profile system ───────────────────────────────────────────────────────
 from port_profiles import get_profile, list_profiles
@@ -43,6 +46,47 @@ INDEX_HTML    = Path(__file__).parent / "index.html"
 LOGO_FILE     = Path(__file__).parent / "logo.svg"
 AMSG_LOGO_FILE = Path(__file__).parent / "amsg-logo.png"
 QSHIPS_FILE   = Path(__file__).parent / "qships_data.json"
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+_AUTH_USER   = os.environ.get("HORIZON_USER", "horizon")
+_AUTH_PASS   = os.environ.get("HORIZON_PASS", "ams2026")
+_SESSION_KEY = secrets.token_hex(32)          # regenerated each server restart
+_COOKIE_NAME = "hz_sess"
+_COOKIE_TTL  = 60 * 60 * 12                   # 12 hours
+
+# Paths that bypass auth entirely (assets needed by the login page itself)
+_PUBLIC_PATHS = {"/login", "/logo", "/amsg-logo", "/health"}
+
+def _make_token() -> str:
+    """Return an HMAC-signed session token."""
+    payload = f"{_AUTH_USER}:{int(time.time())}"
+    sig = hmac.new(_SESSION_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    return f"{payload}:{sig}"
+
+def _verify_token(token: str) -> bool:
+    """Return True if token is well-formed, unmodified, and not expired."""
+    try:
+        parts = token.split(":")
+        if len(parts) != 3:
+            return False
+        user, ts, sig = parts
+        expected = hmac.new(_SESSION_KEY.encode(), f"{user}:{ts}".encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, expected):
+            return False
+        if time.time() - int(ts) > _COOKIE_TTL:
+            return False
+        return True
+    except Exception:
+        return False
+
+def _get_cookie(handler, name: str) -> str | None:
+    """Extract a named cookie value from the request headers."""
+    raw = handler.headers.get("Cookie", "")
+    for part in raw.split(";"):
+        k, _, v = part.strip().partition("=")
+        if k.strip() == name:
+            return v.strip()
+    return None
 
 # ── QShips live data state ────────────────────────────────────────────────────
 
@@ -1907,12 +1951,163 @@ class HorizonHandler(BaseHTTPRequestHandler):
         if args and str(args[1]) not in ("200", "304"):
             super().log_message(format, *args)
 
+    def _is_authenticated(self) -> bool:
+        token = _get_cookie(self, _COOKIE_NAME)
+        return token is not None and _verify_token(token)
+
+    def _redirect(self, location: str, status: int = 302):
+        self.send_response(status)
+        self.send_header("Location", location)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def do_POST(self):
         path = self.path.split("?")[0]
-        if path == "/api/set_port":
+        if path == "/login":
+            self._handle_login()
+        elif path == "/logout":
+            self._handle_logout()
+        elif path == "/api/set_port":
+            if not self._is_authenticated():
+                self.send_error(401)
+                return
             self._set_port()
         else:
             self.send_error(405)
+
+    def _handle_login(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body   = self.rfile.read(length).decode()
+            params = parse_qs(body)
+            user   = params.get("username", [""])[0].strip()
+            pw     = params.get("password", [""])[0].strip()
+            user_ok = hmac.compare_digest(user, _AUTH_USER)
+            pass_ok = hmac.compare_digest(pw,   _AUTH_PASS)
+            if user_ok and pass_ok:
+                token = _make_token()
+                self.send_response(302)
+                self.send_header("Location", "/")
+                self.send_header(
+                    "Set-Cookie",
+                    f"{_COOKIE_NAME}={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age={_COOKIE_TTL}"
+                )
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+            else:
+                self._serve_login(error=True)
+        except Exception as exc:
+            log.error("Login error: %s", exc)
+            self.send_error(500)
+
+    def _handle_logout(self):
+        self.send_response(302)
+        self.send_header("Location", "/login")
+        self.send_header(
+            "Set-Cookie",
+            f"{_COOKIE_NAME}=; Path=/; HttpOnly; Max-Age=0"
+        )
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def _serve_login(self, error: bool = False):
+        error_html = (
+            '<div class="login-error">Incorrect username or password. Please try again.</div>'
+            if error else ""
+        )
+        page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Horizon — Sign In</title>
+  <style>
+    *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: #070f1e;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }}
+    .login-wrap {{
+      width: 100%; max-width: 380px; padding: 0 20px;
+    }}
+    .login-card {{
+      background: #0d1b2e; border: 1px solid rgba(56,189,248,.2);
+      border-radius: 12px; padding: 40px 36px; text-align: center;
+    }}
+    .login-logo {{
+      height: 64px; width: auto; margin-bottom: 6px;
+    }}
+    .login-title {{
+      font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
+      text-transform: uppercase; color: #38bdf8; margin-bottom: 28px;
+    }}
+    .login-amsg {{
+      background: rgba(255,255,255,.95); border-radius: 6px;
+      padding: 4px 12px; display: inline-flex; align-items: center;
+      margin-bottom: 28px;
+    }}
+    .login-amsg img {{ height: 22px; width: auto; }}
+    label {{
+      display: block; text-align: left; font-size: 11px; font-weight: 600;
+      letter-spacing: .5px; text-transform: uppercase; color: #64748b;
+      margin-bottom: 5px; margin-top: 16px;
+    }}
+    label:first-of-type {{ margin-top: 0; }}
+    input {{
+      width: 100%; padding: 10px 12px; border-radius: 6px;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(56,189,248,.25);
+      color: #e2e8f0; font-size: 14px; outline: none;
+      transition: border-color .2s;
+    }}
+    input:focus {{ border-color: #38bdf8; }}
+    .login-btn {{
+      width: 100%; margin-top: 24px; padding: 11px;
+      background: #38bdf8; color: #07111e; font-size: 14px; font-weight: 700;
+      border: none; border-radius: 6px; cursor: pointer;
+      transition: background .2s;
+    }}
+    .login-btn:hover {{ background: #7dd3fc; }}
+    .login-error {{
+      margin-top: 16px; padding: 9px 12px; border-radius: 6px;
+      background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.4);
+      color: #f87171; font-size: 12px;
+    }}
+    .login-footer {{
+      margin-top: 28px; font-size: 10px; color: #334155; letter-spacing: .4px;
+    }}
+  </style>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <img src="/logo" class="login-logo" alt="Project Horizon" />
+      <div class="login-title">Port Operations Intelligence</div>
+      <div class="login-amsg">
+        <img src="/amsg-logo" alt="AMS Group"
+             onerror="this.closest('.login-amsg').style.display='none'" />
+      </div>
+      <form method="POST" action="/login" autocomplete="on">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text"
+               autocomplete="username" required autofocus />
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password"
+               autocomplete="current-password" required />
+        <button class="login-btn" type="submit">Sign In →</button>
+        {error_html}
+      </form>
+      <div class="login-footer">AMS GROUP · CONFIDENTIAL</div>
+    </div>
+  </div>
+</body>
+</html>"""
+        body = page.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def _set_port(self):
         """Switch active port profile for the current session (in-memory only)."""
@@ -1944,6 +2139,15 @@ class HorizonHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?")[0]
+
+        # ── Auth gate ──────────────────────────────────────────────────────────
+        if path == "/login":
+            self._serve_login()
+            return
+        if path not in _PUBLIC_PATHS and not self._is_authenticated():
+            self._redirect(f"/login")
+            return
+
         if path == "/api/summary":
             try:
                 self._json(build_summary())
