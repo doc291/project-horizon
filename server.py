@@ -280,13 +280,17 @@ PORT_GEO = {
 def vessel_position(v: dict, now: datetime) -> dict:
     """
     Compute approximate vessel lat/lon from status and ETA.
-    Uses a deterministic jitter per vessel so positions are stable across refreshes.
+    Uses the active port profile's geo so vessels appear in the right port.
     """
-    coords = PORT_GEO["berths"]
+    geo    = _PORT_PROFILE.get("port_geo", PORT_GEO)
+    coords = geo.get("berths", PORT_GEO["berths"])
+    center = geo.get("center", PORT_GEO["center"])
+    anc    = geo.get("anchorage", PORT_GEO["anchorage"])
+    pbg    = geo.get("pilot_boarding_ground", PORT_GEO["pilot_boarding_ground"])
     jlat, jlon = stable_jitter(v["id"])
 
     if v["status"] in ("berthed", "arrived"):
-        c = coords.get(v["berth_id"])
+        c = coords.get(v.get("berth_id"))
         if c:
             return {"lat": c["lat"] + jlat * 0.3, "lon": c["lon"] + jlon * 0.3}
 
@@ -295,24 +299,27 @@ def vessel_position(v: dict, now: datetime) -> dict:
 
     if hrs < 0:
         # Should be berthed — fallback to port center
-        c = coords.get(v["berth_id"])
+        c = coords.get(v.get("berth_id"))
         if c:
             return {"lat": c["lat"] + jlat * 0.3, "lon": c["lon"] + jlon * 0.3}
-        return {"lat": -27.383 + jlat, "lon": 153.173 + jlon}
+        return {"lat": center["lat"] + jlat, "lon": center["lon"] + jlon}
     elif hrs < 2.5:
         # Near pilot boarding ground
-        pbg = PORT_GEO["pilot_boarding_ground"]
         return {"lat": pbg["lat"] + jlat, "lon": pbg["lon"] + jlon}
     elif hrs < 8:
-        # Mid-channel / inbound
-        return {"lat": -27.366 + jlat, "lon": 153.200 + jlon * 2}
+        # Mid-channel — interpolate between pilot ground and anchorage
+        mid_lat = (pbg["lat"] + anc["lat"]) / 2
+        mid_lon = (pbg["lon"] + anc["lon"]) / 2
+        return {"lat": mid_lat + jlat, "lon": mid_lon + jlon * 2}
     elif hrs < 24:
         # Anchorage
-        anc = PORT_GEO["anchorage"]
         return {"lat": anc["lat"] + jlat * 2, "lon": anc["lon"] + jlon * 2}
     else:
-        # Offshore — further into Moreton Bay
-        return {"lat": -27.345 + jlat * 3, "lon": 153.280 + jlon * 3}
+        # Offshore — extrapolate beyond anchorage on the approach bearing
+        bear_lat = anc["lat"] - center["lat"]
+        bear_lon = anc["lon"] - center["lon"]
+        return {"lat": anc["lat"] + bear_lat * 0.5 + jlat * 3,
+                "lon": anc["lon"] + bear_lon * 0.5 + jlon * 3}
 
 def _predict_tide_height(dt: datetime) -> float:
     """
@@ -1721,13 +1728,21 @@ def build_summary():
                      and v.get("etd") and (isoparse(v["etd"]) - now).total_seconds() / 3600 <= 24)
     critical   = sum(1 for c in conflicts if c["severity"] == "critical")
 
+    # Build a port-aware data source label
+    if using_live_vessel:
+        _ds_label = f"Live — {profile['display_name']}"
+    elif is_live and ds["source"] == "qships":
+        _ds_label = ds["label"]
+    else:
+        _ds_label = f"{profile['short_name']} — Simulation"
+
     return {
         "port_name":       port_name,
         "generated_at":    fmt(now),
         "lookahead_hours": 48,
-        "data_source":     ds["source"],
-        "data_source_label": ds["label"],
-        "scraped_at":      ds["scraped_at"],
+        "data_source":     "live" if using_live_vessel else ds["source"],
+        "data_source_label": _ds_label,
+        "scraped_at":      scrape_result.get("scraped_at") or ds["scraped_at"],
         "port_status": {
             "berths_occupied":    occupied,
             "berths_available":   available,
@@ -1746,7 +1761,7 @@ def build_summary():
         "towage":            towage,
         "conflicts":         conflicts,
         "guidance":          guidance,
-        "port_geo":          PORT_GEO,
+        "port_geo":          profile.get("port_geo", PORT_GEO),
         "weather":           weather,
         "tides":             tides,
         "berth_utilisation": berth_util,

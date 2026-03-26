@@ -1508,10 +1508,24 @@ function renderGantt(d){
 }
 
 /* ── Port Map ── */
+let _lastMapPortId = null;
 function initMap(d){
   const geo=d.port_geo; if(!geo)return;
+  const portId=(d.port_profile&&d.port_profile.id)||'NORTHHAVEN';
+  if(_map&&_mapInit){
+    // Already initialised — re-centre if port changed
+    if(portId!==_lastMapPortId){
+      _lastMapPortId=portId;
+      _map.setView([geo.center.lat,geo.center.lon],geo.zoom||13);
+      // Clear all existing layers and redraw
+      _map.eachLayer(l=>{ if(!(l instanceof L.TileLayer))_map.removeLayer(l); });
+    }
+    updateMapMarkers(d);
+    return;
+  }
   _map=L.map('map',{center:[geo.center.lat,geo.center.lon],zoom:geo.zoom||13,zoomControl:true});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(_map);
+  _lastMapPortId=portId;
   _mapInit=true; updateMapMarkers(d);
   setTimeout(()=>_map.invalidateSize(),150);
   setTimeout(()=>_map.invalidateSize(),500);

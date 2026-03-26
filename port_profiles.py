@@ -33,6 +33,26 @@ PORT_PROFILES = {
         "vts_channel":                  "VHF 12",
         "currency":                     "AUD",
         "cost_per_hour_delay":          3800,
+        "port_geo": {
+            "center": {"lat": -27.383, "lon": 153.173},
+            "zoom": 13,
+            "berths": {
+                "B01": {"lat": -27.368, "lon": 153.150, "terminal": "North Terminal", "heading": 350},
+                "B02": {"lat": -27.369, "lon": 153.161, "terminal": "North Terminal", "heading": 350},
+                "B03": {"lat": -27.370, "lon": 153.172, "terminal": "North Terminal", "heading": 350},
+                "B04": {"lat": -27.397, "lon": 153.157, "terminal": "South Terminal", "heading": 170},
+                "B05": {"lat": -27.398, "lon": 153.167, "terminal": "South Terminal", "heading": 170},
+                "B06": {"lat": -27.399, "lon": 153.177, "terminal": "South Terminal", "heading": 170},
+            },
+            "anchorage": {"lat": -27.352, "lon": 153.253, "radius_km": 2.5, "label": "Brisbane Bar Anchorage"},
+            "pilot_boarding_ground": {"lat": -27.360, "lon": 153.218, "label": "Brisbane Bar Pilot Station"},
+            "channel_waypoints": [
+                {"lat": -27.352, "lon": 153.246}, {"lat": -27.357, "lon": 153.228},
+                {"lat": -27.362, "lon": 153.212}, {"lat": -27.367, "lon": 153.198},
+                {"lat": -27.372, "lon": 153.186}, {"lat": -27.374, "lon": 153.175},
+                {"lat": -27.370, "lon": 153.161},
+            ],
+        },
     },
 
     # ── Port of Melbourne ─────────────────────────────────────────────────────
@@ -105,6 +125,38 @@ PORT_PROFILES = {
         "holden_dock_ukc_minimum_m":    1.0,
         "dukc_submission_arrival_hours":  (12, 24),
         "dukc_submission_departure_hours": 6,
+        "port_geo": {
+            "center": {"lat": -37.8224, "lon": 144.9231},
+            "zoom": 12,
+            "berths": {
+                # Swanson Dock / Appleton Dock / Webb Dock approximate positions
+                "B01": {"lat": -37.8178, "lon": 144.9255, "terminal": "Swanson Dock East",  "heading": 270},
+                "B02": {"lat": -37.8192, "lon": 144.9215, "terminal": "Swanson Dock West",  "heading": 270},
+                "B03": {"lat": -37.8225, "lon": 144.9165, "terminal": "Appleton Dock",      "heading": 90},
+                "B04": {"lat": -37.8385, "lon": 144.9205, "terminal": "Webb Dock North",    "heading": 10},
+                "B05": {"lat": -37.8420, "lon": 144.9195, "terminal": "Webb Dock South",    "heading": 10},
+                "B06": {"lat": -37.8475, "lon": 144.9235, "terminal": "Station Pier",       "heading": 180},
+            },
+            "anchorage": {
+                "lat": -38.10, "lon": 144.76,
+                "radius_km": 6.0,
+                "label": "Port Phillip Bay Anchorage",
+            },
+            "pilot_boarding_ground": {
+                "lat": -38.305, "lon": 144.545,
+                "label": "Pilot Boarding Ground (5 NM SW Point Lonsdale)",
+            },
+            "channel_waypoints": [
+                {"lat": -38.295, "lon": 144.615},
+                {"lat": -38.245, "lon": 144.660},
+                {"lat": -38.160, "lon": 144.710},
+                {"lat": -38.060, "lon": 144.755},
+                {"lat": -37.960, "lon": 144.815},
+                {"lat": -37.880, "lon": 144.870},
+                {"lat": -37.840, "lon": 144.910},
+                {"lat": -37.822, "lon": 144.923},
+            ],
+        },
     },
 
     # ── Port of Northhaven (simulated) ────────────────────────────────────────
@@ -134,6 +186,26 @@ PORT_PROFILES = {
         "vts_channel":                  "VHF 12",
         "currency":                     "AUD",
         "cost_per_hour_delay":          2100,
+        "port_geo": {
+            "center": {"lat": -26.850, "lon": 153.050},
+            "zoom": 13,
+            "berths": {
+                "B01": {"lat": -26.835, "lon": 153.028, "terminal": "North Terminal", "heading": 350},
+                "B02": {"lat": -26.836, "lon": 153.039, "terminal": "North Terminal", "heading": 350},
+                "B03": {"lat": -26.837, "lon": 153.050, "terminal": "North Terminal", "heading": 350},
+                "B04": {"lat": -26.864, "lon": 153.035, "terminal": "South Terminal", "heading": 170},
+                "B05": {"lat": -26.865, "lon": 153.045, "terminal": "South Terminal", "heading": 170},
+                "B06": {"lat": -26.866, "lon": 153.055, "terminal": "South Terminal", "heading": 170},
+            },
+            "anchorage": {"lat": -26.819, "lon": 153.131, "radius_km": 2.5, "label": "Northhaven Anchorage"},
+            "pilot_boarding_ground": {"lat": -26.827, "lon": 153.096, "label": "Pilot Boarding Ground"},
+            "channel_waypoints": [
+                {"lat": -26.819, "lon": 153.124}, {"lat": -26.824, "lon": 153.106},
+                {"lat": -26.829, "lon": 153.090}, {"lat": -26.834, "lon": 153.076},
+                {"lat": -26.839, "lon": 153.064}, {"lat": -26.841, "lon": 153.053},
+                {"lat": -26.837, "lon": 153.039},
+            ],
+        },
     },
 }
 
