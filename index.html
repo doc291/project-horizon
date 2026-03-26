@@ -1223,8 +1223,9 @@ function updateHeader(d){
     try{const t=new Date(v.eta).getTime();return t>=now&&t<=h24;}catch(e){return false;}
   }).length;
   document.getElementById('s-expected').textContent=arriving24;
-  // Fix: active conflicts = distinct conflict events (conflicts.length)
-  document.getElementById('s-conflicts').textContent=conflicts.length;
+  // Fix: active conflicts = distinct vessels affected by at least one conflict
+  const _confVids=new Set();(conflicts||[]).forEach(c=>(c.vessel_ids||[]).forEach(id=>_confVids.add(id)));
+  document.getElementById('s-conflicts').textContent=_confVids.size;
   document.getElementById('s-conflict-chip').classList.toggle('alert',(ps.critical_conflicts||0)>0);
   // Data source indicator
   const isLive = d.data_source==='qships';
@@ -1350,8 +1351,8 @@ function renderDecisions(conflicts){
   const el = document.getElementById('decisions-list');
   const decisionsReady = conflicts.filter(c => c.signal_type === 'CONFLICT' && c.decision_support);
 
-  // ── Update right panel badge: CRITICAL/HIGH unacknowledged ──
-  const actionable = conflicts.filter(c => (c.severity==='critical'||c.severity==='high') && getSigState(c.id)==='new');
+  // ── Update right panel badge: CRITICAL/HIGH unacknowledged (Decisions list items only) ──
+  const actionable = decisionsReady.filter(c => (c.severity==='critical'||c.severity==='high') && getSigState(c.id)==='new');
   const badge = document.getElementById('conflict-count');
   if(badge){
     badge.textContent = actionable.length;
@@ -2019,8 +2020,9 @@ function closeDSW(e) {
 function renderDashboard(dash, etdRisk){
   if(!dash)return;
   const grid=document.getElementById('dash-kpi-grid');
-  // Fix: use actual conflicts array length for Active Conflicts tile
-  const actualConflicts=(_data&&_data.conflicts)?_data.conflicts.length:(dash.active_conflicts||0);
+  // Fix: active conflicts = distinct vessels affected (matches ETD ranking pills)
+  const _acVids=new Set();((_data&&_data.conflicts)||[]).forEach(c=>(c.vessel_ids||[]).forEach(id=>_acVids.add(id)));
+  const actualConflicts=(_data&&_data.conflicts)?_acVids.size:(dash.active_conflicts||0);
   const critAlert=dash.critical_conflicts>0;
   const utilCls=dash.berth_utilisation_pct>=85?'warn':dash.berth_utilisation_pct>=55?'good':'';
   const otdCls=dash.on_time_departure_pct>=90?'good':dash.on_time_departure_pct>=70?'warn':'bad';
