@@ -397,21 +397,28 @@ BERTH_LAT_DEPTHS = {
 }
 
 def make_berths(now: datetime) -> list:
+    # Simulation slots: (id, max_loa, max_draught, status, cranes, ready_offset_h)
     raw = [
-        ("B01", "Berth 1",  "North Terminal", 350, 14.5, "occupied",     4, now + timedelta(hours=4)),
-        ("B02", "Berth 2",  "North Terminal", 300, 13.0, "occupied",     4, now + timedelta(hours=8)),
-        ("B03", "Berth 3",  "North Terminal", 250, 11.5, "reserved",     2, now + timedelta(hours=2)),
-        ("B04", "Berth 4",  "South Terminal", 320, 14.0, "available",    3, None),
-        ("B05", "Berth 5",  "South Terminal", 280, 12.5, "maintenance",  0, now + timedelta(hours=20)),
-        ("B06", "Berth 6",  "South Terminal", 220, 10.0, "occupied",     0, now + timedelta(hours=6)),
+        ("B01", 350, 14.5, "occupied",     4, now + timedelta(hours=4)),
+        ("B02", 300, 13.0, "occupied",     4, now + timedelta(hours=8)),
+        ("B03", 250, 11.5, "reserved",     2, now + timedelta(hours=2)),
+        ("B04", 320, 14.0, "available",    3, None),
+        ("B05", 280, 12.5, "maintenance",  0, now + timedelta(hours=20)),
+        ("B06", 220, 10.0, "occupied",     0, now + timedelta(hours=6)),
     ]
+    # Pull berth names and coordinates from the active port profile
+    port_geo   = _PORT_PROFILE.get("port_geo", PORT_GEO)
+    geo_berths = port_geo.get("berths", PORT_GEO["berths"])
+    ch_depth   = _PORT_PROFILE.get("channel_depth_m", 12.5)
+
     result = []
-    for bid, name, terminal, loa, draught, status, cranes, ready in raw:
-        geo = PORT_GEO["berths"].get(bid, {})
+    for bid, loa, draught, status, cranes, ready in raw:
+        geo      = geo_berths.get(bid, {})
+        terminal = geo.get("terminal", bid)   # use port profile terminal name
         result.append({
-            "id": bid, "name": name, "terminal": terminal,
+            "id": bid, "name": bid, "terminal": terminal,
             "max_loa": loa, "max_draught": draught,
-            "lat_depth_m": BERTH_LAT_DEPTHS.get(bid, 12.0),
+            "lat_depth_m": BERTH_LAT_DEPTHS.get(bid, ch_depth),
             "status": status, "crane_count": cranes,
             "readiness_time": fmt(ready) if ready else None,
             "lat": geo.get("lat"), "lon": geo.get("lon"),
@@ -2176,8 +2183,8 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 self._json({"success": False, "error": "Missing 'port' field"})
                 return
             new_profile = get_profile(port_id)
-            # Validate: if unknown port, get_profile returns BRISBANE — check
-            if port_id not in ("BRISBANE", "MELBOURNE", "DARWIN"):
+            # Validate against the canonical profile registry — no hardcoded list
+            if port_id not in PORT_PROFILES:
                 self._json({"success": False, "error": f"Unknown port '{port_id}'"})
                 return
             with _profile_lock:
