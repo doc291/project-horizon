@@ -1199,6 +1199,7 @@ async function refresh(){
 function render(d){
   updateHeader(d);
   _updatePortSwitcher(d.port_profile);
+  _updateVTSCenter(d.port_profile);
   renderConditionsBar(d.weather,d.tides,d.ukc,d.arrival_ukc);
   renderGuidance(d.guidance||[]);
   renderDecisions(d.conflicts||[]);
@@ -1565,10 +1566,31 @@ function updateMapMarkers(d){
 
 /* ── VTS View ── */
 let _vtsLoaded=false;
-const VTS_URLS={
-  mt:'https://www.marinetraffic.com/en/ais/embed/zoom:10/centery:-27.38/centerx:153.17/maptype:0/shownames:true/showmenu:false/remember:false',
-  vf:'https://www.vesselfinder.com/aismap?zoom=10&lat=-27.38&lon=153.17&width=100%25&height=100%25&names=true&mmsi=&track=false&fleet=false'
-};
+let _vtsLat=-27.38, _vtsLon=153.17, _vtsZoom=10;
+
+function _vtsUrls(){
+  return {
+    mt:`https://www.marinetraffic.com/en/ais/embed/zoom:${_vtsZoom}/centery:${_vtsLat}/centerx:${_vtsLon}/maptype:0/shownames:true/showmenu:false/remember:false`,
+    vf:`https://www.vesselfinder.com/aismap?zoom=${_vtsZoom}&lat=${_vtsLat}&lon=${_vtsLon}&width=100%25&height=100%25&names=true&mmsi=&track=false&fleet=false`
+  };
+}
+
+function _updateVTSCenter(portProfile){
+  if(!portProfile)return;
+  const geo=(_data&&_data.port_geo)||{};
+  const c=geo.center||{};
+  if(!c.lat)return;
+  const newLat=Math.round(c.lat*1000)/1000;
+  const newLon=Math.round(c.lon*1000)/1000;
+  if(newLat===_vtsLat&&newLon===_vtsLon)return; // no change
+  _vtsLat=newLat; _vtsLon=newLon;
+  // Force reload both iframes with new centre
+  const mt=document.getElementById('vts-mt');
+  const vf=document.getElementById('vts-vf');
+  if(mt){mt.src=''; mt.src=_vtsUrls().mt;}
+  if(vf){vf.src=''; vf.src=_vtsUrls().vf;}
+}
+
 let _vtsActive='mt';
 function initVTS(){
   if(_vtsLoaded)return;
@@ -1584,14 +1606,15 @@ function switchVTS(src){
   const vf=document.getElementById('vts-vf');
   const bmt=document.getElementById('vts-btn-mt');
   const bvf=document.getElementById('vts-btn-vf');
+  const urls=_vtsUrls();
   // Lazy-load src
   if(src==='mt'){
-    if(!mt.src||mt.src===window.location.href)mt.src=VTS_URLS.mt;
+    if(!mt.src||mt.src===window.location.href)mt.src=urls.mt;
     mt.style.display='block'; vf.style.display='none';
     if(bmt){bmt.style.background='rgba(56,189,248,.2)';bmt.style.borderColor='#38bdf8';bmt.style.color='#38bdf8';}
     if(bvf){bvf.style.background='none';bvf.style.borderColor='rgba(56,189,248,.3)';bvf.style.color='var(--text-dim)';}
   }else{
-    if(!vf.src||vf.src===window.location.href)vf.src=VTS_URLS.vf;
+    if(!vf.src||vf.src===window.location.href)vf.src=urls.vf;
     vf.style.display='block'; mt.style.display='none';
     if(bvf){bvf.style.background='rgba(56,189,248,.2)';bvf.style.borderColor='#38bdf8';bvf.style.color='#38bdf8';}
     if(bmt){bmt.style.background='none';bmt.style.borderColor='rgba(56,189,248,.3)';bmt.style.color='var(--text-dim)';}
