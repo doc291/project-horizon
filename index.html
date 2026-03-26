@@ -62,11 +62,17 @@
     .stat-chip.alert strong { color: var(--critical); }
     .header-right { display: flex; align-items: center; gap: 10px; }
     #clock { font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; min-width: 72px; }
-    /* ── Beta 8b: Port switcher ── */
-    .port-switcher-wrap { display:flex; flex-direction:column; align-items:center; gap:1px; }
-    .port-switcher-lbl { font-size:8px; font-weight:700; letter-spacing:.8px; color:var(--text-dim); line-height:1; }
-    #port-switcher { background:#0d1f2e; border:1px solid #1e3a4a; color:#e2e8f0; font-size:11px; font-weight:600; padding:3px 6px; border-radius:5px; cursor:pointer; outline:none; }
-    #port-switcher:hover { border-color:#2a5070; }
+    /* ── Port switcher (inline next to beta badge) ── */
+    #port-switcher {
+      background: var(--accent-dim); border: 1px solid var(--accent);
+      color: var(--accent); font-size: 10px; font-weight: 700;
+      padding: 2px 5px; border-radius: 4px; cursor: pointer; outline: none;
+      letter-spacing: 0.3px; appearance: none; -webkit-appearance: none;
+      padding-right: 16px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%234fc3f7' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 4px center;
+    }
+    #port-switcher:hover { border-color: var(--accent); opacity: 0.85; }
     /* ── Beta 8b: Toast notification ── */
     #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:#0f3030; border:1px solid #14b8a6; color:#14b8a6; font-size:12px; font-weight:600; padding:8px 18px; border-radius:20px; z-index:9999; transition:transform .3s ease, opacity .3s ease; opacity:0; pointer-events:none; }
     #toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
@@ -667,6 +673,10 @@
     <div class="logo">
       <img src="/logo" alt="Project Horizon" />
       <span class="logo-badge">BETA 8b</span>
+      <select id="port-switcher" onchange="switchPort(this.value)" title="Switch active port">
+        <option value="BRISBANE">Brisbane</option>
+        <option value="MELBOURNE">Melbourne</option>
+      </select>
     </div>
     <div class="header-mid">
       <div class="stat-chip"><strong id="s-vessels">–</strong>&nbsp;vessels</div>
@@ -675,14 +685,6 @@
       <div class="stat-chip" id="s-conflict-chip"><strong id="s-conflicts">–</strong>&nbsp;signals</div>
     </div>
     <div class="header-right">
-      <!-- Port switcher -->
-      <div class="port-switcher-wrap" title="Switch active port">
-        <span class="port-switcher-lbl">PORT</span>
-        <select id="port-switcher" onchange="switchPort(this.value)">
-          <option value="BRISBANE">Brisbane</option>
-          <option value="MELBOURNE">Melbourne</option>
-        </select>
-      </div>
       <div id="ds-indicator" class="mock" title="Data source">
         <span class="ds-dot mock" id="ds-dot"></span>
         <span id="ds-label" class="mock">Simulation Data</span>
