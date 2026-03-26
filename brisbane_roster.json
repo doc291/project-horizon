@@ -1,0 +1,174 @@
+{
+  "port": "BRISBANE",
+  "captured_at": "2026-03-26",
+  "vessels": [
+    {
+      "name": "HIGHLAND CHIEF",
+      "vessel_type": "Container",
+      "loa": 175.2,
+      "draught": 11.5,
+      "cargo_type": "Containers",
+      "agent": "Gulf Agency Company (Brisbane)"
+    },
+    {
+      "name": "DIONE LEADER",
+      "vessel_type": "Car Carrier",
+      "loa": 199.9,
+      "draught": 8.0,
+      "cargo_type": "Vehicles",
+      "agent": "Monson Agencies Australia (Brisbane)"
+    },
+    {
+      "name": "VIKING PASSAMA",
+      "vessel_type": "Car Carrier",
+      "loa": 182.8,
+      "draught": 8.0,
+      "cargo_type": "Vehicles",
+      "agent": "Monson Agencies Australia (Brisbane)"
+    },
+    {
+      "name": "AFRICAN ROLLER",
+      "vessel_type": "Bulk Carrier",
+      "loa": 180.0,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "Gulf Agency Company (Brisbane)"
+    },
+    {
+      "name": "FPMC 26",
+      "vessel_type": "Tanker",
+      "loa": 182.5,
+      "draught": 11.0,
+      "cargo_type": "Crude Oil",
+      "agent": "Gulf Agency Company (Northern Ports)"
+    },
+    {
+      "name": "CAPE RAINBOW",
+      "vessel_type": "Bulk Carrier",
+      "loa": 300.0,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "Monson Agencies Australia (Gladstone)"
+    },
+    {
+      "name": "GOLDEN TIDE",
+      "vessel_type": "Bulk Carrier",
+      "loa": 227.2,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "Wilhelmsen Port Services (Gladstone)"
+    },
+    {
+      "name": "YM COMPASS",
+      "vessel_type": "Bulk Carrier",
+      "loa": 229.0,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "ReefVTS"
+    },
+    {
+      "name": "FPMC B 107",
+      "vessel_type": "Bulk Carrier",
+      "loa": 229.2,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "Webster Ships Agency Pty Ltd T/A WSA AUSTRALIA"
+    },
+    {
+      "name": "SAKURA CENTURY",
+      "vessel_type": "Bulk Carrier",
+      "loa": 250.0,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "Inchcape Shipping Services (Queensland)"
+    },
+    {
+      "name": "NORD ANDROMEDA",
+      "vessel_type": "Bulk Carrier",
+      "loa": 229.0,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "Ben Line Agencies"
+    },
+    {
+      "name": "GOLD ETERNITY",
+      "vessel_type": "Bulk Carrier",
+      "loa": 199.9,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "ReefVTS"
+    },
+    {
+      "name": "GRAND WINNER 6",
+      "vessel_type": "Tanker",
+      "loa": 183.1,
+      "draught": 11.0,
+      "cargo_type": "Crude Oil",
+      "agent": "Gulf Agency Company (Brisbane)"
+    },
+    {
+      "name": "NSU KEYSTONE",
+      "vessel_type": "Bulk Carrier",
+      "loa": 299.9,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "Sturrock Grindrod Maritime (Mackay)"
+    },
+    {
+      "name": "OCEAN ALIGNMENT",
+      "vessel_type": "Bulk Carrier",
+      "loa": 235.0,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "Monson Agencies Australia (Gladstone)"
+    },
+    {
+      "name": "GCL FOS",
+      "vessel_type": "Bulk Carrier",
+      "loa": 290.0,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "LBH Australia Pty Ltd (Mackay)"
+    },
+    {
+      "name": "LUGA",
+      "vessel_type": "Bulk Carrier",
+      "loa": 170.0,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "Ironmonger Shipping Agencies"
+    },
+    {
+      "name": "WYUNA",
+      "vessel_type": "Bulk Carrier",
+      "loa": 169.4,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "Ironmonger Shipping Agencies"
+    },
+    {
+      "name": "WARRENDER",
+      "vessel_type": "General Cargo",
+      "loa": 67.9,
+      "draught": 7.5,
+      "cargo_type": "General Cargo",
+      "agent": "Sea Swift Pty Ltd"
+    },
+    {
+      "name": "ADONIS",
+      "vessel_type": "Bulk Carrier",
+      "loa": 289.0,
+      "draught": 10.5,
+      "cargo_type": "Coal",
+      "agent": "LBH Australia Pty Ltd (Mackay)"
+    },
+    {
+      "name": "NEWCASTLE BAY",
+      "vessel_type": "General Cargo",
+      "loa": 100.0,
+      "draught": 7.5,
+      "cargo_type": "General Cargo",
+      "agent": "Sea Swift Pty Ltd"
+    }
+  ]
+}

@@ -411,41 +411,99 @@ def compute_ukc(vessels: list, berths: list, tide_height_m: float) -> dict:
     }
 
 
+def _load_vessel_roster(port_id: str) -> list:
+    """Load port-specific vessel roster JSON. Returns [] if not found."""
+    roster_path = Path(__file__).parent / f"{port_id.lower()}_roster.json"
+    try:
+        with open(roster_path) as f:
+            return json.load(f).get("vessels", [])
+    except Exception:
+        return []
+
+_FLAGS = ["Marshall Islands", "Panama", "Bahamas", "Liberia", "Norway", "Cyprus", "Singapore"]
+
 def make_vessels(now: datetime) -> list:
-    specs = [
-        # id    name                      imo       type             flag               loa    dr   cargo         berth  eta_h  etd_h  status
-        ("V001","MV Nordic Star",         "9123456","Container",    "Norway",           240, 12.0,"Containers",  "B01",-18,  -18+22, "berthed"),
-        ("V002","MV Atlantic Pioneer",    "9234567","Bulk Carrier", "Panama",           190, 10.5,"Grain",       "B02", -6,   -6+14, "berthed"),
-        ("V003","MV Baltic Carrier",      "9345678","Tanker",       "Liberia",          180,  9.5,"Crude Oil",   "B06",-12,  -12+18, "berthed"),
-        ("V004","MV Oceanic Trader",      "9456789","Container",   "Bahamas",           220, 11.5,"Containers",  "B03",  3,      19, "confirmed"),
-        ("V005","MV Horizon Scout",       "9567890","General Cargo","Cyprus",           160,  8.5,"Steel Coils", "B04",  5,      17, "confirmed"),
-        ("V006","MV Cape Venture",        "9678901","Bulk Carrier", "Marshall Islands", 200, 11.0,"Coal",        "B01",  7,      27, "scheduled"),
-        # V007 arrives before B04 clear — critical berth conflict with V005
-        ("V007","MV Northern Light",      "9789012","RoRo",         "Norway",           185,  7.5,"Vehicles",    "B04",  2,      10, "at_risk"),
-        ("V008","MV Pacific Mariner",     "9890123","Tanker",       "Panama",           175,  9.0,"Crude Oil",   "B06", 10,      28, "scheduled"),
-        ("V009","MV Southern Cross",      "9901234","Container",    "Liberia",          260, 13.0,"Containers",  "B02", 12,      36, "scheduled"),
-        # V010 arrives 1h before V004 departs B03 — high berth conflict
-        ("V010","MV Eastern Spirit",      "9012345","Bulk Carrier", "Bahamas",          195, 10.5,"Grain",       "B03", 18,      40, "scheduled"),
-        ("V011","MV Western Passage",     "9112233","General Cargo","Cyprus",           145,  7.5,"Fertiliser",  "B04", 26,      40, "scheduled"),
-        ("V012","MV Iron Meridian",       "9223344","Container",    "Liberia",          230, 12.0,"Containers",  "B01", 30,      48, "scheduled"),
-        ("V013","MV Coral Bay",           "9334455","Bulk Carrier", "Marshall Islands", 170,  9.0,"Coal",        "B06", 36,      56, "scheduled"),
+    roster = _load_vessel_roster(_ACTIVE_PORT_ID)
+
+    # Structural slots: (id, berth, eta_h, etd_h, status, note)
+    # Conflicts are baked into timing — V007 vs V005 at B04, V010 vs V004 at B03
+    slots = [
+        ("V001","B01",-18, 4,  "berthed",   None),
+        ("V002","B02", -6, 8,  "berthed",   None),
+        ("V003","B06",-12, 6,  "berthed",   None),
+        ("V004","B03",  3, 19, "confirmed", None),
+        ("V005","B04",  5, 17, "confirmed", None),
+        ("V006","B01",  7, 27, "scheduled", None),
+        ("V007","B04",  2, 10, "at_risk",   "ETA variance +2.5h reported by agent"),
+        ("V008","B06", 10, 28, "scheduled", None),
+        ("V009","B02", 12, 36, "scheduled", None),
+        ("V010","B03", 18, 40, "scheduled", None),
+        ("V011","B04", 26, 40, "scheduled", None),
+        ("V012","B01", 30, 48, "scheduled", None),
+        ("V013","B06", 36, 56, "scheduled", None),
     ]
+
+    # Deterministic daily shuffle of roster so vessels rotate each day
+    day_seed = f"roster-{_ACTIVE_PORT_ID}-{now.strftime('%Y%m%d')}"
+    h = hashlib.md5(day_seed.encode()).hexdigest()
+    if roster:
+        idx = list(range(len(roster)))
+        for i in range(len(idx) - 1, 0, -1):
+            j = int(h[(i * 2) % 30 : (i * 2) % 30 + 2], 16) % (i + 1)
+            idx[i], idx[j] = idx[j], idx[i]
+        shuffled = [roster[k] for k in idx]
+    else:
+        shuffled = []
+
     vessels = []
-    for vid, name, imo, vtype, flag, loa, dr, cargo, berth_id, eta_h, etd_h, status in specs:
+    for slot_i, (vid, berth_id, eta_h, etd_h, status, note) in enumerate(slots):
         eta = now + timedelta(hours=eta_h)
         etd = now + timedelta(hours=etd_h)
         ata = eta if status in ("berthed", "arrived") else None
+
+        if shuffled:
+            rv = shuffled[slot_i % len(shuffled)]
+            name  = rv["name"]
+            vtype = rv["vessel_type"]
+            loa   = rv["loa"]
+            dr    = rv.get("draught", 9.0)
+            cargo = rv["cargo_type"]
+            agent = rv.get("agent", AGENTS[slot_i % len(AGENTS)])
+        else:
+            # Fallback hardcoded vessel if no roster
+            _fb = [
+                ("Nordic Star","Container",240,12.0,"Containers"),
+                ("Atlantic Pioneer","Bulk Carrier",190,10.5,"Grain"),
+                ("Baltic Carrier","Tanker",180,9.5,"Crude Oil"),
+                ("Oceanic Trader","Container",220,11.5,"Containers"),
+                ("Horizon Scout","General Cargo",160,8.5,"Steel Coils"),
+                ("Cape Venture","Bulk Carrier",200,11.0,"Coal"),
+                ("Northern Light","Car Carrier",185,7.5,"Vehicles"),
+                ("Pacific Mariner","Tanker",175,9.0,"Crude Oil"),
+                ("Southern Cross","Container",260,13.0,"Containers"),
+                ("Eastern Spirit","Bulk Carrier",195,10.5,"Grain"),
+                ("Western Passage","General Cargo",145,7.5,"Fertiliser"),
+                ("Iron Meridian","Container",230,12.0,"Containers"),
+                ("Coral Bay","Bulk Carrier",170,9.0,"Coal"),
+            ]
+            fn, vtype, loa, dr, cargo = _fb[slot_i]
+            name  = f"MV {fn}"
+            agent = AGENTS[slot_i % len(AGENTS)]
+
+        flag_idx = int(hashlib.md5(name.encode()).hexdigest(), 16) % len(_FLAGS)
+        imo      = str(9000000 + int(hashlib.md5(vid.encode()).hexdigest(), 16) % 999999)
+
         v = {
             "id": vid, "name": name, "imo": imo,
-            "vessel_type": vtype, "flag": flag,
+            "vessel_type": vtype, "flag": _FLAGS[flag_idx],
             "loa": loa, "draught": dr, "cargo_type": cargo,
             "status": status, "berth_id": berth_id,
             "eta": fmt(eta), "etd": fmt(etd),
             "ata": fmt(ata) if ata else None, "atd": None,
             "pilotage_required": True,
             "towage_required": loa > 170,
-            "agent": AGENTS[int(hashlib.md5(vid.encode()).hexdigest(), 16) % len(AGENTS)],
-            "notes": "ETA variance +2.5h reported by agent" if status == "at_risk" else None,
+            "agent": agent,
+            "notes": note,
         }
         pos = vessel_position(v, now)
         v["lat"] = pos["lat"]
