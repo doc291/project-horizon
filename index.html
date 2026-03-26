@@ -696,6 +696,7 @@
       <span class="logo-badge">BETA 8</span>
       <select id="port-switcher" onchange="switchPort(this.value)" title="Switch active port">
         <option value="BRISBANE">Brisbane</option>
+        <option value="DARWIN">Darwin</option>
         <option value="MELBOURNE">Melbourne</option>
       </select>
     </div>
@@ -800,7 +801,7 @@
         <button class="tab-btn" id="tabbtn-towage" onclick="switchTab('towage')">Towage <span class="tab-badge" id="tbadge-towage"></span></button>
         <button class="tab-btn" onclick="switchTab('lines')">Lines</button>
         <button class="tab-btn" id="tabbtn-dukc" onclick="switchTab('dukc')">DUKC <span class="tab-badge" id="tbadge-dukc"></span></button>
-        <button class="tab-btn" id="tabbtn-esg" onclick="switchTab('esg')">ESG <span class="tab-badge tab-badge-dot" id="tbadge-esg"></span></button>
+        <button class="tab-btn" id="tabbtn-esg" onclick="switchTab('esg')">ESG</button>
       </div>
 
       <!-- Dashboard tab -->
@@ -1337,7 +1338,9 @@ function renderConditionsBar(wx,tide,ukc,aukc){
     const el=document.getElementById('cb-tide-state');
     el.textContent=arr; el.className=`tide-arrow ${tide.state}`;
     document.getElementById('cb-tide-val').textContent =`${tide.current_height_m}m`;
-    document.getElementById('cb-tide-next').textContent=`→ ${tide.next_event_type} ${fmtShort(tide.next_event_time)} (${tide.next_event_height_m}m)`;
+    const _tideEvType = tide.next_event_type || '–';
+    const _tideEvHt   = tide.next_event_height_m != null ? `${tide.next_event_height_m}m` : '–';
+    document.getElementById('cb-tide-next').textContent=`→ ${_tideEvType} ${fmtShort(tide.next_event_time)} (${_tideEvHt})`;
     const pct=Math.round(((tide.current_height_m-(tide.mean_height_m-tide.amplitude_m))/(tide.amplitude_m*2))*100);
     document.getElementById('tide-bar-fill').style.width=Math.min(100,Math.max(0,pct))+'%';
     const rr=document.getElementById('tide-restriction-row');
@@ -2318,9 +2321,7 @@ function updateTabBadges(conflicts, dukc){
   const dukcCount=dukcVessels.filter(v=>v.tide_restricted&&v.min_ukc_m<0.5).length;
   _setTabBadge('dukc',dukcCount);
 
-  // ESG: static teal dot — always shown
-  const esgBadge=document.getElementById('tbadge-esg');
-  if(esgBadge)esgBadge.style.display='inline-block';
+  // ESG: no dynamic badge — tab shows static sim data only
 }
 function _setTabBadge(tab,count){
   const el=document.getElementById('tbadge-'+tab);
