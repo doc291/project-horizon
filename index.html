@@ -1559,7 +1559,7 @@ function updateMapMarkers(d){
     if(!v.lat||!v.lon)return;
     const col=statusColor(v.status),isC=cvids.has(v.id);
     const m=L.marker([v.lat,v.lon],{icon:L.divIcon({className:'',html:`<div style="width:10px;height:10px;background:${col};border-radius:50%;border:2px solid ${isC?'#ef4444':col};box-shadow:0 0 ${isC?'8px #ef4444':'4px '+col}88;opacity:.92"></div>`,iconSize:[10,10],iconAnchor:[5,5]})}).addTo(_map);
-    m.bindPopup(`<strong>${v.name}</strong><br>Status: <span style="color:${col}">${v.status}</span><br>LOA: ${v.loa||'–'}m &nbsp;|&nbsp; Berth: ${v.berth_id||'TBA'}<br>ETA: ${fmtTime(v.eta)}${isC?'<br><span style="color:#ef4444;font-weight:600">⚠ Active conflict</span>':''}`);
+    m.bindPopup(`<strong>${v.name}</strong><br>Status: <span style="color:${col}">${v.status}</span><br>LOA: ${v.loa||'–'}m &nbsp;|&nbsp; Berth: ${_berthName(v.berth_id)}<br>ETA: ${fmtTime(v.eta)}${isC?'<br><span style="color:#ef4444;font-weight:600">⚠ Active conflict</span>':''}`);
     _vesselMarkers[v.id]=m;
     if(isC){const ring=L.circle([v.lat,v.lon],{radius:200,color:'#ef4444',fillColor:'#ef4444',fillOpacity:.05,weight:1.5,opacity:.45}).addTo(_map);_conflictRings.push(ring)}
   });
@@ -1748,7 +1748,7 @@ function renderLines(d){
     const schedTime=isBerthed?v.ata:v.eta;
     return`<tr>
       <td><strong style="color:var(--text-bright)">${esc(v.name)}</strong><br><span style="font-size:10px;color:var(--text-dim)">${esc(v.vessel_type||'')}</span></td>
-      <td>${esc(v.berth_id||'–')}</td>
+      <td>${esc(_berthName(v.berth_id))}</td>
       <td style="color:var(--text-dim)">${GANGS[gangIdx]}</td>
       <td style="font-variant-numeric:tabular-nums">${fmtShort(schedTime)}</td>
       <td><span class="ops-badge ${lineStatus.toLowerCase().replace(' ','-')}">${lineStatus}</span></td>
@@ -1912,7 +1912,7 @@ function renderVesselTable(vessels, etdRisk){
     <td>${rCell}</td>
     <td style="font-variant-numeric:tabular-nums">${fmtTime(v.eta)}</td>
     <td style="font-variant-numeric:tabular-nums">${fmtTime(v.etd)}</td>
-    <td>${esc(v.berth_id||'TBA')}</td>
+    <td>${esc(_berthName(v.berth_id))}</td>
     <td>${v.loa?v.loa+'m':'–'}</td>
     <td>${v.draught?v.draught+'m':'–'}</td>
     <td>${esc(v.cargo||'–')}</td>
@@ -1953,6 +1953,7 @@ function fmtShort(iso){
   }
   catch(e){return String(iso)}
 }
+function _berthName(id){if(!id)return'TBA';const b=(_data&&_data.port_geo&&_data.port_geo.berths&&_data.port_geo.berths[id]);return b?b.terminal:id;}
 function statusColor(s){return{berthed:'#22c55e',confirmed:'#3b82f6',scheduled:'#6b7280',at_risk:'#f97316',delayed:'#ef4444',departed:'#374151'}[s]||'#6b7280'}
 function priCol(p){return{critical:'#ef4444',high:'#f97316',medium:'#eab308',info:'#38bdf8'}[p]||'#6b7280'}
 
