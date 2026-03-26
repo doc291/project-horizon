@@ -800,7 +800,7 @@
         <button class="tab-btn" id="tabbtn-towage" onclick="switchTab('towage')">Towage <span class="tab-badge" id="tbadge-towage"></span></button>
         <button class="tab-btn" onclick="switchTab('lines')">Lines</button>
         <button class="tab-btn" id="tabbtn-dukc" onclick="switchTab('dukc')">DUKC <span class="tab-badge" id="tbadge-dukc"></span></button>
-        <button class="tab-btn" id="tabbtn-esg" onclick="switchTab('esg')">ESG <span class="tab-badge tab-badge-dot" id="tbadge-esg"></span></button>
+        <button class="tab-btn" id="tabbtn-esg" onclick="switchTab('esg')">ESG</button>
       </div>
 
       <!-- Dashboard tab -->
@@ -2320,9 +2320,7 @@ function updateTabBadges(conflicts, dukc){
   const dukcCount=dukcVessels.filter(v=>v.tide_restricted&&v.min_ukc_m<0.5).length;
   _setTabBadge('dukc',dukcCount);
 
-  // ESG: static teal dot — always shown
-  const esgBadge=document.getElementById('tbadge-esg');
-  if(esgBadge)esgBadge.style.display='inline-block';
+  // ESG: no dynamic badge — tab shows static sim data only
 }
 function _setTabBadge(tab,count){
   const el=document.getElementById('tbadge-'+tab);
