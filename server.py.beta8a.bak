@@ -291,25 +291,24 @@ TUGS     = ["TUG Stallion", "TUG Hercules", "TUG Neptune", "TUG Samson", "TUG Tr
 STATIONS = ["Outer Pilot Station", "North Channel Anchorage"]
 
 # ── Port geography ─────────────────────────────────────────────────────────────
-# Fictional Port of Northhaven — mapped onto Port of Brisbane / Fisherman Islands
+# Fallback geo used only if port profile is missing port_geo (should not occur
+# in production — all active profiles define port_geo in port_profiles.py).
 
 PORT_GEO = {
     "center":  {"lat": -27.383, "lon": 153.173},
     "zoom":    13,
     "berths": {
-        # North Terminal — container/ro-ro quay, north face of the island
-        "B01": {"lat": -27.368, "lon": 153.150, "terminal": "North Terminal", "heading": 350},
-        "B02": {"lat": -27.369, "lon": 153.161, "terminal": "North Terminal", "heading": 350},
-        "B03": {"lat": -27.370, "lon": 153.172, "terminal": "North Terminal", "heading": 350},
-        # South Terminal — bulk/general cargo, south face of the island
-        "B04": {"lat": -27.397, "lon": 153.157, "terminal": "South Terminal", "heading": 170},
-        "B05": {"lat": -27.398, "lon": 153.167, "terminal": "South Terminal", "heading": 170},
-        "B06": {"lat": -27.399, "lon": 153.177, "terminal": "South Terminal", "heading": 170},
+        "B01": {"lat": -27.368, "lon": 153.150, "terminal": "Berth 1", "heading": 350},
+        "B02": {"lat": -27.369, "lon": 153.161, "terminal": "Berth 2", "heading": 350},
+        "B03": {"lat": -27.370, "lon": 153.172, "terminal": "Berth 3", "heading": 350},
+        "B04": {"lat": -27.397, "lon": 153.157, "terminal": "Berth 4", "heading": 170},
+        "B05": {"lat": -27.398, "lon": 153.167, "terminal": "Berth 5", "heading": 170},
+        "B06": {"lat": -27.399, "lon": 153.177, "terminal": "Berth 6", "heading": 170},
     },
     "anchorage": {
         "lat": -27.352, "lon": 153.253,
         "radius_km": 2.5,
-        "label": "Northhaven Anchorage",
+        "label": "Outer Anchorage",
     },
     "pilot_boarding_ground": {"lat": -27.360, "lon": 153.218, "label": "Pilot Boarding Ground"},
     "channel_waypoints": [
@@ -382,7 +381,7 @@ def _predict_tide_height(dt: datetime) -> float:
     return round(MEAN + AMP * math.cos(2 * math.pi * t / PERIOD), 2)
 
 
-CHANNEL_DEPTH_M = 12.5   # Northhaven default — overridden per-profile at runtime
+CHANNEL_DEPTH_M = 12.5   # Generic fallback — always overridden by port profile channel_depth_m
 
 # ── Mock data generation ──────────────────────────────────────────────────────
 
@@ -554,7 +553,7 @@ def make_vessels(now: datetime) -> list:
             "eta": fmt(eta), "etd": fmt(etd),
             "ata": fmt(ata) if ata else None, "atd": None,
             "pilotage_required": True,
-            "towage_required": loa > 170,
+            "towage_required": loa > _PORT_PROFILE.get("compulsory_towage_loa_m", 170),
             "agent": agent,
             "notes": note,
         }
@@ -1971,8 +1970,8 @@ def build_summary():
             "vessels_departing_24h": dep_24,
             "active_conflicts":   len(conflicts),
             "critical_conflicts": critical,
-            "pilots_available":   3,
-            "tugs_available":     4,
+            "pilots_available":   _PORT_PROFILE.get("pilots_available", 3),
+            "tugs_available":     _PORT_PROFILE.get("tugs_available", 4),
         },
         "vessels":           vessels,
         "berths":            berths,
