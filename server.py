@@ -29,7 +29,7 @@ from port_profiles import get_profile, list_profiles
 from bom_tides import fetch_bom_tides, predict_height_at
 from vessel_scraper import fetch_vessel_movements
 
-_ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "NORTHHAVEN").upper()
+_ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
 _profile_lock    = threading.Lock()
 
@@ -1812,7 +1812,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 return
             new_profile = get_profile(port_id)
             # Validate: if unknown port, get_profile returns BRISBANE — check
-            if port_id not in ("BRISBANE", "MELBOURNE", "NORTHHAVEN"):
+            if port_id not in ("BRISBANE", "MELBOURNE"):
                 self._json({"success": False, "error": f"Unknown port '{port_id}'"})
                 return
             with _profile_lock:

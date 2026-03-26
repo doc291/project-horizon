@@ -679,7 +679,6 @@
       <div class="port-switcher-wrap" title="Switch active port">
         <span class="port-switcher-lbl">PORT</span>
         <select id="port-switcher" onchange="switchPort(this.value)">
-          <option value="NORTHHAVEN">Northhaven</option>
           <option value="BRISBANE">Brisbane</option>
           <option value="MELBOURNE">Melbourne</option>
         </select>
@@ -1512,7 +1511,7 @@ function renderGantt(d){
 let _lastMapPortId = null;
 function initMap(d){
   const geo=d.port_geo; if(!geo)return;
-  const portId=(d.port_profile&&d.port_profile.id)||'NORTHHAVEN';
+  const portId=(d.port_profile&&d.port_profile.id)||'BRISBANE';
   if(_map&&_mapInit){
     // Already initialised — re-centre if port changed
     if(portId!==_lastMapPortId){
