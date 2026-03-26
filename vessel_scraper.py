@@ -22,10 +22,8 @@ log = logging.getLogger("horizon.vessel_scraper")
 
 # ── In-memory cache ───────────────────────────────────────────────────────────
 _cache: dict = {}        # url -> {"vessels": [...], "fetched_at": float, "scraped_at": str}
-_fail_cache: dict = {}   # url -> failed_at (monotonic) — suppresses retries after scrape failure
 _cache_lock  = threading.Lock()
-CACHE_TTL_SECS = 1800    # 30 minutes (successful fetch)
-FAIL_TTL_SECS  = 1800    # 30 minutes — don't retry a failed scrape target
+CACHE_TTL_SECS = 1800    # 30 minutes
 
 # ── Column mapping for Ports Victoria Melbourne HTML table ─────────────────────
 # TODO: verify column order against live page before deploying to production.
@@ -263,17 +261,6 @@ def fetch_vessel_movements(profile: dict, now: datetime = None) -> dict:
                 "vessel_count":    len(cached["vessels"]),
             }
 
-        # Failure cooldown — avoid hammering an unavailable endpoint every request
-        failed_at = _fail_cache.get(url)
-        if failed_at and (time.monotonic() - failed_at) < FAIL_TTL_SECS:
-            log.debug("Vessel scrape failure cooldown active for %s — skipping", url)
-            return {
-                "vessels":         [],
-                "using_live_data": False,
-                "scraped_at":      None,
-                "vessel_count":    0,
-            }
-
     # ── Live scrape ───────────────────────────────────────────────────────────
     try:
         raw      = _scrape_ports_victoria(url, profile, now)
@@ -286,7 +273,6 @@ def fetch_vessel_movements(profile: dict, now: datetime = None) -> dict:
                 "fetched_at": time.monotonic(),
                 "scraped_at": scraped_at,
             }
-            _fail_cache.pop(url, None)   # clear any prior failure
 
         return {
             "vessels":         filtered,
@@ -297,8 +283,6 @@ def fetch_vessel_movements(profile: dict, now: datetime = None) -> dict:
 
     except Exception as exc:
         log.error("Vessel scrape failed for %s: %s — falling back to simulation", url, exc)
-        with _cache_lock:
-            _fail_cache[url] = time.monotonic()
         return {
             "vessels":         [],
             "using_live_data": False,
