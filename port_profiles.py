@@ -15,6 +15,8 @@ PORT_PROFILES = {
         "lon":                          153.1653,
         "bom_station_id":               "IDO71004",   # Brisbane Bar tidal gauge
         "bom_tide_url":                 "http://www.bom.gov.au/fwo/IDO71004/IDO71004.xml",
+        "tidal_mean_m":                 1.40,         # Mean tide level (cosine fallback)
+        "tidal_amp_m":                  0.90,         # HW~2.3m, LW~0.5m
         "vessel_data_url":              "https://www.ports.com.au/port/port-of-brisbane/ship-movements/",
         "vessel_data_source":           "ports_victoria_html",
         "vessel_ingest_window_hours":   72,
@@ -65,6 +67,8 @@ PORT_PROFILES = {
         "lon":                          144.9231,
         "bom_station_id":               "IDO71001",   # Williamstown tidal gauge
         "bom_tide_url":                 "http://www.bom.gov.au/fwo/IDO71001/IDO71001.xml",
+        "tidal_mean_m":                 0.45,         # Mean tide level (cosine fallback)
+        "tidal_amp_m":                  0.25,         # HW~0.7m, LW~0.2m — Port Phillip small range
         "vessel_data_url":              "https://www.ports.vic.gov.au/port-of-melbourne/shipping/ship-movements",
         "vessel_data_source":           "ports_victoria_html",
         "vessel_ingest_window_hours":   72,

@@ -28,6 +28,7 @@ from pathlib import Path
 from port_profiles import get_profile, list_profiles
 from bom_tides import fetch_bom_tides, predict_height_at
 from vessel_scraper import fetch_vessel_movements
+from weather import fetch_weather
 
 _ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
@@ -936,40 +937,10 @@ def build_guidance(conflicts, vessels, berths, pilotage, towage, now):
 
 _COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"]
 
-def make_weather():
-    now  = utcnow()
-    seed = f"weather-{now.strftime('%Y%m%d')}-{now.hour // 3}"
-    h    = hashlib.md5(seed.encode()).hexdigest()
-
-    wind_kts  = 6  + int(h[0:2],  16) % 18        # 6–24 kts
-    wind_deg  =       int(h[2:6],  16) % 360
-    swell_m   = round(0.4 + (int(h[6:8],   16) % 18) / 10.0, 1)   # 0.4–2.2 m
-    swell_per = 6  + int(h[8:10],  16) % 9         # 6–14 s
-    vis_nm    = 5  + int(h[10:12], 16) % 12        # 5–16 nm
-    pressure  = 1007 + int(h[12:14], 16) % 18      # 1007–1025 hPa
-
-    wind_lbl  = _COMPASS[round(wind_deg  / 22.5) % 16]
-    swell_lbl = _COMPASS[(round(wind_deg / 22.5) + 2) % 16]
-
-    bft = (1 if wind_kts < 4 else 2 if wind_kts < 7 else 3 if wind_kts < 11
-           else 4 if wind_kts < 17 else 5 if wind_kts < 22 else 6)
-
-    cond = ("Excellent" if wind_kts < 10 and swell_m < 1.0 else
-            "Good"      if wind_kts < 16 and swell_m < 1.5 else
-            "Moderate"  if wind_kts < 22 and swell_m < 2.0 else "Poor")
-
-    return {
-        "wind_speed_kts":       wind_kts,
-        "wind_direction_deg":   wind_deg,
-        "wind_direction_label": wind_lbl,
-        "wind_beaufort":        bft,
-        "swell_height_m":       swell_m,
-        "swell_period_s":       swell_per,
-        "swell_direction_label": swell_lbl,
-        "visibility_nm":        vis_nm,
-        "pressure_hpa":         pressure,
-        "conditions":           cond,
-    }
+def make_weather(profile: dict = None):
+    """Delegate to weather module — live Open-Meteo with port-specific sim fallback."""
+    p = profile or _PORT_PROFILE
+    return fetch_weather(p, utcnow())
 
 
 # ── Beta 4: Port Rules & Weather Alert Detection ───────────────────────────────
@@ -1683,7 +1654,7 @@ def build_summary():
         log.error("make_towage failed: %s — using empty list", exc)
         towage = []
 
-    weather  = make_weather()
+    weather  = make_weather(profile)
     tides    = make_tides(bom_result)
 
     # Operational conflicts + Beta 4 weather alerts merged and re-sorted
@@ -1778,8 +1749,9 @@ def build_summary():
             "timezone":              profile.get("timezone", "Australia/Brisbane"),
             "vts_callsign":          profile.get("vts_callsign", "VTS"),
             "harbour_master":        profile.get("harbour_master", ""),
-            "using_live_vessel_data": using_live_vessel,
-            "using_live_tidal_data": using_live_tidal,
+            "using_live_vessel_data":  using_live_vessel,
+            "using_live_tidal_data":   using_live_tidal,
+            "using_live_weather_data": weather.get("source") == "live",
             "bom_station_id":        profile.get("bom_station_id"),
             "data_last_refreshed":   fmt(now),
             "available_ports":       list_profiles(),

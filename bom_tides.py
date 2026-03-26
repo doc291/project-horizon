@@ -22,18 +22,19 @@ _cache_lock = threading.Lock()
 CACHE_TTL_SECS = 3600   # 60 minutes
 
 
-def _cosine_fallback(now: datetime = None) -> list:
+def _cosine_fallback(now: datetime = None, profile: dict = None) -> list:
     """
-    Generate 48 hours of tide points at 30-minute intervals using the same
-    deterministic cosine model as server.py's make_tides().
+    Generate 48 hours of tide points at 30-minute intervals using a
+    deterministic cosine model with port-specific tidal parameters.
     Returns list of {"datetime": dt, "type": "HW"|"LW"|None, "height_m": float}.
     """
     if now is None:
         now = datetime.now(tz=timezone.utc).replace(microsecond=0)
 
     PERIOD = 12.42
-    MEAN   = 2.1
-    AMP    = 1.65
+    # Use port-specific tidal parameters if available, else generic defaults
+    MEAN   = (profile or {}).get("tidal_mean_m", 1.4)
+    AMP    = (profile or {}).get("tidal_amp_m",  0.9)
 
     day_h   = hashlib.md5(f"tide-{now.strftime('%Y%m%d')}".encode()).hexdigest()
     phase_h = (int(day_h[0:4], 16) % int(PERIOD * 100)) / 100.0
@@ -58,14 +59,14 @@ def _cosine_fallback(now: datetime = None) -> list:
     return points
 
 
-def _interpolate_from_turning_points(events: list, now: datetime) -> list:
+def _interpolate_from_turning_points(events: list, now: datetime, profile: dict = None) -> list:
     """
     Given a list of HW/LW turning point events, interpolate tide height at
     30-minute intervals over 48 hours using sinusoidal interpolation.
     Standard method: h(t) = (h1+h2)/2 + (h1-h2)/2 * cos(π*(t-t1)/(t2-t1))
     """
     if not events:
-        return _cosine_fallback(now)
+        return _cosine_fallback(now, profile)
 
     # Sort by datetime
     evs = sorted(events, key=lambda e: e["datetime"])
@@ -176,7 +177,12 @@ def _fetch_live(profile: dict, now: datetime) -> list:
     url = profile["bom_tide_url"]
     log.info("Fetching BOM tidal data: %s", url)
 
-    with urllib.request.urlopen(url, timeout=10) as resp:
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (compatible; ProjectHorizon/1.0)",
+        "Referer":    "http://www.bom.gov.au/oceanography/tides/",
+        "Accept":     "application/xml, text/xml, */*",
+    })
+    with urllib.request.urlopen(req, timeout=10) as resp:
         xml_text = resp.read().decode("utf-8", errors="replace")
 
     turning_points = _parse_bom_xml(xml_text)
@@ -185,7 +191,7 @@ def _fetch_live(profile: dict, now: datetime) -> list:
 
     log.info("BOM tides: %d turning points for station %s",
              len(turning_points), profile.get("bom_station_id"))
-    return _interpolate_from_turning_points(turning_points, now)
+    return _interpolate_from_turning_points(turning_points, now, profile)
 
 
 def fetch_bom_tides(profile: dict, now: datetime = None) -> dict:
@@ -210,10 +216,10 @@ def fetch_bom_tides(profile: dict, now: datetime = None) -> dict:
     station_id = profile.get("bom_station_id")
     bom_url    = profile.get("bom_tide_url")
 
-    # ── Cosine fallback for Northhaven (no BOM station) ──────────────────────
+    # ── No BOM station configured — port-specific cosine fallback ────────────
     if not bom_url or not station_id:
         log.debug("No BOM station configured — using cosine fallback")
-        return _build_result(_cosine_fallback(now), "cosine", None, now)
+        return _build_result(_cosine_fallback(now, profile), "cosine", None, now)
 
     # ── Check cache ───────────────────────────────────────────────────────────
     with _cache_lock:
@@ -231,7 +237,7 @@ def fetch_bom_tides(profile: dict, now: datetime = None) -> dict:
         return _build_result(series, "bom", station_id, now)
     except Exception as exc:
         log.error("BOM fetch failed for %s — falling back to cosine model: %s", station_id, exc)
-        return _build_result(_cosine_fallback(now), "cosine", station_id, now)
+        return _build_result(_cosine_fallback(now, profile), "cosine", station_id, now)
 
 
 def _build_result(series: list, source: str, station_id, now: datetime) -> dict:
