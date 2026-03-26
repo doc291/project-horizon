@@ -415,7 +415,7 @@ def make_berths(now: datetime) -> list:
         geo      = geo_berths.get(bid, {})
         terminal = geo.get("terminal", bid)   # use port profile terminal name
         result.append({
-            "id": bid, "name": bid, "terminal": terminal,
+            "id": bid, "name": terminal, "terminal": terminal,
             "max_loa": loa, "max_draught": draught,
             "lat_depth_m": geo.get("depth_m", BERTH_LAT_DEPTHS.get(bid, ch_depth)),
             "status": status, "crane_count": cranes,

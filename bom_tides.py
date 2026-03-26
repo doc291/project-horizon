@@ -276,14 +276,19 @@ def _build_result(series: list, source: str, station_id, now: datetime) -> dict:
     idx = series.index(closest)
     if idx > 0 and idx < len(series) - 1:
         diff = series[idx + 1]["height_m"] - series[idx - 1]["height_m"]
-        if abs(diff) < 0.08:
-            state = "Slack"
-        elif diff > 0:
-            state = "Rising"
-        else:
-            state = "Falling"
+    elif idx == 0 and len(series) > 1:
+        diff = series[1]["height_m"] - series[0]["height_m"]
+    elif len(series) > 1:
+        diff = series[-1]["height_m"] - series[-2]["height_m"]
     else:
-        state = "Unknown"
+        diff = 0.0
+
+    if abs(diff) < 0.08:
+        state = "Slack"
+    elif diff > 0:
+        state = "Rising"
+    else:
+        state = "Falling"
 
     # Next turning point after now
     future_events = [p for p in series if p.get("type") in ("HW", "LW") and p["datetime"] > now]
