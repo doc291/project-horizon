@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
-Project Horizon — Beta 8b
-Port profile system: multi-port support with live BOM tidal data
-and Ports Victoria vessel scraper.  Active port set via HORIZON_PORT env var.
+Project Horizon — Beta 8
+Self-contained server: zero external dependencies, pure Python 3 stdlib.
+Beta 8 adds UI improvements, panel restructure, and count consistency fixes.
 
 Usage (local):
     python3 server.py
-    HORIZON_PORT=MELBOURNE python3 server.py
 
 Then open http://localhost:8000 in your browser.
 """
@@ -23,15 +22,6 @@ import logging
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-
-# ── Port profile system ───────────────────────────────────────────────────────
-from port_profiles import get_profile, list_profiles
-from bom_tides import fetch_bom_tides, predict_height_at
-from vessel_scraper import fetch_vessel_movements
-
-_ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "NORTHHAVEN").upper()
-_PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
-_profile_lock    = threading.Lock()
 
 log = logging.getLogger("horizon")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [horizon] %(levelname)s %(message)s",
@@ -198,8 +188,8 @@ def build_vessels_from_qships(data: dict) -> list:
             v_out["lat"] = pos["lat"]
             v_out["lon"] = pos["lon"]
         except Exception:
-            v_out["lat"] = _PORT_PROFILE.get("lat", PORT_GEO["center"]["lat"])
-            v_out["lon"] = _PORT_PROFILE.get("lon", PORT_GEO["center"]["lon"])
+            v_out["lat"] = PORT_GEO["center"]["lat"]
+            v_out["lon"] = PORT_GEO["center"]["lon"]
 
         vessels.append(v_out)
     return vessels
@@ -328,7 +318,7 @@ def _predict_tide_height(dt: datetime) -> float:
     return round(MEAN + AMP * math.cos(2 * math.pi * t / PERIOD), 2)
 
 
-CHANNEL_DEPTH_M = 12.5   # Northhaven default — overridden per-profile at runtime
+CHANNEL_DEPTH_M = 12.5   # Dredged navigation channel depth (chart datum)
 
 # ── Mock data generation ──────────────────────────────────────────────────────
 
@@ -391,9 +381,8 @@ def compute_ukc(vessels: list, berths: list, tide_height_m: float) -> dict:
                 "critical_berth": None, "status": "no_vessels", "all": []}
     entries.sort(key=lambda r: r["ukc_m"])
     mn = entries[0]
-    ukc_min = _PORT_PROFILE.get("ukc_minimum_m", 0.5)
-    status = ("critical" if mn["ukc_m"] < ukc_min else
-              "warning"  if mn["ukc_m"] < ukc_min * 2 else "good")
+    status = ("critical" if mn["ukc_m"] < 0.5 else
+              "warning"  if mn["ukc_m"] < 1.0 else "good")
     return {
         "min_ukc_m":      mn["ukc_m"],
         "critical_vessel": mn["vessel_name"],
@@ -783,41 +772,6 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                 data_source=vessel_data_source,
             ))
 
-    # ── 6. Bridge restrictions (Melbourne and other ports with bridge_restrictions) ──
-    bridge_rules = _PORT_PROFILE.get("bridge_restrictions", [])
-    if bridge_rules:
-        # Air draught estimates by vessel type (m)
-        AIR_DRAUGHT_EST = {
-            "container": 45, "bulk carrier": 35, "bulker": 35,
-            "tanker": 30, "general cargo": 28, "car carrier": 38,
-            "roro": 38, "ro-ro": 38, "cruise": 55,
-        }
-        for v in vessels:
-            if v.get("status") == "departed":
-                continue
-            vtype_lc = (v.get("vessel_type") or v.get("type") or "").lower()
-            est_air  = next(
-                (est for kw, est in AIR_DRAUGHT_EST.items() if kw in vtype_lc),
-                32   # conservative default
-            )
-            for br in bridge_rules:
-                bridge_name = br["name"]
-                limit_m     = br["max_air_draught_m"]
-                if est_air > limit_m:
-                    sev = "critical" if br.get("absolute_limit") else "high"
-                    conflicts.append(_conflict(
-                        str(uuid.uuid4())[:8], "bridge_restriction", "WARNING", sev,
-                        [v["id"]], [v["name"]], None, bridge_name, fmt(now),
-                        (f"{v['name']} estimated air draught {est_air}m exceeds "
-                         f"{bridge_name} limit of {limit_m}m. "
-                         f"{br.get('notes', '')}"),
-                        [f"Confirm actual air draught with master before authorising transit",
-                         f"Check current tidal state — clearance varies with tide height",
-                         f"Contact {br.get('clearance_contact', 'port authority')} if clearance required",
-                         f"Consider alternative berth below {bridge_name} if transit cannot be authorised"],
-                        data_source="simulated",
-                    ))
-
     sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
     conflicts.sort(key=lambda c: (sev_order.get(c["severity"], 9), c["conflict_time"]))
     return conflicts
@@ -1045,18 +999,14 @@ def detect_weather_alerts(weather: dict, vessels: list, now: datetime) -> list:
                    if v["status"] not in ("berthed", "departed")
                    and v.get("pilotage_required")]
 
-    # ── 1. Wind alert — thresholds from active port profile ───────────────────
-    _w_crit    = _PORT_PROFILE.get("wind_limit_critical_knots", 40)
-    _w_berth   = _PORT_PROFILE.get("wind_limit_berthing_knots", 25)
-    _w_suspend = max(_w_berth + 5, _w_crit - 10)   # intermediate: movements suspended
-
-    if wind_kts >= _w_crit:
+    # ── 1. Wind alert (one signal, highest applicable threshold) ──────────────
+    if wind_kts >= 40:
         r = PORT_RULES["wind_engines_standby"]
         alerts.append(_conflict(
             "WX-WIND", "weather_wind", "WEATHER", "critical",
             [v["id"] for v in berthed], [v["name"] for v in berthed],
             None, None, fmt(now),
-            (f"Wind {wind_kts}kts {wind_dir} — exceeds {_w_crit}kt threshold ({r['rule_ref']}). "
+            (f"Wind {wind_kts}kts {wind_dir} — exceeds 40kt threshold ({r['rule_ref']}). "
              f"All berthed vessels must have main engines on standby. "
              f"Increased mooring watch required."),
             [r["action"],
@@ -1064,33 +1014,33 @@ def detect_weather_alerts(weather: dict, vessels: list, now: datetime) -> list:
              "Notify all masters and port operations centre immediately",
              "Arrange additional mooring lines as required"],
         ))
-    elif wind_kts >= _w_suspend:
+    elif wind_kts >= 30:
         r = PORT_RULES["wind_movements_suspended"]
         alerts.append(_conflict(
             "WX-WIND", "weather_wind", "WEATHER", "critical",
             [v["id"] for v in all_active], [v["name"] for v in all_active],
             None, None, fmt(now),
-            (f"Wind {wind_kts}kts {wind_dir} — exceeds {_w_suspend}kt threshold ({r['rule_ref']}). "
+            (f"Wind {wind_kts}kts {wind_dir} — exceeds 30kt threshold ({r['rule_ref']}). "
              f"All vessel movements in port are suspended."),
             [r["action"],
              f"Rule reference: {r['rule_ref']}",
              "No inbound or outbound movements without Harbour Master approval",
              "Hold inbound vessels at anchorage pending improvement"],
         ))
-    elif wind_kts >= _w_berth:
+    elif wind_kts >= 25:
         r = PORT_RULES["wind_no_berthing"]
         alerts.append(_conflict(
             "WX-WIND", "weather_wind", "WEATHER", "high",
             [v["id"] for v in all_active], [v["name"] for v in all_active],
             None, None, fmt(now),
-            (f"Wind {wind_kts}kts {wind_dir} — exceeds {_w_berth}kt no-berthing threshold ({r['rule_ref']}). "
+            (f"Wind {wind_kts}kts {wind_dir} — exceeds 25kt no-berthing threshold ({r['rule_ref']}). "
              f"No new berthing operations may commence."),
             [r["action"],
              f"Rule reference: {r['rule_ref']}",
-             f"Delay inbound vessels at anchorage until wind reduces below {_w_berth}kts",
+             "Delay inbound vessels at anchorage until wind reduces below 25kts",
              "Notify terminal operators and agents of potential delays"],
         ))
-    elif wind_kts >= max(_w_berth - 5, 15) and hw_vessels:
+    elif wind_kts >= 20 and hw_vessels:
         r = PORT_RULES["wind_advisory"]
         hw_names = [v["name"] for v in hw_vessels]
         alerts.append(_conflict(
@@ -1168,66 +1118,48 @@ def detect_weather_alerts(weather: dict, vessels: list, now: datetime) -> list:
     return alerts
 
 
-def make_tides(bom_result: dict = None):
-    """
-    Build the tides dict consumed by the frontend.
-    If bom_result is provided (from fetch_bom_tides), use its values.
-    Otherwise fall back to the deterministic cosine model.
-    """
-    now = utcnow()
+def make_tides():
+    now      = utcnow()
+    PERIOD   = 12.42   # semidiurnal hours
+    MEAN     = 2.1     # m above chart datum
+    AMP      = 1.65    # amplitude
 
-    if bom_result and bom_result.get("current_height_m") is not None:
-        # ── BOM live data ────────────────────────────────────────────────────
-        height    = bom_result["current_height_m"]
-        state     = bom_result.get("state", "Unknown")
-        nxt_type  = bom_result.get("next_event_type")
-        nxt_time  = bom_result.get("next_event_time")
-        nxt_ht    = bom_result.get("next_event_height_m")
-        # Derive mean/amp from series if available
-        series    = bom_result.get("series", [])
-        if series:
-            heights = [p["height_m"] for p in series]
-            MEAN    = round(sum(heights) / len(heights), 2)
-            AMP     = round((max(heights) - min(heights)) / 2, 2)
-        else:
-            MEAN, AMP = 1.5, 0.5
-        next_time_str = fmt(nxt_time) if nxt_time else fmt(now + timedelta(hours=6))
-        data_source   = "bom"
+    # Deterministic phase offset per calendar day
+    day_h    = hashlib.md5(f"tide-{now.strftime('%Y%m%d')}".encode()).hexdigest()
+    phase_h  = (int(day_h[0:4], 16) % int(PERIOD * 100)) / 100.0   # 0–12.42 h
+
+    t        = (now.hour + now.minute / 60.0 + phase_h) % PERIOD
+    height   = round(MEAN + AMP * math.cos(2 * math.pi * t / PERIOD), 2)
+    deriv    = -AMP * (2 * math.pi / PERIOD) * math.sin(2 * math.pi * t / PERIOD)
+
+    if abs(deriv) < 0.06:
+        state = "Slack"
+    elif deriv > 0:
+        state = "Rising"
     else:
-        # ── Cosine fallback ──────────────────────────────────────────────────
-        PERIOD  = 12.42
-        MEAN    = 2.1
-        AMP     = 1.65
-        day_h   = hashlib.md5(f"tide-{now.strftime('%Y%m%d')}".encode()).hexdigest()
-        phase_h = (int(day_h[0:4], 16) % int(PERIOD * 100)) / 100.0
-        t       = (now.hour + now.minute / 60.0 + phase_h) % PERIOD
-        height  = round(MEAN + AMP * math.cos(2 * math.pi * t / PERIOD), 2)
-        deriv   = -AMP * (2 * math.pi / PERIOD) * math.sin(2 * math.pi * t / PERIOD)
+        state = "Falling"
 
-        state = "Slack" if abs(deriv) < 0.06 else ("Rising" if deriv > 0 else "Falling")
+    # Time to next HW (cos peak, t % P == 0) and LW (t % P == P/2)
+    t_to_hw = (PERIOD      - t) % PERIOD
+    t_to_lw = (PERIOD / 2  - t) % PERIOD
 
-        t_to_hw = (PERIOD - t) % PERIOD
-        t_to_lw = (PERIOD / 2 - t) % PERIOD
-        if t_to_hw <= t_to_lw:
-            nxt_type, nxt_ht, nxt_h = "HW", round(MEAN + AMP, 1), t_to_hw
-        else:
-            nxt_type, nxt_ht, nxt_h = "LW", round(MEAN - AMP, 1), t_to_lw
+    if t_to_hw <= t_to_lw:
+        next_type, next_ht, next_h = "HW", round(MEAN + AMP, 1), t_to_hw
+    else:
+        next_type, next_ht, next_h = "LW", round(MEAN - AMP, 1), t_to_lw
 
-        next_time_str = fmt(now + timedelta(hours=nxt_h))
-        data_source   = "cosine"
-
+    # Flag shallow berths when tide is near LLW
     berth_restrictions = ["B03", "B06"] if height < (MEAN - AMP + 1.1) else []
 
     return {
-        "current_height_m":    height,
-        "state":               state,
-        "next_event_type":     nxt_type,
-        "next_event_time":     next_time_str,
-        "next_event_height_m": round(nxt_ht, 1) if nxt_ht is not None else None,
-        "mean_height_m":       MEAN,
-        "amplitude_m":         AMP,
-        "berth_restrictions":  berth_restrictions,
-        "data_source":         data_source,
+        "current_height_m":      height,
+        "state":                 state,
+        "next_event_type":       next_type,
+        "next_event_time":       fmt(now + timedelta(hours=next_h)),
+        "next_event_height_m":   next_ht,
+        "mean_height_m":         MEAN,
+        "amplitude_m":           AMP,
+        "berth_restrictions":    berth_restrictions,
     }
 
 
@@ -1269,9 +1201,8 @@ def compute_arrival_ukc(vessels: list, berths: list, now: datetime) -> dict:
                 "critical_eta": None, "status": "no_vessels", "all": []}
     entries.sort(key=lambda r: r["ukc_m"])
     mn     = entries[0]
-    _u_min = _PORT_PROFILE.get("ukc_minimum_m", 0.5)
-    status = ("critical" if mn["ukc_m"] < _u_min else
-              "warning"  if mn["ukc_m"] < _u_min * 2 else "good")
+    status = ("critical" if mn["ukc_m"] < 0.5 else
+              "warning"  if mn["ukc_m"] < 1.0 else "good")
     return {
         "min_ukc_m":       mn["ukc_m"],
         "critical_vessel": mn["vessel_name"],
@@ -1484,25 +1415,23 @@ def make_dukc_series(vessels: list, berths: list) -> dict:
         tide_pts.append({"h": h, "t": fmt(dt), "tide": _predict_tide_height(dt)})
 
     # Channel series — deepest draught vessel drives the critical UKC
-    ch_depth = _PORT_PROFILE.get("channel_depth_m", CHANNEL_DEPTH_M)
-    ukc_min  = _PORT_PROFILE.get("ukc_minimum_m", 0.5)
     active = [v for v in vessels if v.get("status") != "departed"]
     max_dr = max((v.get("draught") or 9.0 for v in active), default=9.0)
     channel_pts = []
     for tp in tide_pts:
-        ukc = round(ch_depth + tp["tide"] - max_dr, 2)
-        channel_pts.append({**tp, "ukc": ukc, "safe": ukc >= ukc_min})
+        ukc = round(CHANNEL_DEPTH_M + tp["tide"] - max_dr, 2)
+        channel_pts.append({**tp, "ukc": ukc, "safe": ukc >= 0.5})
 
     # Per-vessel series
     vessel_series = []
     for v in active:
         draught  = v.get("draught") or 9.0
         bid      = v.get("berth_id")
-        lat_d    = berth_depth.get(bid, ch_depth) if bid else ch_depth
+        lat_d    = berth_depth.get(bid, CHANNEL_DEPTH_M) if bid else CHANNEL_DEPTH_M
         pts      = []
         for tp in tide_pts:
             ukc = round(lat_d + tp["tide"] - draught, 2)
-            pts.append({**tp, "ukc": ukc, "safe": ukc >= ukc_min})
+            pts.append({**tp, "ukc": ukc, "safe": ukc >= 0.5})
 
         min_ukc = min(p["ukc"] for p in pts)
 
@@ -1525,7 +1454,7 @@ def make_dukc_series(vessels: list, berths: list) -> dict:
             "berth_id":       bid,
             "berth_depth_m":  round(lat_d, 1),
             "min_ukc_m":      min_ukc,
-            "tide_restricted": min_ukc < ukc_min,
+            "tide_restricted": min_ukc < 0.5,
             "safe_windows":   windows,
             "points":         pts,
         })
@@ -1611,58 +1540,28 @@ def make_esg_data(vessels: list, now: datetime) -> dict:
 
 def build_summary():
     now = utcnow()
-    with _profile_lock:
-        profile = dict(_PORT_PROFILE)
 
-    # ── Beta 8b: Data layer — port profile drives vessel + tidal source ────────
-    # Priority order: (1) vessel scraper for configured port, (2) QShips fallback,
-    # (3) simulation.  Tides: BOM live > cosine fallback.
-    ds          = get_data_source()
-    is_live     = False
-    using_live_vessel = False
-    using_live_tidal  = False
+    # ── Beta 6: Hybrid data layer ──────────────────────────────────────────────
+    # Use QShips live vessels + berths when available, fall back to simulation.
+    # Pilotage and towage are always simulated (not available on public QShips).
+    ds        = get_data_source()
+    is_live   = ds["source"] == "qships"
 
-    # Attempt vessel scraper for active port profile
-    scrape_result = fetch_vessel_movements(profile, now)
-    if scrape_result["using_live_data"] and scrape_result["vessels"]:
+    if is_live:
         try:
-            vessels   = build_vessels_from_qships({"vessels": scrape_result["vessels"], "berths": []})
-            berths    = make_berths(now)   # always simulated berths for now
-            port_name = profile["display_name"]
-            is_live   = True
-            using_live_vessel = True
-            log.info("Using live vessel data: %d vessels from %s",
-                     len(vessels), profile["short_name"])
+            vessels   = build_vessels_from_qships(_qships_data)
+            berths    = build_berths_from_qships(_qships_data)
+            port_name = _qships_data.get("port_name", "Port of Brisbane")
         except Exception as exc:
-            log.error("Live vessel build failed (%s) — falling back", exc)
-            vessels = None
-
-    if not using_live_vessel:
-        # QShips fallback for Brisbane
-        if ds["source"] == "qships" and _qships_data:
-            try:
-                vessels   = build_vessels_from_qships(_qships_data)
-                berths    = build_berths_from_qships(_qships_data)
-                port_name = _qships_data.get("port_name", profile["display_name"])
-                is_live   = True
-            except Exception as exc:
-                log.error("QShips vessel build failed (%s) — falling back to simulation", exc)
-                vessels = None
-
-    if not using_live_vessel and (not is_live or not vessels):
-        berths    = make_berths(now)
-        vessels   = make_vessels(now)
-        port_name = profile["display_name"]
-        is_live   = False
-
-    # BOM tidal data
-    try:
-        bom_result = fetch_bom_tides(profile, now)
-        using_live_tidal = bom_result["source"] == "bom"
-    except Exception as exc:
-        log.error("BOM tides fetch failed: %s — using cosine", exc)
-        bom_result = None
-        using_live_tidal = False
+            log.error("Live vessel build failed (%s) — falling back to simulation", exc)
+            is_live   = False
+            berths    = make_berths(now)
+            vessels   = make_vessels(now)
+            port_name = "Port of Northhaven"
+    else:
+        berths   = make_berths(now)
+        vessels  = make_vessels(now)
+        port_name = "Port of Northhaven"
 
     try:
         pilotage = make_pilotage(vessels, now)
@@ -1677,7 +1576,7 @@ def build_summary():
         towage = []
 
     weather  = make_weather()
-    tides    = make_tides(bom_result)
+    tides    = make_tides()
 
     # Operational conflicts + Beta 4 weather alerts merged and re-sorted
     try:
@@ -1756,18 +1655,6 @@ def build_summary():
         "arrival_ukc":       arrival_ukc,
         "dukc":              dukc,
         "esg":               esg,
-        "port_profile": {
-            "id":                    _ACTIVE_PORT_ID,
-            "display_name":          profile["display_name"],
-            "short_name":            profile["short_name"],
-            "vts_callsign":          profile.get("vts_callsign", "VTS"),
-            "harbour_master":        profile.get("harbour_master", ""),
-            "using_live_vessel_data": using_live_vessel,
-            "using_live_tidal_data": using_live_tidal,
-            "bom_station_id":        profile.get("bom_station_id"),
-            "data_last_refreshed":   fmt(now),
-            "available_ports":       list_profiles(),
-        },
     }
 
 
@@ -1777,41 +1664,6 @@ class HorizonHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         if args and str(args[1]) not in ("200", "304"):
             super().log_message(format, *args)
-
-    def do_POST(self):
-        path = self.path.split("?")[0]
-        if path == "/api/set_port":
-            self._set_port()
-        else:
-            self.send_error(405)
-
-    def _set_port(self):
-        """Switch active port profile for the current session (in-memory only)."""
-        global _ACTIVE_PORT_ID, _PORT_PROFILE
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-            body   = json.loads(self.rfile.read(length))
-            port_id = body.get("port", "").strip().upper()
-            if not port_id:
-                self._json({"success": False, "error": "Missing 'port' field"})
-                return
-            new_profile = get_profile(port_id)
-            # Validate: if unknown port, get_profile returns BRISBANE — check
-            if port_id not in ("BRISBANE", "MELBOURNE", "NORTHHAVEN"):
-                self._json({"success": False, "error": f"Unknown port '{port_id}'"})
-                return
-            with _profile_lock:
-                _ACTIVE_PORT_ID = port_id
-                _PORT_PROFILE   = new_profile
-            log.info("Port profile switched to %s", port_id)
-            self._json({
-                "success":      True,
-                "port":         port_id,
-                "display_name": new_profile["display_name"],
-            })
-        except Exception as exc:
-            log.error("set_port error: %s", exc)
-            self._json({"success": False, "error": str(exc)})
 
     def do_GET(self):
         path = self.path.split("?")[0]
@@ -1934,21 +1786,18 @@ class HorizonHandler(BaseHTTPRequestHandler):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    log.info("Starting — active port: %s", _ACTIVE_PORT_ID)
-    _schedule_scrapes()
-    load_qships_data()
+    # Simulation mode — QShips live data available on demand via /api/scrape
+    log.info("Starting in simulation mode")
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()
-    print(f"╔══ HORIZON BETA 8b ══════════════════════════╗")
-    print(f"║  Active Port: {_PORT_PROFILE['display_name']:<28} ║")
-    print(f"║  Data Source: {_PORT_PROFILE['vessel_data_source']:<28} ║")
-    print(f"║  BOM Station: {str(_PORT_PROFILE.get('bom_station_id','N/A')):<28} ║")
-    print(f"╠═════════════════════════════════════════════╣")
-    print(f"║  http://localhost:{PORT}                      ║")
-    print(f"║  Set port: HORIZON_PORT=MELBOURNE             ║")
-    print(f"║  Press Ctrl+C to stop                        ║")
-    print(f"╚═════════════════════════════════════════════╝")
+    print(f"╔══════════════════════════════════════╗")
+    print(f"║   Project Horizon  —  Beta 8         ║")
+    print(f"╠══════════════════════════════════════╣")
+    print(f"║  http://localhost:{PORT}               ║")
+    print(f"║  Data: {ds['label']:<29}║")
+    print(f"║  Press Ctrl+C to stop               ║")
+    print(f"╚══════════════════════════════════════╝")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
