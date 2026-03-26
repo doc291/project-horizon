@@ -45,13 +45,21 @@
       flex-shrink: 0; z-index: 200; position: relative;
     }
     .logo { display: flex; align-items: center; gap: 10px; }
-    .logo img { height: 44px; width: 44px; border-radius: 6px; object-fit: contain; background: #0d1b2e; }
+    .logo img { height: 40px; width: auto; max-width: 120px; border-radius: 6px; object-fit: contain; background: #0d1b2e; }
     .logo-badge {
       font-size: 10px; font-weight: 700; padding: 2px 6px;
       background: var(--accent-dim); color: var(--accent);
       border-radius: 4px; letter-spacing: 0.5px;
     }
     .header-mid { flex: 1; display: flex; justify-content: center; gap: 8px; }
+    /* AMS Group co-branding */
+    .amsg-logo-wrap {
+      display: flex; align-items: center;
+      background: rgba(255,255,255,0.96); border-radius: 6px;
+      padding: 3px 8px; gap: 0;
+    }
+    .amsg-logo-wrap img { height: 26px; width: auto; display: block; }
+    .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
     .stat-chip {
       display: flex; align-items: center; gap: 5px; padding: 4px 10px;
       border-radius: 20px; background: var(--surface2); border: 1px solid var(--border);
@@ -545,17 +553,19 @@
       font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase;
       color: var(--text-dim); padding: 10px 0 8px; border-top: 1px solid var(--border);
     }
-    .risk-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(36,51,80,.5); }
+    .risk-row { padding: 7px 0; border-bottom: 1px solid rgba(36,51,80,.5); }
     .risk-row:last-child { border-bottom: none; }
+    .risk-row-main { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .risk-row-detail { display: flex; align-items: center; gap: 8px; }
     .risk-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--text-bright); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .risk-bar-wrap { width: 70px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
-    .risk-bar-fill { height: 100%; border-radius: 3px; }
-    .risk-badge-sm { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; flex-shrink: 0; }
+    .risk-bar-wrap { width: 90px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+    .risk-bar-fill { height: 100%; border-radius: 2px; }
+    .risk-badge-sm { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; flex-shrink: 0; }
     .risk-badge-sm.low      { background: rgba(34,197,94,.2);  color: #4ade80; }
     .risk-badge-sm.medium   { background: rgba(234,179,8,.2);  color: #fde047; }
     .risk-badge-sm.high     { background: rgba(249,115,22,.2); color: #f97316; }
     .risk-badge-sm.critical { background: rgba(239,68,68,.2);  color: #f87171; }
-    .risk-factors-txt { font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; flex-shrink: 0; }
+    .risk-factors-txt { flex: 1; font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
     /* ── Beta 3: Berth Utilisation heatmap ── */
     #tab-utilisation { overflow-y: auto; }
@@ -672,7 +682,7 @@
   <header>
     <div class="logo">
       <img src="/logo" alt="Project Horizon" />
-      <span class="logo-badge">BETA 8b</span>
+      <span class="logo-badge">BETA 8</span>
       <select id="port-switcher" onchange="switchPort(this.value)" title="Switch active port">
         <option value="BRISBANE">Brisbane</option>
         <option value="MELBOURNE">Melbourne</option>
@@ -685,6 +695,10 @@
       <div class="stat-chip" id="s-conflict-chip"><strong id="s-conflicts">–</strong>&nbsp;signals</div>
     </div>
     <div class="header-right">
+      <div class="amsg-logo-wrap" title="AMS Group">
+        <img src="/amsg-logo" alt="AMS Group" onerror="this.closest('.amsg-logo-wrap').style.display='none'" />
+      </div>
+      <div class="header-divider"></div>
       <div id="ds-indicator" class="mock" title="Data source">
         <span class="ds-dot mock" id="ds-dot"></span>
         <span id="ds-label" class="mock">Simulation Data</span>
@@ -779,7 +793,7 @@
       </div>
 
       <!-- Dashboard tab -->
-      <div class="tab-pane active" id="tab-dashboard">
+      <div class="tab-pane active" id="tab-dashboard" style="overflow-y:auto;flex-direction:column;">
         <div class="dash-grid" id="dash-kpi-grid"><div class="empty" style="grid-column:1/-1">Loading…</div></div>
         <div class="risk-section">
           <div class="risk-section-title">ETD Risk Ranking — All Active Vessels</div>
@@ -788,12 +802,20 @@
       </div>
 
       <!-- Berth Timeline tab -->
-      <div class="tab-pane" id="tab-timeline" style="overflow:auto;">
-        <div id="timeline-wrap"><svg id="gantt"></svg></div>
+      <div class="tab-pane" id="tab-timeline" style="overflow:auto;flex-direction:column;">
+        <div class="smartocean-banner" style="flex-shrink:0;">
+          <span>◎</span>
+          <span><strong>Live Integration</strong> — Simulation Data &nbsp;·&nbsp; Connect your operational platform to enable live berth scheduling data for this view</span>
+        </div>
+        <div id="timeline-wrap" style="flex:1;"><svg id="gantt"></svg></div>
       </div>
 
       <!-- Utilisation tab -->
-      <div class="tab-pane" id="tab-utilisation">
+      <div class="tab-pane" id="tab-utilisation" style="flex-direction:column;">
+        <div class="smartocean-banner" style="flex-shrink:0;">
+          <span>◎</span>
+          <span><strong>Live Integration</strong> — Simulation Data &nbsp;·&nbsp; Connect your operational platform to enable live berth utilisation data for this view</span>
+        </div>
         <div class="util-wrap" id="util-wrap"><div class="empty">Loading…</div></div>
         <div class="util-legend">
           <div class="util-legend-item"><div class="util-legend-dot" style="background:var(--accent)"></div>Occupied</div>
@@ -803,8 +825,12 @@
       </div>
 
       <!-- VTS View tab -->
-      <div class="tab-pane" id="tab-vts">
-        <div id="vts-pane">
+      <div class="tab-pane" id="tab-vts" style="flex-direction:column;">
+        <div class="smartocean-banner" style="flex-shrink:0;">
+          <span>◎</span>
+          <span><strong>Live Integration</strong> — External AIS Data &nbsp;·&nbsp; Real-time vessel tracking from connected AIS provider</span>
+        </div>
+        <div id="vts-pane" style="flex:1;">
           <!-- Primary: MarineTraffic iframe — src set lazily on tab activation -->
           <iframe id="vts-mt" style="display:none;position:absolute;inset:0;width:100%;height:100%;border:none;" scrolling="no"></iframe>
           <!-- Fallback: VesselFinder — shown if MT blocks embedding -->
@@ -823,7 +849,7 @@
         <div class="ops-tab-wrap">
           <div class="smartocean-banner">
             <span>◎</span>
-            <span><strong>SmartOceanX Integration</strong> — Placeholder Data &nbsp;·&nbsp; Live pilotage data will replace this view once the SmartOceanX integration is active</span>
+            <span><strong>Live Integration</strong> — Simulation Data &nbsp;·&nbsp; Connect your operational platform to enable live pilotage data for this view</span>
           </div>
           <div class="ops-summary-bar">
             <div class="ops-stat"><div class="ops-stat-label">Pilots Available</div><div class="ops-stat-value good" id="pil-avail">2</div></div>
@@ -851,7 +877,7 @@
         <div class="ops-tab-wrap">
           <div class="smartocean-banner">
             <span>◎</span>
-            <span><strong>SmartOceanX Integration</strong> — Placeholder Data &nbsp;·&nbsp; Live towage data will replace this view once the SmartOceanX integration is active</span>
+            <span><strong>Live Integration</strong> — Simulation Data &nbsp;·&nbsp; Connect your operational platform to enable live towage data for this view</span>
           </div>
           <div class="ops-summary-bar">
             <div class="ops-stat"><div class="ops-stat-label">Tugs Available</div><div class="ops-stat-value good" id="tug-avail">3</div></div>
@@ -879,7 +905,7 @@
         <div class="ops-tab-wrap">
           <div class="smartocean-banner">
             <span>◎</span>
-            <span><strong>SmartOceanX Integration</strong> — Placeholder Data &nbsp;·&nbsp; Live mooring data will replace this view once the SmartOceanX integration is active</span>
+            <span><strong>Live Integration</strong> — Simulation Data &nbsp;·&nbsp; Connect your operational platform to enable live mooring data for this view</span>
           </div>
           <div class="ops-summary-bar">
             <div class="ops-stat"><div class="ops-stat-label">Linesmen Available</div><div class="ops-stat-value good">8</div></div>
@@ -903,6 +929,10 @@
       </div>
       <!-- DUKC tab -->
       <div class="tab-pane" id="tab-dukc" style="overflow-y:auto;padding:16px;gap:12px;flex-direction:column;">
+        <div class="smartocean-banner" style="margin:-4px 0 4px;">
+          <span>◎</span>
+          <span><strong>Live Integration</strong> — Simulation Data &nbsp;·&nbsp; Connect your DUKC or UKC platform to enable live dynamic underkeel clearance data for this view</span>
+        </div>
         <div class="ops-summary-bar" id="dukc-summary-bar">
           <div class="ops-stat"><div class="ops-stat-label">Channel Depth (CD)</div><div class="ops-stat-value" id="dukc-ch-depth">–</div></div>
           <div class="ops-stat"><div class="ops-stat-label">Max Vessel Draught</div><div class="ops-stat-value" id="dukc-max-dr">–</div></div>
@@ -937,7 +967,7 @@
       <div class="tab-pane" id="tab-esg" style="overflow-y:auto;padding:16px;gap:12px;flex-direction:column;">
         <div class="smartocean-banner">
           <span>◎</span>
-          <span><strong>Ocean Intelligence Integration</strong> — Projected Data &nbsp;·&nbsp; Live voyage optimisation data will replace these projections once the Ocean Intelligence integration is active</span>
+          <span><strong>Live Integration</strong> — Projected Data &nbsp;·&nbsp; Connect your voyage optimisation platform to enable live ESG and efficiency data for this view</span>
         </div>
 
         <!-- Summary KPIs -->
@@ -1405,7 +1435,7 @@ function renderDecisions(conflicts){
     // Data provenance label
     const provLabel = c.data_source==='live'
       ? '<span class="src-badge live">● Live Data — BOM Tidal Prediction</span>'
-      : '<span class="src-badge simulated">SmartOceanX — Placeholder</span>';
+      : '<span class="src-badge simulated">Platform Integration — Simulation</span>';
     return `
       <div class="dec-card sev-${c.severity}" id="dec-card-${c.id}">
         <div class="dec-card-top">
@@ -2214,11 +2244,15 @@ function renderDashboard(dash, etdRisk){
     const col=r.risk_level==='critical'?'#ef4444':r.risk_level==='high'?'#f97316':r.risk_level==='medium'?'#eab308':'#4ade80';
     const typePill=_riskTypePill(r.vessel_id);
     return`<div class="risk-row">
-      <span class="risk-name">${esc(r.vessel_name)}</span>
-      <div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:${r.risk_score}%;background:${col}"></div></div>
-      ${typePill}
-      <span class="risk-badge-sm ${r.risk_level}">${r.risk_score}</span>
-      <span class="risk-factors-txt" title="${esc((r.risk_factors||[]).join(', '))}">${esc((r.risk_factors||[]).join(' · '))}</span>
+      <div class="risk-row-main">
+        <span class="risk-name">${esc(r.vessel_name)}</span>
+        ${typePill}
+        <span class="risk-badge-sm ${r.risk_level}">${r.risk_score}</span>
+      </div>
+      <div class="risk-row-detail">
+        <div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:${r.risk_score}%;background:${col}"></div></div>
+        <span class="risk-factors-txt" title="${esc((r.risk_factors||[]).join(', '))}">${esc((r.risk_factors||[]).join(' · '))}</span>
+      </div>
     </div>`;
   }).join('');
 }

@@ -41,6 +41,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [horizon] %(levelnam
 PORT = int(os.environ.get("PORT", 8000))
 INDEX_HTML    = Path(__file__).parent / "index.html"
 LOGO_FILE     = Path(__file__).parent / "logo.svg"
+AMSG_LOGO_FILE = Path(__file__).parent / "amsg-logo.png"
 QSHIPS_FILE   = Path(__file__).parent / "qships_data.json"
 
 # ── QShips live data state ────────────────────────────────────────────────────
@@ -1967,6 +1968,8 @@ class HorizonHandler(BaseHTTPRequestHandler):
             self._html()
         elif path == "/logo":
             self._logo()
+        elif path == "/amsg-logo":
+            self._amsg_logo()
         else:
             self.send_error(404)
 
@@ -2058,6 +2061,24 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 return
         self.send_error(404, "logo not found")
 
+    def _amsg_logo(self):
+        """Serve AMS Group logo. Place amsg-logo.png in the project directory."""
+        for candidate, mime in [
+            (AMSG_LOGO_FILE,                              "image/png"),
+            (AMSG_LOGO_FILE.with_suffix(".jpg"),          "image/jpeg"),
+            (AMSG_LOGO_FILE.with_suffix(".svg"),          "image/svg+xml"),
+        ]:
+            if candidate.exists():
+                body = candidate.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", mime)
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "max-age=3600")
+                self.end_headers()
+                self.wfile.write(body)
+                return
+        self.send_error(404, "amsg logo not found")
+
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
@@ -2068,7 +2089,7 @@ if __name__ == "__main__":
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()
-    print(f"╔══ HORIZON BETA 8b ══════════════════════════╗")
+    print(f"╔══ HORIZON BETA 8 ═══════════════════════════╗")
     print(f"║  Active Port: {_PORT_PROFILE['display_name']:<28} ║")
     print(f"║  Data Source: {_PORT_PROFILE['vessel_data_source']:<28} ║")
     print(f"║  BOM Station: {str(_PORT_PROFILE.get('bom_station_id','N/A')):<28} ║")
