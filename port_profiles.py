@@ -82,10 +82,10 @@ PORT_PROFILES = {
         "tidal_surge_positive_m":       0.4,
         "tidal_surge_negative_m":       0.2,
         "pilot_boarding_point":         "5 NM SW Point Lonsdale",
-        "compulsory_pilotage_loa_m":    35,
-        "wind_limit_berthing_knots":    35,   # stop cargo ops
-        "wind_limit_disconnect_knots":  40,   # disconnect arms
-        "wind_limit_critical_knots":    45,
+        "compulsory_pilotage_loa_m":    35,           # VPC HMD Ed. 13.1 §2.1
+        "wind_limit_berthing_knots":    25,           # HMD Ed. 13.1 §3.20 — no new berthing
+        "wind_limit_critical_knots":    35,           # HMD Ed. 13.1 §3.20 — engines standby
+        "west_gate_bridge_air_draft_m": 50.0,         # 50m clearance at MHWS
         "bridge_restrictions": [
             {
                 "name":             "West Gate Bridge",

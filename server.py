@@ -1005,7 +1005,7 @@ def make_weather(profile: dict = None):
 
 HIGH_WINDAGE = {"Container", "RoRo"}  # Vessel types with elevated wind-manoeuvring risk
 
-PORT_RULES = {
+PORT_RULES_BRISBANE = {
     "wind_advisory": {
         "threshold_kts": 20, "applies_to": "high-windage vessels (Container, RoRo)",
         "rule_ref": "MSQ Port of Brisbane Procedures §5.3",
@@ -1027,14 +1027,14 @@ PORT_RULES = {
         "action": "All berthed vessels must have main engines on standby. Increased mooring watch.",
     },
     "swell_pilot_caution": {
-        "threshold_m": 1.5, "applies_to": "pilot transfer operations",
+        "threshold_m": 1.5, "applies_to": "pilot transfer operations at Brisbane Bar",
         "rule_ref": "SOLAS V/23, IMPA Pilot Ladder Guidelines 2022",
-        "action": "Enhanced pilot ladder inspection required. Masters to assess transfer conditions.",
+        "action": "Enhanced pilot ladder inspection required. Masters to assess transfer conditions at Bar.",
     },
     "swell_transfer_suspended": {
-        "threshold_m": 2.0, "applies_to": "pilot ladder transfers",
+        "threshold_m": 2.0, "applies_to": "pilot ladder transfers at Brisbane Bar",
         "rule_ref": "SOLAS V/23, IMO Res. A.1045(27), IMPA 2022 §4.2",
-        "action": "Pilot ladder transfers suspended. Helicopter transfer only if available.",
+        "action": "Pilot ladder transfers suspended at Bar. Helicopter transfer only if available.",
     },
     "vis_reduced_procedures": {
         "threshold_nm": 3.0, "applies_to": "all vessels",
@@ -1044,8 +1044,62 @@ PORT_RULES = {
     "vis_vts_restrictions": {
         "threshold_nm": 1.0, "applies_to": "all movements",
         "rule_ref": "MSQ Port of Brisbane Procedures §3.2, COLREGS Rule 19",
-        "action": "VTS movement restrictions apply. No movements to commence without explicit VTS approval.",
+        "action": "VTS movement restrictions apply. No movements without explicit Brisbane VTS approval.",
     },
+}
+
+PORT_RULES_MELBOURNE = {
+    "wind_advisory": {
+        "threshold_kts": 20, "applies_to": "high-windage vessels (Container, RoRo)",
+        "rule_ref": "VPC Harbour Master's Directions Ed. 13.1 §3.20",
+        "action": "Monitor closely. Advise masters of high-windage vessels to review manoeuvring plan.",
+    },
+    "wind_no_berthing": {
+        "threshold_kts": 25, "applies_to": "all vessels",
+        "rule_ref": "VPC Harbour Master's Directions Ed. 13.1 §3.20",
+        "action": "No new berthing operations to commence. Vessels already alongside may remain.",
+    },
+    "wind_movements_suspended": {
+        "threshold_kts": 30, "applies_to": "all vessels",
+        "rule_ref": "VPC Harbour Master's Directions Ed. 13.1 §3.20, Marine Safety Act 2010 (Vic)",
+        "action": "All vessel movements suspended. Masters to maintain engine readiness. Notify Melbourne VTS.",
+    },
+    "wind_engines_standby": {
+        "threshold_kts": 35, "applies_to": "all berthed vessels",
+        "rule_ref": "VPC Harbour Master's Directions Ed. 13.1 §3.20",
+        "action": "All berthed vessels must have main engines on standby. Increased mooring watch required.",
+    },
+    "swell_pilot_caution": {
+        "threshold_m": 1.5, "applies_to": "pilot transfer operations at Port Phillip Heads",
+        "rule_ref": "SOLAS V/23, IMPA Pilot Ladder Guidelines 2022",
+        "action": "Enhanced pilot ladder inspection at Heads boarding ground. Masters to assess transfer conditions.",
+    },
+    "swell_transfer_suspended": {
+        "threshold_m": 2.0, "applies_to": "pilot ladder transfers at Port Phillip Heads",
+        "rule_ref": "SOLAS V/23, IMO Res. A.1045(27), IMPA 2022 §4.2",
+        "action": "Pilot ladder transfers suspended at Heads. Hold inbound vessels at outer anchorage.",
+    },
+    "vis_reduced_procedures": {
+        "threshold_nm": 3.0, "applies_to": "all vessels in Port Phillip Bay",
+        "rule_ref": "COLREGS Rule 19, VPC Harbour Master's Directions Ed. 13.1 §3.18",
+        "action": "Reduced visibility procedures in force. Proceed at safe speed, enhanced radar watch. Notify Melbourne VTS.",
+    },
+    "vis_vts_restrictions": {
+        "threshold_nm": 1.0, "applies_to": "all movements in inner port",
+        "rule_ref": "VPC Harbour Master's Directions Ed. 13.1 §3.18, COLREGS Rule 19",
+        "action": "Melbourne VTS movement restrictions apply. No movements without explicit VTS approval.",
+    },
+    "bridge_air_draft_caution": {
+        "threshold_m": 50.0, "applies_to": "vessels transiting West Gate Bridge to Yarra River berths",
+        "rule_ref": "VPC Harbour Master's Directions Ed. 13.1 §4.2",
+        "action": "Confirm air draft with Harbour Master before West Gate Bridge transit. Clearance 50.0m at MHWS.",
+    },
+}
+
+# Active rule set resolved at alert-generation time
+PORT_RULES_BY_PORT = {
+    "BRISBANE":  PORT_RULES_BRISBANE,
+    "MELBOURNE": PORT_RULES_MELBOURNE,
 }
 
 
@@ -1060,10 +1114,14 @@ def _swell_severity(height_m: float, period_s: float) -> float:
 
 def detect_weather_alerts(weather: dict, vessels: list, now: datetime) -> list:
     """
-    Generate port-wide weather alert signals using Port of Brisbane MSQ thresholds
-    and SOLAS/IMPA pilot transfer rules.  At most 3 alerts (one per category:
-    wind, swell, visibility).  Uses the same _conflict() structure.
+    Generate port-wide weather alert signals using port-specific thresholds and
+    regulatory references, plus SOLAS/IMPA pilot transfer rules.
+    At most one alert per category (wind, swell, visibility, bridge).
+    Uses the same _conflict() structure.
     """
+    # Select rule set for the active port
+    PORT_RULES = PORT_RULES_BY_PORT.get(_ACTIVE_PORT_ID, PORT_RULES_BRISBANE)
+
     alerts     = []
     wind_kts   = weather.get("wind_speed_kts", 0)
     swell_m    = weather.get("swell_height_m", 0.0)
@@ -1200,6 +1258,30 @@ def detect_weather_alerts(weather: dict, vessels: list, now: datetime) -> list:
              "Confirm all vessels have functioning radar and AIS active",
              "Notify inbound vessels to maintain enhanced lookout and sound appropriate signals"],
         ))
+
+    # ── 4. Bridge air draft check (Melbourne only) ────────────────────────────
+    bridge_rule = PORT_RULES.get("bridge_air_draft_caution")
+    if bridge_rule:
+        bridge_limit_m = _PORT_PROFILE.get("west_gate_bridge_air_draft_m", 50.0)
+        # Flag any vessel whose air draft is not recorded (None) or exceeds the limit
+        bridge_affected = [
+            v for v in all_active
+            if v.get("air_draft_m") is not None and v["air_draft_m"] >= bridge_limit_m * 0.9
+        ]
+        if bridge_affected:
+            ba_names = [v["name"] for v in bridge_affected]
+            alerts.append(_conflict(
+                "WX-BRIDGE", "bridge_air_draft", "WEATHER", "high",
+                [v["id"] for v in bridge_affected], ba_names,
+                None, None, fmt(now),
+                (f"{len(bridge_affected)} vessel(s) approaching West Gate Bridge clearance limit "
+                 f"({bridge_limit_m}m at MHWS). Air draft confirmation required before Yarra River transit. "
+                 f"({bridge_rule['rule_ref']})"),
+                [bridge_rule["action"],
+                 f"Rule reference: {bridge_rule['rule_ref']}",
+                 f"Vessels requiring check: {', '.join(ba_names[:3])}",
+                 "Contact Harbour Master's Office +61 3 9644 9777 to confirm clearance"],
+            ))
 
     return alerts
 
