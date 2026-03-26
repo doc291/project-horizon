@@ -706,11 +706,7 @@
       <div class="stat-chip" id="s-conflict-chip"><strong id="s-conflicts">–</strong>&nbsp;signals</div>
     </div>
     <div class="header-right">
-      <div class="amsg-logo-wrap" title="AMS Group">
-        <img src="/amsg-logo" alt="AMS Group" onerror="this.closest('.amsg-logo-wrap').style.display='none'" />
-      </div>
-      <div class="header-divider"></div>
-      <div id="ds-indicator" class="mock" title="Data source">
+      <div id="ds-indicator" class="mock" title="Data source" style="display:none;">
         <span class="ds-dot mock" id="ds-dot"></span>
         <span id="ds-label" class="mock">Simulation Data</span>
         <span id="ds-time"></span>
@@ -720,6 +716,10 @@
         🔔<span class="bell-badge hidden" id="bell-badge">0</span>
       </button>
       <button class="btn-refresh" onclick="refresh()">↺ Refresh</button>
+      <div class="header-divider"></div>
+      <div class="amsg-logo-wrap" title="AMS Group">
+        <img src="/amsg-logo" alt="AMS Group" onerror="this.closest('.amsg-logo-wrap').style.display='none'" />
+      </div>
     </div>
     <!-- Notifications dropdown -->
     <div id="notif-panel">
