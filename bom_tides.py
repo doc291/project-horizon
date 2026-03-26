@@ -46,14 +46,19 @@ def _cosine_fallback(now: datetime = None, profile: dict = None) -> list:
         height = round(MEAN + AMP * math.cos(2 * math.pi * t / PERIOD), 2)
         points.append({"datetime": dt, "type": None, "height_m": height})
 
-    # Label HW/LW turning points (local extrema in the series)
+    # Label HW/LW turning points (local extrema in the series).
+    # Threshold is proportional to amplitude so small-range ports (e.g. Melbourne
+    # AMP≈0.25m) get turning points labelled correctly.  Old flat 0.05m threshold
+    # failed for any port with AMP < ~0.3m.
+    _amp     = (profile or {}).get("tidal_amp_m", 0.9)
+    _min_gap = max(_amp * 0.04, 0.004)   # e.g. 0.01m for Melbourne, 0.036m for Brisbane
     for i in range(1, len(points) - 1):
         prev_h = points[i - 1]["height_m"]
         curr_h = points[i]["height_m"]
-        next_h = points[i + 1]["height_h"] if "height_h" in points[i + 1] else points[i + 1]["height_m"]
-        if curr_h >= prev_h and curr_h >= next_h and (curr_h - prev_h + curr_h - next_h) > 0.05:
+        next_h = points[i + 1]["height_m"]
+        if curr_h >= prev_h and curr_h >= next_h and (curr_h - prev_h + curr_h - next_h) > _min_gap:
             points[i]["type"] = "HW"
-        elif curr_h <= prev_h and curr_h <= next_h and (prev_h - curr_h + next_h - curr_h) > 0.05:
+        elif curr_h <= prev_h and curr_h <= next_h and (prev_h - curr_h + next_h - curr_h) > _min_gap:
             points[i]["type"] = "LW"
 
     return points
