@@ -28,7 +28,7 @@ from pathlib import Path
 from urllib.parse import parse_qs
 
 # ── Port profile system ───────────────────────────────────────────────────────
-from port_profiles import get_profile, list_profiles
+from port_profiles import PORT_PROFILES, get_profile, list_profiles
 from bom_tides import fetch_bom_tides, predict_height_at
 from vessel_scraper import fetch_vessel_movements
 from weather import fetch_weather
@@ -131,7 +131,7 @@ def get_data_source() -> dict:
     if _qships_data:
         return {
             "source":     "qships",
-            "label":      "QShips Live — Brisbane",
+            "label":      f"QShips Live — {_PORT_PROFILE.get('short_name', 'Brisbane')}",
             "scraped_at": _qships_data.get("scraped_at"),
         }
     return {"source": "mock", "label": "Simulation Data", "scraped_at": None}
@@ -418,7 +418,7 @@ def make_berths(now: datetime) -> list:
         result.append({
             "id": bid, "name": bid, "terminal": terminal,
             "max_loa": loa, "max_draught": draught,
-            "lat_depth_m": BERTH_LAT_DEPTHS.get(bid, ch_depth),
+            "lat_depth_m": geo.get("depth_m", BERTH_LAT_DEPTHS.get(bid, ch_depth)),
             "status": status, "crane_count": cranes,
             "readiness_time": fmt(ready) if ready else None,
             "lat": geo.get("lat"), "lon": geo.get("lon"),

@@ -107,14 +107,17 @@ def _interpolate_from_turning_points(events: list, now: datetime, profile: dict 
 
         points.append({"datetime": dt, "type": None, "height_m": height})
 
-    # Label turning points in the interpolated series
+    # Label turning points in the interpolated series.
+    # Use same proportional threshold as _cosine_fallback() — port amplitude-aware.
+    _amp     = (profile or {}).get("tidal_amp_m", 0.9)
+    _min_gap = max(_amp * 0.04, 0.004)
     for i in range(1, len(points) - 1):
         ph = points[i - 1]["height_m"]
         ch = points[i]["height_m"]
         nh = points[i + 1]["height_m"]
-        if ch >= ph and ch >= nh and (ch - ph + ch - nh) > 0.04:
+        if ch >= ph and ch >= nh and (ch - ph + ch - nh) > _min_gap:
             points[i]["type"] = "HW"
-        elif ch <= ph and ch <= nh and (ph - ch + nh - ch) > 0.04:
+        elif ch <= ph and ch <= nh and (ph - ch + nh - ch) > _min_gap:
             points[i]["type"] = "LW"
 
     return points
@@ -299,24 +302,19 @@ def predict_height_at(series: list, dt: datetime, profile: dict) -> float:
     If dt is beyond the series window, falls back to the cosine model.
     """
     if not series:
-        # Import cosine predictor from server module as fallback
-        try:
-            import server as _srv
-            return _srv._predict_tide_height(dt)
-        except Exception:
-            return 2.1  # safe default
+        # Empty series — fall back to port-specific cosine model
+        pts = _cosine_fallback(dt, profile)
+        closest = min(pts, key=lambda p: abs((p["datetime"] - dt).total_seconds()))
+        return closest["height_m"]
 
     future = [p for p in series if p["datetime"] >= dt]
     past   = [p for p in series if p["datetime"] <= dt]
 
     if not past or not future:
-        # Out of range — cosine fallback
-        import hashlib, math
-        PERIOD = 12.42; MEAN = 2.1; AMP = 1.65
-        day_h  = hashlib.md5(f"tide-{dt.strftime('%Y%m%d')}".encode()).hexdigest()
-        phase_h = (int(day_h[0:4], 16) % int(PERIOD * 100)) / 100.0
-        t = (dt.hour + dt.minute / 60.0 + phase_h) % PERIOD
-        return round(MEAN + AMP * math.cos(2 * math.pi * t / PERIOD), 2)
+        # Out of range — port-specific cosine fallback using profile tidal params
+        pts = _cosine_fallback(dt, profile)
+        closest = min(pts, key=lambda p: abs((p["datetime"] - dt).total_seconds()))
+        return closest["height_m"]
 
     p1 = past[-1]
     p2 = future[0]
