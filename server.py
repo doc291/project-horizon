@@ -2176,7 +2176,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 return
             new_profile = get_profile(port_id)
             # Validate: if unknown port, get_profile returns BRISBANE — check
-            if port_id not in ("BRISBANE", "MELBOURNE"):
+            if port_id not in ("BRISBANE", "MELBOURNE", "DARWIN"):
                 self._json({"success": False, "error": f"Unknown port '{port_id}'"})
                 return
             with _profile_lock:
