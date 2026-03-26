@@ -1927,23 +1927,29 @@ function toggleVesselTable(){
 
 /* ── Helpers ── */
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-/* Brisbane = UTC+10, no DST */
-const AEST_OFFSET_MS = 10 * 60 * 60 * 1000;
-function _aest(d){return new Date(d.getTime()+AEST_OFFSET_MS)}
-function _hm(d,utc){const h=utc?d.getUTCHours():d.getUTCHours(),m=utc?d.getUTCMinutes():d.getUTCMinutes();return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`}
+/* Port-aware local time — timezone updated on port switch */
+let _portTimezone = 'Australia/Brisbane';
 function _hmUTC(d){return`${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`}
-function _hmAEST(d){const a=_aest(d);return`${String(a.getUTCHours()).padStart(2,'0')}:${String(a.getUTCMinutes()).padStart(2,'0')}`}
+function _localParts(d){
+  const parts=new Intl.DateTimeFormat('en-AU',{
+    timeZone:_portTimezone,hour:'2-digit',minute:'2-digit',second:'2-digit',
+    hour12:false,timeZoneName:'short'
+  }).formatToParts(d);
+  const g=t=>(parts.find(p=>p.type===t)||{}).value||'';
+  return{h:g('hour'),m:g('minute'),s:g('second'),abbr:g('timeZoneName')};
+}
+function _hmAEST(d){const p=_localParts(d);return`${p.h}:${p.m}`}
 function fmtTime(iso){
   if(!iso)return'–';
-  try{const d=new Date(iso);return`${_hmUTC(d)} UTC / ${_hmAEST(d)} AEST`}
+  try{const d=new Date(iso);const p=_localParts(d);return`${_hmUTC(d)} UTC / ${p.h}:${p.m} ${p.abbr}`}
   catch(e){return String(iso)}
 }
 function fmtShort(iso){
   if(!iso)return'–';
   const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   try{
-    const d=new Date(iso);
-    return`${String(d.getUTCDate()).padStart(2,'0')} ${MO[d.getUTCMonth()]} ${_hmUTC(d)} UTC / ${_hmAEST(d)} AEST`
+    const d=new Date(iso);const p=_localParts(d);
+    return`${String(d.getUTCDate()).padStart(2,'0')} ${MO[d.getUTCMonth()]} ${_hmUTC(d)} UTC / ${p.h}:${p.m} ${p.abbr}`
   }
   catch(e){return String(iso)}
 }
@@ -1953,10 +1959,10 @@ function priCol(p){return{critical:'#ef4444',high:'#f97316',medium:'#eab308',inf
 /* ── Clock ── */
 setInterval(()=>{
   const d=new Date();
-  const aest=_aest(d);
   const utcStr=`${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}:${String(d.getUTCSeconds()).padStart(2,'0')} UTC`;
-  const aestStr=`${String(aest.getUTCHours()).padStart(2,'0')}:${String(aest.getUTCMinutes()).padStart(2,'0')}:${String(aest.getUTCSeconds()).padStart(2,'0')} AEST`;
-  document.getElementById('clock').textContent=`${utcStr} / ${aestStr}`;
+  const p=_localParts(d);
+  const locStr=`${p.h}:${p.m}:${p.s} ${p.abbr}`;
+  document.getElementById('clock').textContent=`${utcStr} / ${locStr}`;
 },1000);
 
 /* ── Auto-refresh ── */
@@ -2001,9 +2007,8 @@ async function switchPort(portId) {
 function _updatePortSwitcher(portProfile) {
   if (!portProfile) return;
   const sel = document.getElementById('port-switcher');
-  if (sel && portProfile.id) {
-    sel.value = portProfile.id;
-  }
+  if (sel && portProfile.id) sel.value = portProfile.id;
+  if (portProfile.timezone) _portTimezone = portProfile.timezone;
 }
 
 /* ── Decision Support Window ── */
@@ -2234,7 +2239,7 @@ function renderUtilisation(util){
       <div class="util-slots">`;
     (b.slots||[]).forEach(sl=>{
       const occ=(sl.occupants||[]).join(', ');
-      const _ts=iso=>{ try{const d=new Date(iso);return`${_hmUTC(d)} UTC/${_hmAEST(d)} AEST`}catch(e){return(iso||'').slice(11,16)} };
+      const _ts=iso=>{ try{const d=new Date(iso);const p=_localParts(d);return`${_hmUTC(d)} UTC/${p.h}:${p.m} ${p.abbr}`}catch(e){return(iso||'').slice(11,16)} };
       const tip=sl.status==='occupied'?`${occ} (${_ts(sl.start)}–${_ts(sl.end)})`:sl.status==='maintenance'?'Under maintenance':'Free';
       html+=`<div class="util-slot ${sl.status}" title="${esc(tip)}"></div>`;
     });
