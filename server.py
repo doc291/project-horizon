@@ -28,7 +28,7 @@ from pathlib import Path
 from urllib.parse import parse_qs
 
 # ── Port profile system ───────────────────────────────────────────────────────
-from port_profiles import PORT_PROFILES, get_profile, list_profiles
+from port_profiles import get_profile, list_profiles
 from bom_tides import fetch_bom_tides, predict_height_at
 from vessel_scraper import fetch_vessel_movements
 from weather import fetch_weather
@@ -131,7 +131,7 @@ def get_data_source() -> dict:
     if _qships_data:
         return {
             "source":     "qships",
-            "label":      f"QShips Live — {_PORT_PROFILE.get('short_name', 'Brisbane')}",
+            "label":      "QShips Live — Brisbane",
             "scraped_at": _qships_data.get("scraped_at"),
         }
     return {"source": "mock", "label": "Simulation Data", "scraped_at": None}
@@ -291,24 +291,25 @@ TUGS     = ["TUG Stallion", "TUG Hercules", "TUG Neptune", "TUG Samson", "TUG Tr
 STATIONS = ["Outer Pilot Station", "North Channel Anchorage"]
 
 # ── Port geography ─────────────────────────────────────────────────────────────
-# Fallback geo used only if port profile is missing port_geo (should not occur
-# in production — all active profiles define port_geo in port_profiles.py).
+# Fictional Port of Northhaven — mapped onto Port of Brisbane / Fisherman Islands
 
 PORT_GEO = {
     "center":  {"lat": -27.383, "lon": 153.173},
     "zoom":    13,
     "berths": {
-        "B01": {"lat": -27.368, "lon": 153.150, "terminal": "Berth 1", "heading": 350},
-        "B02": {"lat": -27.369, "lon": 153.161, "terminal": "Berth 2", "heading": 350},
-        "B03": {"lat": -27.370, "lon": 153.172, "terminal": "Berth 3", "heading": 350},
-        "B04": {"lat": -27.397, "lon": 153.157, "terminal": "Berth 4", "heading": 170},
-        "B05": {"lat": -27.398, "lon": 153.167, "terminal": "Berth 5", "heading": 170},
-        "B06": {"lat": -27.399, "lon": 153.177, "terminal": "Berth 6", "heading": 170},
+        # North Terminal — container/ro-ro quay, north face of the island
+        "B01": {"lat": -27.368, "lon": 153.150, "terminal": "North Terminal", "heading": 350},
+        "B02": {"lat": -27.369, "lon": 153.161, "terminal": "North Terminal", "heading": 350},
+        "B03": {"lat": -27.370, "lon": 153.172, "terminal": "North Terminal", "heading": 350},
+        # South Terminal — bulk/general cargo, south face of the island
+        "B04": {"lat": -27.397, "lon": 153.157, "terminal": "South Terminal", "heading": 170},
+        "B05": {"lat": -27.398, "lon": 153.167, "terminal": "South Terminal", "heading": 170},
+        "B06": {"lat": -27.399, "lon": 153.177, "terminal": "South Terminal", "heading": 170},
     },
     "anchorage": {
         "lat": -27.352, "lon": 153.253,
         "radius_km": 2.5,
-        "label": "Outer Anchorage",
+        "label": "Northhaven Anchorage",
     },
     "pilot_boarding_ground": {"lat": -27.360, "lon": 153.218, "label": "Pilot Boarding Ground"},
     "channel_waypoints": [
@@ -370,18 +371,17 @@ def _predict_tide_height(dt: datetime) -> float:
     """
     Predict tide height at any future (or past) datetime using the same
     deterministic cosine model as make_tides().  Safe to call for ETA lookahead.
-    Uses the active port profile's tidal_mean_m and tidal_amp_m.
     """
-    PERIOD  = 12.42
-    MEAN    = _PORT_PROFILE.get("tidal_mean_m", 2.1)
-    AMP     = _PORT_PROFILE.get("tidal_amp_m",  1.65)
-    day_h   = hashlib.md5(f"tide-{dt.strftime('%Y%m%d')}".encode()).hexdigest()
+    PERIOD = 12.42
+    MEAN   = 2.1
+    AMP    = 1.65
+    day_h  = hashlib.md5(f"tide-{dt.strftime('%Y%m%d')}".encode()).hexdigest()
     phase_h = (int(day_h[0:4], 16) % int(PERIOD * 100)) / 100.0
     t       = (dt.hour + dt.minute / 60.0 + phase_h) % PERIOD
     return round(MEAN + AMP * math.cos(2 * math.pi * t / PERIOD), 2)
 
 
-CHANNEL_DEPTH_M = 12.5   # Generic fallback — always overridden by port profile channel_depth_m
+CHANNEL_DEPTH_M = 12.5   # Northhaven default — overridden per-profile at runtime
 
 # ── Mock data generation ──────────────────────────────────────────────────────
 
@@ -396,28 +396,21 @@ BERTH_LAT_DEPTHS = {
 }
 
 def make_berths(now: datetime) -> list:
-    # Simulation slots: (id, max_loa, max_draught, status, cranes, ready_offset_h)
     raw = [
-        ("B01", 350, 14.5, "occupied",     4, now + timedelta(hours=4)),
-        ("B02", 300, 13.0, "occupied",     4, now + timedelta(hours=8)),
-        ("B03", 250, 11.5, "reserved",     2, now + timedelta(hours=2)),
-        ("B04", 320, 14.0, "available",    3, None),
-        ("B05", 280, 12.5, "maintenance",  0, now + timedelta(hours=20)),
-        ("B06", 220, 10.0, "occupied",     0, now + timedelta(hours=6)),
+        ("B01", "Berth 1",  "North Terminal", 350, 14.5, "occupied",     4, now + timedelta(hours=4)),
+        ("B02", "Berth 2",  "North Terminal", 300, 13.0, "occupied",     4, now + timedelta(hours=8)),
+        ("B03", "Berth 3",  "North Terminal", 250, 11.5, "reserved",     2, now + timedelta(hours=2)),
+        ("B04", "Berth 4",  "South Terminal", 320, 14.0, "available",    3, None),
+        ("B05", "Berth 5",  "South Terminal", 280, 12.5, "maintenance",  0, now + timedelta(hours=20)),
+        ("B06", "Berth 6",  "South Terminal", 220, 10.0, "occupied",     0, now + timedelta(hours=6)),
     ]
-    # Pull berth names and coordinates from the active port profile
-    port_geo   = _PORT_PROFILE.get("port_geo", PORT_GEO)
-    geo_berths = port_geo.get("berths", PORT_GEO["berths"])
-    ch_depth   = _PORT_PROFILE.get("channel_depth_m", 12.5)
-
     result = []
-    for bid, loa, draught, status, cranes, ready in raw:
-        geo      = geo_berths.get(bid, {})
-        terminal = geo.get("terminal", bid)   # use port profile terminal name
+    for bid, name, terminal, loa, draught, status, cranes, ready in raw:
+        geo = PORT_GEO["berths"].get(bid, {})
         result.append({
-            "id": bid, "name": bid, "terminal": terminal,
+            "id": bid, "name": name, "terminal": terminal,
             "max_loa": loa, "max_draught": draught,
-            "lat_depth_m": geo.get("depth_m", BERTH_LAT_DEPTHS.get(bid, ch_depth)),
+            "lat_depth_m": BERTH_LAT_DEPTHS.get(bid, 12.0),
             "status": status, "crane_count": cranes,
             "readiness_time": fmt(ready) if ready else None,
             "lat": geo.get("lat"), "lon": geo.get("lon"),
@@ -553,7 +546,7 @@ def make_vessels(now: datetime) -> list:
             "eta": fmt(eta), "etd": fmt(etd),
             "ata": fmt(ata) if ata else None, "atd": None,
             "pilotage_required": True,
-            "towage_required": loa > _PORT_PROFILE.get("compulsory_towage_loa_m", 170),
+            "towage_required": loa > 170,
             "agent": agent,
             "notes": note,
         }
@@ -1148,55 +1141,10 @@ PORT_RULES_MELBOURNE = {
     },
 }
 
-PORT_RULES_DARWIN = {
-    # Wind thresholds — specific limits in Port Notice PN014; using operational defaults below
-    "wind_advisory": {
-        "threshold_kts": 20, "applies_to": "high-windage vessels (Container, RoRo, OSV)",
-        "rule_ref": "Darwin Port Handbook 2026 §5 / Port Notice PN014",
-        "action": "Monitor closely. Advise masters of high-windage vessels to review manoeuvring plan. Confirm tug availability.",
-    },
-    "wind_no_berthing": {
-        "threshold_kts": 30, "applies_to": "all vessels",
-        "rule_ref": "Darwin Port Handbook 2026 §5 / Port Notice PN014 — operational default",
-        "action": "No new berthing operations to commence. Vessels at berth may remain. Contact Darwin Port VHF 10.",
-    },
-    "wind_movements_suspended": {
-        "threshold_kts": 35, "applies_to": "all vessels",
-        "rule_ref": "Darwin Port Handbook 2026 §5 / Port Notice PN014 / Marine Act 2013 (NT)",
-        "action": "All vessel movements suspended. Masters to maintain engine readiness. Notify Darwin Port on VHF 10.",
-    },
-    "wind_engines_standby": {
-        "threshold_kts": 40, "applies_to": "all berthed vessels",
-        "rule_ref": "Darwin Port Handbook 2026 §5 / Port Notice PN014 / Marine Act 2013 (NT)",
-        "action": "All berthed vessels must have main engines on standby. Increased mooring watch. Monitor cyclone advisories if in season (Nov–Apr).",
-    },
-    "swell_pilot_caution": {
-        "threshold_m": 1.5, "applies_to": "pilot transfer operations at Darwin Harbour entrance",
-        "rule_ref": "SOLAS V/23, IMPA Pilot Ladder Guidelines 2022",
-        "action": "Enhanced pilot ladder inspection required. Masters to assess transfer conditions at outer boarding ground.",
-    },
-    "swell_transfer_suspended": {
-        "threshold_m": 2.5, "applies_to": "pilot ladder transfers at outer boarding ground",
-        "rule_ref": "SOLAS V/23, IMO Res. A.1045(27), IMPA 2022 §4.2",
-        "action": "Pilot ladder transfers suspended at outer boarding ground. Hold vessels at pilot boarding anchorage pending conditions.",
-    },
-    "vis_reduced_procedures": {
-        "threshold_nm": 3.0, "applies_to": "all vessels in Darwin Harbour",
-        "rule_ref": "COLREGS Rule 19, Darwin Port Handbook 2026 §4 / Marine Act 2013 (NT)",
-        "action": "Reduced visibility procedures in force. Proceed at safe speed. Enhanced radar watch. Maintain listening watch VHF 10.",
-    },
-    "vis_vts_restrictions": {
-        "threshold_nm": 1.0, "applies_to": "all movements in inner harbour",
-        "rule_ref": "COLREGS Rule 19, Darwin Port Handbook 2026 §4 / Marine Act 2013 (NT)",
-        "action": "VTS movement restrictions apply. No movements without explicit Darwin Port approval on VHF 10.",
-    },
-}
-
 # Active rule set resolved at alert-generation time
 PORT_RULES_BY_PORT = {
     "BRISBANE":  PORT_RULES_BRISBANE,
     "MELBOURNE": PORT_RULES_MELBOURNE,
-    "DARWIN":    PORT_RULES_DARWIN,
 }
 
 
@@ -1756,7 +1704,7 @@ def make_dukc_series(vessels: list, berths: list) -> dict:
         })
 
     return {
-        "channel_depth_m":      ch_depth,
+        "channel_depth_m":      CHANNEL_DEPTH_M,
         "max_vessel_draught_m": round(max_dr, 1),
         "tide_series":          tide_pts,
         "channel_points":       channel_pts,
@@ -1970,8 +1918,8 @@ def build_summary():
             "vessels_departing_24h": dep_24,
             "active_conflicts":   len(conflicts),
             "critical_conflicts": critical,
-            "pilots_available":   _PORT_PROFILE.get("pilots_available", 3),
-            "tugs_available":     _PORT_PROFILE.get("tugs_available", 4),
+            "pilots_available":   3,
+            "tugs_available":     4,
         },
         "vessels":           vessels,
         "berths":            berths,
@@ -2182,8 +2130,8 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 self._json({"success": False, "error": "Missing 'port' field"})
                 return
             new_profile = get_profile(port_id)
-            # Validate against the canonical profile registry — no hardcoded list
-            if port_id not in PORT_PROFILES:
+            # Validate: if unknown port, get_profile returns BRISBANE — check
+            if port_id not in ("BRISBANE", "MELBOURNE"):
                 self._json({"success": False, "error": f"Unknown port '{port_id}'"})
                 return
             with _profile_lock:

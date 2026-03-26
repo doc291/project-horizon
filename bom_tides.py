@@ -17,9 +17,11 @@ from datetime import datetime, timedelta, timezone
 log = logging.getLogger("horizon.bom_tides")
 
 # ── In-memory cache ───────────────────────────────────────────────────────────
-_cache: dict = {}       # station_id -> {"events": [...], "fetched_at": float}
+_cache: dict = {}       # station_id -> {"series": [...], "fetched_at": float}
+_fail_cache: dict = {}  # station_id -> failed_at (monotonic) — suppresses retries
 _cache_lock = threading.Lock()
-CACHE_TTL_SECS = 3600   # 60 minutes
+CACHE_TTL_SECS  = 3600   # 60 minutes (successful fetch)
+FAIL_TTL_SECS   = 1800   # 30 minutes — don't hammer a dead BOM endpoint
 
 
 def _cosine_fallback(now: datetime = None, profile: dict = None) -> list:
@@ -237,14 +239,23 @@ def fetch_bom_tides(profile: dict, now: datetime = None) -> dict:
             series = cached["series"]
             return _build_result(series, "bom", station_id, now)
 
+        # Failure cooldown — avoid hammering a dead endpoint every request
+        failed_at = _fail_cache.get(station_id)
+        if failed_at and (time.monotonic() - failed_at) < FAIL_TTL_SECS:
+            log.debug("BOM failure cooldown active for %s — skipping fetch", station_id)
+            return _build_result(_cosine_fallback(now, profile), "cosine", station_id, now)
+
     # ── Live fetch ────────────────────────────────────────────────────────────
     try:
         series = _fetch_live(profile, now)
         with _cache_lock:
             _cache[station_id] = {"series": series, "fetched_at": time.monotonic()}
+            _fail_cache.pop(station_id, None)   # clear any prior failure
         return _build_result(series, "bom", station_id, now)
     except Exception as exc:
         log.error("BOM fetch failed for %s — falling back to cosine model: %s", station_id, exc)
+        with _cache_lock:
+            _fail_cache[station_id] = time.monotonic()
         return _build_result(_cosine_fallback(now, profile), "cosine", station_id, now)
 
 
