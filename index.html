@@ -588,6 +588,67 @@
       background: none; color: var(--text-dim); border: 1px solid var(--border); cursor: pointer;
     }
     .dsw-cancel-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+    /* ── Beta 8: Tab signal badges ── */
+    .tab-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 16px; height: 16px; border-radius: 8px; padding: 0 4px;
+      font-size: 9px; font-weight: 800; line-height: 1; margin-left: 4px;
+      vertical-align: middle;
+    }
+    .tab-badge:empty { display: none; }
+    .tab-badge.badge-red    { background: rgba(239,68,68,.25);  color: #ef4444; border: 1px solid rgba(239,68,68,.5); }
+    .tab-badge.badge-amber  { background: rgba(234,179,8,.2);   color: #fbbf24; border: 1px solid rgba(234,179,8,.45); }
+    .tab-badge.badge-teal   { background: rgba(0,180,200,.18);  color: #00b4c8; border: 1px solid rgba(0,180,200,.4); }
+    .tab-badge-dot { width: 8px; min-width: 8px; height: 8px; border-radius: 50%; padding: 0; background: #00b4c8; border: none; }
+
+    /* ── Beta 8: Guidance severity labels ── */
+    .guidance-sev-label {
+      font-size: 9px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase;
+      display: block; margin-bottom: 3px;
+    }
+    .guidance-sev-label.sev-critical { color: #ef4444; }
+    .guidance-sev-label.sev-warning  { color: #f59e0b; }
+    .guidance-sev-label.sev-advisory { color: #00b4c8; }
+    .guidance-sev-label.sev-info     { color: #6b7c8d; }
+
+    /* ── Beta 8: Updated guidance item borders ── */
+    .guidance-item.p-critical { border-left-color: #ef4444; }
+    .guidance-item.p-high     { border-left-color: #f59e0b; }
+    .guidance-item.p-medium   { border-left-color: #00b4c8; }
+    .guidance-item.p-info     { border-left-color: #6b7c8d; }
+
+    /* ── Beta 8: Risk type pills on ETD ranking ── */
+    .risk-type-pill {
+      font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 10px;
+      letter-spacing: .3px; white-space: nowrap; flex-shrink: 0;
+    }
+    .rtype-berth    { background: rgba(139,92,246,.2);  color: #a78bfa; border: 1px solid rgba(139,92,246,.35); }
+    .rtype-eta      { background: rgba(234,179,8,.15);  color: #fbbf24; border: 1px solid rgba(234,179,8,.35); }
+    .rtype-ukc      { background: rgba(239,68,68,.15);  color: #f87171; border: 1px solid rgba(239,68,68,.35); }
+    .rtype-pilot    { background: rgba(34,197,94,.15);  color: #4ade80; border: 1px solid rgba(34,197,94,.35); }
+    .rtype-towage   { background: rgba(249,115,22,.15); color: #fb923c; border: 1px solid rgba(249,115,22,.35); }
+    .rtype-etd      { background: rgba(107,114,128,.12);color: #9ca3af; border: 1px solid rgba(107,114,128,.3); }
+
+    /* ── Beta 8: Decision card vessel name ── */
+    .dec-vessel-name {
+      font-size: 13px; font-weight: 800; color: var(--text-bright);
+      display: block; margin-bottom: 4px; line-height: 1.2;
+    }
+
+    /* ── Beta 8: Cost figure highlight ── */
+    .dec-metric-val.cost { color: #fbbf24; font-size: 13px; font-weight: 800; }
+
+    /* ── Beta 8: Countdown timer bordered container ── */
+    .dec-timer-box {
+      display: inline-block;
+      background: #0d1f2e; border: 1px solid var(--border);
+      border-radius: 4px; padding: 2px 8px; font-variant-numeric: tabular-nums;
+    }
+    .dec-timer-box.timer-urgent {
+      border-color: #5a1a1a;
+    }
+    .dec-timer-box.timer-urgent .dec-timer-val { color: #ef4444; }
   </style>
 </head>
 <body>
@@ -597,7 +658,7 @@
   <header>
     <div class="logo">
       <img src="/logo" alt="Project Horizon" />
-      <span class="logo-badge">BETA 7</span>
+      <span class="logo-badge">BETA 8</span>
     </div>
     <div class="header-mid">
       <div class="stat-chip"><strong id="s-vessels">–</strong>&nbsp;vessels</div>
@@ -680,6 +741,9 @@
         <span class="count-badge zero" id="guidance-count">0</span>
       </div>
       <div class="panel-body" id="guidance-list"><div class="empty">Loading…</div></div>
+      <div id="resolved-bar" style="display:none;flex-shrink:0;padding:6px 12px;background:#052e16;border-top:1px solid #166534;font-size:11px;font-weight:700;color:#4ade80;letter-spacing:.3px;">
+        ✓ Resolved today: <span id="resolved-count">0</span>
+      </div>
     </div>
 
     <!-- Center: Timeline + Map -->
@@ -689,11 +753,11 @@
         <button class="tab-btn" onclick="switchTab('timeline')">Berth Timeline</button>
         <button class="tab-btn" onclick="switchTab('utilisation')">Utilisation</button>
         <button class="tab-btn" onclick="switchTab('vts')">VTS View</button>
-        <button class="tab-btn" onclick="switchTab('pilotage')">Pilotage</button>
-        <button class="tab-btn" onclick="switchTab('towage')">Towage</button>
+        <button class="tab-btn" id="tabbtn-pilotage" onclick="switchTab('pilotage')">Pilotage <span class="tab-badge" id="tbadge-pilotage"></span></button>
+        <button class="tab-btn" id="tabbtn-towage" onclick="switchTab('towage')">Towage <span class="tab-badge" id="tbadge-towage"></span></button>
         <button class="tab-btn" onclick="switchTab('lines')">Lines</button>
-        <button class="tab-btn" onclick="switchTab('dukc')">DUKC</button>
-        <button class="tab-btn" onclick="switchTab('esg')">ESG</button>
+        <button class="tab-btn" id="tabbtn-dukc" onclick="switchTab('dukc')">DUKC <span class="tab-badge" id="tbadge-dukc"></span></button>
+        <button class="tab-btn" id="tabbtn-esg" onclick="switchTab('esg')">ESG <span class="tab-badge tab-badge-dot" id="tbadge-esg"></span></button>
       </div>
 
       <!-- Dashboard tab -->
@@ -891,22 +955,18 @@
 
     </div>
 
-    <!-- Right: Decisions + Signals + Audit -->
+    <!-- Right: Decisions + Audit -->
     <div class="panel panel-right" style="display:flex;flex-direction:column;">
       <div class="panel-hdr">
-        <span>Operations</span>
+        <span>Decisions</span>
         <span class="count-badge zero" id="conflict-count">0</span>
       </div>
       <div class="rpanel-tabs">
         <button class="rpanel-tab active" onclick="switchRTab('decisions')">⚡ Decisions</button>
-        <button class="rpanel-tab" onclick="switchRTab('signals')">Signals</button>
         <button class="rpanel-tab" onclick="switchRTab('audit')">Audit</button>
       </div>
       <div class="rpanel-pane active" id="rpane-decisions">
         <div id="decisions-list"><div class="empty">Loading…</div></div>
-      </div>
-      <div class="rpanel-pane" id="rpane-signals">
-        <div id="conflict-list"><div class="empty">Loading…</div></div>
       </div>
       <div class="rpanel-pane" id="rpane-audit">
         <div id="audit-list"><div class="audit-empty">No audit entries yet</div></div>
@@ -918,8 +978,11 @@
   <!-- Vessel table -->
   <div id="vessel-section">
     <div class="panel-hdr" onclick="toggleVesselTable()">
-      <span>Vessel Roster</span>
-      <span id="vessel-count" style="font-size:11px;color:var(--text-dim);">▲ hide</span>
+      <span>Vessel Roster <span id="vessel-roster-count" style="font-weight:400;color:var(--text-dim);font-size:10px;letter-spacing:normal;text-transform:none;"></span></span>
+      <span style="display:flex;align-items:center;gap:8px;">
+        <span id="vessel-scroll-hint" style="display:none;font-size:10px;font-weight:400;color:var(--text-dim);font-style:italic;letter-spacing:normal;text-transform:none;">↓ scroll to see all</span>
+        <span id="vessel-count" style="font-size:11px;color:var(--text-dim);">▲ hide</span>
+      </span>
     </div>
     <div id="vessel-table-wrap">
       <table>
@@ -1097,9 +1160,8 @@ function switchTab(name){
 }
 function switchRTab(name){
   _activeRTab=name;
-  document.querySelectorAll('.rpanel-tab').forEach((b,i)=>b.classList.toggle('active',(i===0&&name==='decisions')||(i===1&&name==='signals')||(i===2&&name==='audit')));
+  document.querySelectorAll('.rpanel-tab').forEach((b,i)=>b.classList.toggle('active',(i===0&&name==='decisions')||(i===1&&name==='audit')));
   document.getElementById('rpane-decisions').classList.toggle('active',name==='decisions');
-  document.getElementById('rpane-signals').classList.toggle('active',name==='signals');
   document.getElementById('rpane-audit').classList.toggle('active',name==='audit');
   if(name==='audit')renderAuditLog();
   if(name==='decisions'&&_data)renderDecisions(_data.conflicts||[]);
@@ -1119,8 +1181,8 @@ function render(d){
   renderConditionsBar(d.weather,d.tides,d.ukc,d.arrival_ukc);
   renderGuidance(d.guidance||[]);
   renderDecisions(d.conflicts||[]);
-  renderConflicts(d.conflicts||[]);
   renderVesselTable(d.vessels||[], d.etd_risk||[]);
+  updateTabBadges(d.conflicts||[], d.dukc);
   renderGantt(d);
   renderDashboard(d.dashboard, d.etd_risk||[]);
   if(_activeTab==='utilisation')renderUtilisation(d.berth_utilisation||[]);
@@ -1147,10 +1209,22 @@ function render(d){
 /* ── Header ── */
 function updateHeader(d){
   const ps=d.port_status||{};
-  document.getElementById('s-vessels').textContent =ps.vessels_in_port??'–';
-  document.getElementById('s-berths').textContent  =`${ps.berths_occupied??'–'}/${ps.berths_total??'–'}`;
-  document.getElementById('s-expected').textContent=ps.vessels_expected_24h??'–';
-  document.getElementById('s-conflicts').textContent=ps.active_conflicts??'–';
+  const vessels=d.vessels||[];
+  const conflicts=d.conflicts||[];
+  // Fix: vessel count = actual array length
+  const vesselCount=vessels.length;
+  document.getElementById('s-vessels').textContent=vesselCount;
+  document.getElementById('s-berths').textContent=`${ps.berths_occupied??'–'}/${ps.berths_total??'–'}`;
+  // Fix: arriving 24h = ETA within 24h and status not berthed or departed
+  const now=Date.now(),h24=now+24*3600*1000;
+  const arriving24=vessels.filter(v=>{
+    if(v.status==='berthed'||v.status==='departed')return false;
+    if(!v.eta)return false;
+    try{const t=new Date(v.eta).getTime();return t>=now&&t<=h24;}catch(e){return false;}
+  }).length;
+  document.getElementById('s-expected').textContent=arriving24;
+  // Fix: active conflicts = distinct conflict events (conflicts.length)
+  document.getElementById('s-conflicts').textContent=conflicts.length;
   document.getElementById('s-conflict-chip').classList.toggle('alert',(ps.critical_conflicts||0)>0);
   // Data source indicator
   const isLive = d.data_source==='qships';
@@ -1222,22 +1296,29 @@ function renderConditionsBar(wx,tide,ukc,aukc){
 }
 
 /* ── Guidance ── */
+const _SEVERITY_MAP={critical:{cls:'sev-critical',lbl:'CRITICAL',border:'#ef4444'},high:{cls:'sev-warning',lbl:'WARNING',border:'#f59e0b'},medium:{cls:'sev-advisory',lbl:'ADVISORY',border:'#00b4c8'},info:{cls:'sev-info',lbl:'INFO',border:'#6b7c8d'}};
 function renderGuidance(items){
   const el=document.getElementById('guidance-list'),badge=document.getElementById('guidance-count');
   if(!items.length){el.innerHTML='<div class="empty">No guidance items</div>';badge.textContent='0';badge.className='count-badge zero';return}
   badge.textContent=items.length;
-  badge.className='count-badge'+(items.some(i=>i.priority==='critical')?'':' zero');
-  el.innerHTML=items.map(g=>`
-    <div class="guidance-item p-${g.priority}" onclick="this.classList.toggle('open')">
+  badge.className='count-badge'+(items.some(i=>i.priority==='critical')?'':items.some(i=>i.priority==='high')?' warn':' zero');
+  el.innerHTML=items.map(g=>{
+    const sm=_SEVERITY_MAP[g.priority]||_SEVERITY_MAP.info;
+    return`<div class="guidance-item p-${g.priority}" onclick="this.classList.toggle('open')">
       <div class="guidance-hdr">
-        <div class="prio-dot" style="background:${priCol(g.priority)}"></div>
-        <div class="guidance-msg">${esc(g.message)}</div>
+        <div class="prio-dot" style="background:${sm.border}"></div>
+        <div style="flex:1;min-width:0;">
+          <span class="guidance-sev-label ${sm.cls}">${sm.lbl}</span>
+          <div class="guidance-msg">${esc(g.message)}</div>
+        </div>
       </div>
       <div class="guidance-detail">
         ${esc(g.detail||'')}
         ${g.deadline?`<div style="margin-top:4px;color:var(--high);font-size:10px">⏰ ${fmtTime(g.deadline)}</div>`:''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+  if(typeof _checkCounts==='function')_checkCounts(items.length,'guidance-count','guidance items');
 }
 
 /* ── Decisions panel ── */
@@ -1251,13 +1332,16 @@ function _stopDecTimers(){
 function _tickDecTimer(conflictId, deadlineIso){
   const el = document.getElementById('dec-timer-'+conflictId);
   const vl = document.getElementById('dec-tval-'+conflictId);
+  const bx = document.getElementById('dec-tbox-'+conflictId);
   if(!el||!vl) return;
   const secs = Math.max(0, Math.round((new Date(deadlineIso) - Date.now()) / 1000));
   const h = Math.floor(secs/3600), m = Math.floor((secs%3600)/60), s = secs%60;
   vl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  const cls = secs < 1800 ? 'urgent' : secs < 3600 ? 'warning' : '';
+  // Visual states: under 4 hours = urgent (red), under 8 hours = warning (amber), otherwise normal
+  const cls = secs < 14400 ? 'urgent' : secs < 28800 ? 'warning' : '';
   el.className = `dec-timer ${cls}`;
   vl.className = `dec-timer-val ${cls}`;
+  if(bx) bx.className = 'dec-timer-box'+(secs < 14400 ? ' timer-urgent' : '');
   if(secs===0){ clearInterval(_decTimers[conflictId]); delete _decTimers[conflictId]; }
 }
 
@@ -1265,6 +1349,15 @@ function renderDecisions(conflicts){
   _stopDecTimers();
   const el = document.getElementById('decisions-list');
   const decisionsReady = conflicts.filter(c => c.signal_type === 'CONFLICT' && c.decision_support);
+
+  // ── Update right panel badge: CRITICAL/HIGH unacknowledged ──
+  const actionable = conflicts.filter(c => (c.severity==='critical'||c.severity==='high') && getSigState(c.id)==='new');
+  const badge = document.getElementById('conflict-count');
+  if(badge){
+    badge.textContent = actionable.length;
+    badge.className = 'count-badge'+(actionable.length===0?' zero':actionable.some(c=>c.severity==='critical')?'':' warn');
+  }
+
   if(!decisionsReady.length){
     el.innerHTML = '<div class="dec-empty">⚡ No active decisions required.<br><span style="font-size:11px">Conflict signals with Decision Support<br>will appear here when detected.</span></div>';
     return;
@@ -1281,16 +1374,25 @@ function renderDecisions(conflicts){
     const cascadeTxt = recOpt ? (recOpt.cascade_count === 0 ? 'None' : recOpt.cascade_count + ' vessel' + (recOpt.cascade_count > 1 ? 's' : '')) : '–';
     const titleShort = (c.description || c.conflict_type || '').slice(0, 70);
     const hasDeadline = !!ds.decision_deadline;
+    const vesselName = (c.vessel_names||[])[0] || c.vessel_name || '';
+    const ss=c.safety_score||'low';
+    const ssLbl={'low':'LOW RISK','medium':'MED RISK','high':'HIGH RISK'}[ss]||ss.toUpperCase();
+    const ssCol={'low':'#6ee7b7','medium':'#fbbf24','high':'#ef4444'}[ss]||'#6ee7b7';
+    // Data provenance label
+    const provLabel = c.data_source==='live'
+      ? '<span class="src-badge live">● Live Data — BOM Tidal Prediction</span>'
+      : '<span class="src-badge simulated">SmartOceanX — Placeholder</span>';
     return `
       <div class="dec-card sev-${c.severity}" id="dec-card-${c.id}">
         <div class="dec-card-top">
           <div class="dec-card-badges">
             <span class="sev-badge ${c.severity}">${c.severity.toUpperCase()}</span>
             <span class="signal-badge CONFLICT">CONFLICT</span>
-            ${(()=>{const ss=c.safety_score||'low';const lbl={'low':'LOW RISK','medium':'MED RISK','high':'HIGH RISK'}[ss]||ss.toUpperCase();const col={'low':'#6ee7b7','medium':'#fbbf24','high':'#ef4444'}[ss]||'#6ee7b7';return`<span style="font-size:9px;font-weight:700;letter-spacing:.5px;padding:2px 6px;border-radius:3px;border:1px solid ${col};color:${col};margin-left:auto;">${lbl}</span>`;})()}
+            <span style="font-size:9px;font-weight:700;letter-spacing:.5px;padding:2px 6px;border-radius:3px;border:1px solid ${ssCol};color:${ssCol};margin-left:auto;">${ssLbl}</span>
           </div>
+          ${vesselName ? `<span class="dec-vessel-name">${esc(vesselName)}</span>` : ''}
           <div class="dec-card-title">${esc(titleShort)}</div>
-          <div style="margin-bottom:6px;">${c.data_source==='live'?'<span class="src-badge live">Live Data</span>':'<span class="src-badge simulated">SmartOceanX \u2014 Placeholder</span>'}</div>
+          <div style="margin-bottom:6px;">${provLabel}</div>
           <div class="dec-rec-row">
             <span class="dec-rec-star">★</span>
             <div class="dec-rec-body">
@@ -1313,7 +1415,7 @@ function renderDecisions(conflicts){
             </div>
           </div>
         </div>
-        ${hasDeadline ? `<div class="dec-timer" id="dec-timer-${c.id}"><span class="dec-timer-lbl">⏱ Decide within</span><span class="dec-timer-val" id="dec-tval-${c.id}">--:--:--</span></div>` : ''}
+        ${hasDeadline ? `<div class="dec-timer" id="dec-timer-${c.id}"><span class="dec-timer-lbl">⏱ Decide within</span><span class="dec-timer-box" id="dec-tbox-${c.id}"><span class="dec-timer-val" id="dec-tval-${c.id}">--:--:--</span></span></div>` : ''}
         <button class="dec-open-btn" onclick="openDSW('${c.id}')">⚡ Open Decision Support →</button>
       </div>`;
   }).join('');
@@ -1327,61 +1429,23 @@ function renderDecisions(conflicts){
   });
 }
 
-/* ── Signals ── */
-function renderConflicts(conflicts){
-  const el=document.getElementById('conflict-list'),badge=document.getElementById('conflict-count');
-  badge.textContent=conflicts.length;
-  const hasCrit=conflicts.some(c=>c.severity==='critical');
-  const hasWarn=conflicts.some(c=>c.signal_type==='WARNING'||c.signal_type==='WEATHER');
-  badge.className='count-badge'+(conflicts.length===0?' zero':hasCrit?'':hasWarn?' warn':'');
-  if(!conflicts.length){el.innerHTML='<div class="empty">No active signals</div>';return}
-  el.innerHTML=conflicts.map(c=>{
-    const state=getSigState(c.id),sigType=c.signal_type||'ADVISORY';
-    const seqAlts=c.sequencing_alternatives||[],hasSeq=sigType==='CONFLICT'&&seqAlts.length>0;
-    const edesc=esc(c.description||'');
-    const btns=(()=>{
-      if(state==='new')return`<button class="sig-btn ack" onclick="sigAction('${c.id}','${edesc}','acknowledged',event)">✓ Acknowledge</button><button class="sig-btn defer" onclick="sigAction('${c.id}','${edesc}','deferred',event)">⏸ Defer</button><button class="sig-btn dismiss" onclick="sigAction('${c.id}','${edesc}','dismissed',event)">✕ Dismiss</button>`;
-      if(state==='acknowledged')return`<button class="sig-btn defer" onclick="sigAction('${c.id}','${edesc}','deferred',event)">⏸ Defer</button><button class="sig-btn dismiss" onclick="sigAction('${c.id}','${edesc}','dismissed',event)">✕ Dismiss</button><button class="sig-btn restore" onclick="sigAction('${c.id}','${edesc}','new',event)">↺ Restore</button>`;
-      if(state==='deferred')return`<button class="sig-btn ack" onclick="sigAction('${c.id}','${edesc}','acknowledged',event)">✓ Acknowledge</button><button class="sig-btn restore" onclick="sigAction('${c.id}','${edesc}','new',event)">↺ Restore</button>`;
-      return`<button class="sig-btn restore" onclick="sigAction('${c.id}','${edesc}','new',event)">↺ Restore</button>`;
-    })();
-    const seqSect=hasSeq?`<div class="seq-section"><div class="seq-title">⇄ Sequencing Alternatives</div>${seqAlts.map((alt,ai)=>`<div class="seq-alt" id="seq-${c.id}-${ai}" onclick="selectSeq('${c.id}',${ai})"><div class="seq-alt-hdr"><span class="seq-alt-label">${esc(alt.label)}</span><span class="feasibility-badge ${alt.feasibility}">${alt.feasibility}</span></div>${alt.cascade_impact?`<div class="seq-cascade">Cascade: ${esc(alt.cascade_impact)}</div>`:''}</div>`).join('')}</div>`:'';
-    const hasDSW = sigType === 'CONFLICT' && c.decision_support;
-    const srcBadge=(()=>{const s=c.data_source;if(!s||s==='simulated')return`<span class="src-badge simulated">SmartOceanX — Placeholder</span>`;return`<span class="src-badge live">Live Data</span>`;})();
-    return`<div class="conflict-card sev-${c.severity}" id="cc-${c.id}">
-      <div class="conflict-hdr" onclick="toggleConflict('${c.id}')">
-        <div style="display:flex;align-items:center;gap:6px;width:100%;flex-wrap:nowrap;">
-          <span class="sev-badge ${c.severity}">${c.severity.toUpperCase()}</span>
-          <span class="signal-badge ${sigType}">${sigType}</span>
-          ${!hasDSW ? `<span class="state-badge ${state}" style="margin-left:auto">${state}</span>` : ''}
-        </div>
-        <div class="conflict-title" style="width:100%;margin-top:5px;">${esc((c.description||c.conflict_type).slice(0,72))}</div>
-        <div style="margin-top:3px;">${srcBadge}</div>
-        ${hasDSW ? `<button class="sig-btn ack" style="width:100%;margin-top:7px;text-align:center;font-size:10px;padding:5px 8px;background:rgba(56,189,248,.12);color:var(--accent);border-color:rgba(56,189,248,.35);" onclick="event.stopPropagation();openDSW('${c.id}')">⚡ Open Decision Support</button>` : ''}
-      </div>
-      <div class="conflict-body">
-        <div class="conflict-desc">${edesc}</div>
-        <div class="signal-actions">${btns}</div>
-        ${c.resolution_options&&c.resolution_options.length?`<div class="res-options-title">Resolution Options</div>${c.resolution_options.map(r=>`<div class="res-opt">• ${esc(r)}</div>`).join('')}`:''}
-        ${seqSect}
-      </div>
-    </div>`;
-  }).join('');
+/* ── Signal actions (Signals panel removed in Beta 8 — actions still available via DSW) ── */
+let _resolvedToday = 0;
+function _bumpResolved(){
+  _resolvedToday++;
+  const bar=document.getElementById('resolved-bar');
+  const cnt=document.getElementById('resolved-count');
+  if(bar&&cnt){bar.style.display='block';cnt.textContent=_resolvedToday;}
 }
-function toggleConflict(id){const c=document.getElementById('cc-'+id);if(c)c.classList.toggle('open')}
 function sigAction(id,desc,state,e){
   e.stopPropagation();
   setSigState(id,state);
   const lbl={acknowledged:'ACK',deferred:'DEFER',dismissed:'DISMISS',new:'RESTORE'}[state]||state.toUpperCase();
+  if(lbl==='ACK')_bumpResolved();
   writeAudit(id,desc,lbl);
   const col={ACK:'#4ade80',DEFER:'#9ca3af',DISMISS:'#f87171',RESTORE:'#38bdf8'}[lbl]||'#38bdf8';
   pushNotif('signal_change',`${lbl}: ${(desc||id).slice(0,70)}`,col);
-  if(_data)renderConflicts(_data.conflicts||[]);
-}
-function selectSeq(cid,ai){
-  const card=document.getElementById('cc-'+cid);
-  if(!card)return;
-  card.querySelectorAll('.seq-alt').forEach((el,i)=>el.classList.toggle('selected',i===ai));
+  if(_data)renderDecisions(_data.conflicts||[]);
 }
 
 /* ── Gantt ── */
@@ -1770,6 +1834,12 @@ function renderESG(esg){
 /* ── Vessel table ── */
 function renderVesselTable(vessels, etdRisk){
   const tb=document.getElementById('vessel-tbody');
+  // Roster count + scroll indicator
+  const rcEl=document.getElementById('vessel-roster-count');
+  if(rcEl)rcEl.textContent=vessels.length?`— ${vessels.length} vessel${vessels.length!==1?'s':''}`:' ';
+  const VISIBLE_ROWS=5; // approx visible rows before scroll
+  const scrollHint=document.getElementById('vessel-scroll-hint');
+  if(scrollHint)scrollHint.style.display=(vessels.length>VISIBLE_ROWS&&_vesselTableOpen)?'inline':'none';
   if(!vessels.length){tb.innerHTML='<tr><td colspan="10" class="empty">No vessels</td></tr>';return}
   const riskById={};
   (etdRisk||[]).forEach(r=>riskById[r.vessel_id]=r);
@@ -1930,11 +2000,11 @@ function selectDSWOption(idx) {
 
 function commitDecision() {
   if (!_dswConflict || !_dswSelectedAlt) return;
-  // Record in audit log
   writeAudit(_dswConflict.id, `[DECISION] ${_dswSelectedAlt.label}`, 'ACK');
   setSigState(_dswConflict.id, 'acknowledged');
+  _bumpResolved();
   pushNotif('decision', `Decision committed: ${_dswSelectedAlt.label}`, '#4ade80');
-  if (_data) renderConflicts(_data.conflicts || []);
+  if (_data) renderDecisions(_data.conflicts || []);
   closeDSW();
 }
 
@@ -1949,15 +2019,18 @@ function closeDSW(e) {
 function renderDashboard(dash, etdRisk){
   if(!dash)return;
   const grid=document.getElementById('dash-kpi-grid');
+  // Fix: use actual conflicts array length for Active Conflicts tile
+  const actualConflicts=(_data&&_data.conflicts)?_data.conflicts.length:(dash.active_conflicts||0);
   const critAlert=dash.critical_conflicts>0;
   const utilCls=dash.berth_utilisation_pct>=85?'warn':dash.berth_utilisation_pct>=55?'good':'';
   const otdCls=dash.on_time_departure_pct>=90?'good':dash.on_time_departure_pct>=70?'warn':'bad';
   const riskCls=dash.vessels_at_risk>2?'bad':dash.vessels_at_risk>0?'warn':'good';
-  const conflCls=dash.active_conflicts>0?'bad':'good';
+  const conflCls=actualConflicts>0?'bad':'good';
+  if(typeof _checkCounts==='function')_checkCounts(actualConflicts,null,'active conflicts',actualConflicts);
   grid.innerHTML=`
     <div class="kpi-tile ${critAlert?'kpi-alert':''}">
       <div class="kpi-label">Active Conflicts</div>
-      <div class="kpi-value ${conflCls}">${dash.active_conflicts}</div>
+      <div class="kpi-value ${conflCls}">${actualConflicts}</div>
       <div class="kpi-sub">${dash.critical_conflicts} critical</div>
     </div>
     <div class="kpi-tile">
@@ -2003,11 +2076,36 @@ function renderDashboard(dash, etdRisk){
     rEl.innerHTML='<div style="padding:10px 0;font-size:12px;color:var(--text-dim)">✓ All vessels are low risk</div>';
     return;
   }
+  // Build conflict lookup by vessel_id for risk type pills + "Active conflict" fix
+  const conflictsByVessel={};
+  ((_data&&_data.conflicts)||[]).forEach(c=>{
+    (c.vessel_ids||[]).forEach(vid=>{
+      if(!conflictsByVessel[vid])conflictsByVessel[vid]=[];
+      conflictsByVessel[vid].push(c);
+    });
+  });
+  // Risk type pill renderer
+  function _riskTypePill(vesselId){
+    const cs=conflictsByVessel[vesselId];
+    if(!cs||!cs.length)return`<span class="risk-type-pill rtype-etd">ETD risk</span>`;
+    // Highest severity first
+    const sevOrder=['critical','high','medium','low'];
+    cs.sort((a,b)=>sevOrder.indexOf(a.severity)-sevOrder.indexOf(b.severity));
+    const ct=(cs[0].conflict_type||'').toUpperCase();
+    if(ct==='BERTH_OVERLAP'||ct==='BERTH_NOT_READY')return`<span class="risk-type-pill rtype-berth">Berth conflict</span>`;
+    if(ct==='ETA_VARIANCE')return`<span class="risk-type-pill rtype-eta">ETA variance</span>`;
+    if(ct==='TIDAL_CONSTRAINT')return`<span class="risk-type-pill rtype-ukc">UKC breach</span>`;
+    if(ct==='PILOTAGE_WINDOW')return`<span class="risk-type-pill rtype-pilot">Pilot notice</span>`;
+    if(ct==='TOWAGE_RESOURCE')return`<span class="risk-type-pill rtype-towage">Towage conflict</span>`;
+    return`<span class="risk-type-pill rtype-berth">Conflict</span>`;
+  }
   rEl.innerHTML=nonLow.map(r=>{
     const col=r.risk_level==='critical'?'#ef4444':r.risk_level==='high'?'#f97316':r.risk_level==='medium'?'#eab308':'#4ade80';
+    const typePill=_riskTypePill(r.vessel_id);
     return`<div class="risk-row">
       <span class="risk-name">${esc(r.vessel_name)}</span>
       <div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:${r.risk_score}%;background:${col}"></div></div>
+      ${typePill}
       <span class="risk-badge-sm ${r.risk_level}">${r.risk_score}</span>
       <span class="risk-factors-txt" title="${esc((r.risk_factors||[]).join(', '))}">${esc((r.risk_factors||[]).join(' · '))}</span>
     </div>`;
@@ -2038,6 +2136,42 @@ function renderUtilisation(util){
     html+=`</div></div>`;
   });
   el.innerHTML=html;
+}
+
+/* ── Beta 8: Tab signal badges ── */
+function updateTabBadges(conflicts, dukc){
+  // Pilotage: count PILOTAGE_WINDOW conflicts
+  const pilCount=conflicts.filter(c=>(c.conflict_type||'').toUpperCase()==='PILOTAGE_WINDOW').length;
+  _setTabBadge('pilotage',pilCount);
+
+  // Towage: count TOWAGE_RESOURCE conflicts
+  const towCount=conflicts.filter(c=>(c.conflict_type||'').toUpperCase()==='TOWAGE_RESOURCE').length;
+  _setTabBadge('towage',towCount);
+
+  // DUKC: count tide-restricted vessels where min UKC < 0.5m
+  const dukcVessels=(dukc&&dukc.vessels)||[];
+  const dukcCount=dukcVessels.filter(v=>v.tide_restricted&&v.min_ukc_m<0.5).length;
+  _setTabBadge('dukc',dukcCount);
+
+  // ESG: static teal dot — always shown
+  const esgBadge=document.getElementById('tbadge-esg');
+  if(esgBadge)esgBadge.style.display='inline-block';
+}
+function _setTabBadge(tab,count){
+  const el=document.getElementById('tbadge-'+tab);
+  if(!el)return;
+  if(count===0){el.textContent='';el.className='tab-badge';return;}
+  el.textContent=count;
+  el.className='tab-badge badge-red';
+}
+
+/* ── Beta 8: Count consistency checker (dev warning) ── */
+function _checkCounts(observed,badgeId,label,expected){
+  const val=badgeId?parseInt(document.getElementById(badgeId)?.textContent||'0',10):observed;
+  const ref=expected!==undefined?expected:observed;
+  if(val!==ref){
+    console.warn(`[Horizon] Count mismatch on "${label}": badge shows ${val}, data has ${ref}`);
+  }
 }
 
 /* ── Boot ── */

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Project Horizon — Beta 6
+Project Horizon — Beta 8
 Self-contained server: zero external dependencies, pure Python 3 stdlib.
-Beta 6 adds live QShips vessel data for Port of Brisbane with a hybrid conflict engine.
+Beta 8 adds UI improvements, panel restructure, and count consistency fixes.
 
 Usage (local):
     python3 server.py
@@ -1792,7 +1792,7 @@ if __name__ == "__main__":
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()
     print(f"╔══════════════════════════════════════╗")
-    print(f"║   Project Horizon  —  Beta 6         ║")
+    print(f"║   Project Horizon  —  Beta 8         ║")
     print(f"╠══════════════════════════════════════╣")
     print(f"║  http://localhost:{PORT}               ║")
     print(f"║  Data: {ds['label']:<29}║")
