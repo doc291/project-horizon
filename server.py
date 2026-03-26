@@ -371,11 +371,12 @@ def _predict_tide_height(dt: datetime) -> float:
     """
     Predict tide height at any future (or past) datetime using the same
     deterministic cosine model as make_tides().  Safe to call for ETA lookahead.
+    Uses the active port profile's tidal_mean_m and tidal_amp_m.
     """
-    PERIOD = 12.42
-    MEAN   = 2.1
-    AMP    = 1.65
-    day_h  = hashlib.md5(f"tide-{dt.strftime('%Y%m%d')}".encode()).hexdigest()
+    PERIOD  = 12.42
+    MEAN    = _PORT_PROFILE.get("tidal_mean_m", 2.1)
+    AMP     = _PORT_PROFILE.get("tidal_amp_m",  1.65)
+    day_h   = hashlib.md5(f"tide-{dt.strftime('%Y%m%d')}".encode()).hexdigest()
     phase_h = (int(day_h[0:4], 16) % int(PERIOD * 100)) / 100.0
     t       = (dt.hour + dt.minute / 60.0 + phase_h) % PERIOD
     return round(MEAN + AMP * math.cos(2 * math.pi * t / PERIOD), 2)
@@ -1749,7 +1750,7 @@ def make_dukc_series(vessels: list, berths: list) -> dict:
         })
 
     return {
-        "channel_depth_m":      CHANNEL_DEPTH_M,
+        "channel_depth_m":      ch_depth,
         "max_vessel_draught_m": round(max_dr, 1),
         "tide_series":          tide_pts,
         "channel_points":       channel_pts,
