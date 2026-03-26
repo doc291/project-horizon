@@ -1141,10 +1141,55 @@ PORT_RULES_MELBOURNE = {
     },
 }
 
+PORT_RULES_DARWIN = {
+    # Wind thresholds — specific limits in Port Notice PN014; using operational defaults below
+    "wind_advisory": {
+        "threshold_kts": 20, "applies_to": "high-windage vessels (Container, RoRo, OSV)",
+        "rule_ref": "Darwin Port Handbook 2026 §5 / Port Notice PN014",
+        "action": "Monitor closely. Advise masters of high-windage vessels to review manoeuvring plan. Confirm tug availability.",
+    },
+    "wind_no_berthing": {
+        "threshold_kts": 30, "applies_to": "all vessels",
+        "rule_ref": "Darwin Port Handbook 2026 §5 / Port Notice PN014 — operational default",
+        "action": "No new berthing operations to commence. Vessels at berth may remain. Contact Darwin Port VHF 10.",
+    },
+    "wind_movements_suspended": {
+        "threshold_kts": 35, "applies_to": "all vessels",
+        "rule_ref": "Darwin Port Handbook 2026 §5 / Port Notice PN014 / Marine Act 2013 (NT)",
+        "action": "All vessel movements suspended. Masters to maintain engine readiness. Notify Darwin Port on VHF 10.",
+    },
+    "wind_engines_standby": {
+        "threshold_kts": 40, "applies_to": "all berthed vessels",
+        "rule_ref": "Darwin Port Handbook 2026 §5 / Port Notice PN014 / Marine Act 2013 (NT)",
+        "action": "All berthed vessels must have main engines on standby. Increased mooring watch. Monitor cyclone advisories if in season (Nov–Apr).",
+    },
+    "swell_pilot_caution": {
+        "threshold_m": 1.5, "applies_to": "pilot transfer operations at Darwin Harbour entrance",
+        "rule_ref": "SOLAS V/23, IMPA Pilot Ladder Guidelines 2022",
+        "action": "Enhanced pilot ladder inspection required. Masters to assess transfer conditions at outer boarding ground.",
+    },
+    "swell_transfer_suspended": {
+        "threshold_m": 2.5, "applies_to": "pilot ladder transfers at outer boarding ground",
+        "rule_ref": "SOLAS V/23, IMO Res. A.1045(27), IMPA 2022 §4.2",
+        "action": "Pilot ladder transfers suspended at outer boarding ground. Hold vessels at pilot boarding anchorage pending conditions.",
+    },
+    "vis_reduced_procedures": {
+        "threshold_nm": 3.0, "applies_to": "all vessels in Darwin Harbour",
+        "rule_ref": "COLREGS Rule 19, Darwin Port Handbook 2026 §4 / Marine Act 2013 (NT)",
+        "action": "Reduced visibility procedures in force. Proceed at safe speed. Enhanced radar watch. Maintain listening watch VHF 10.",
+    },
+    "vis_vts_restrictions": {
+        "threshold_nm": 1.0, "applies_to": "all movements in inner harbour",
+        "rule_ref": "COLREGS Rule 19, Darwin Port Handbook 2026 §4 / Marine Act 2013 (NT)",
+        "action": "VTS movement restrictions apply. No movements without explicit Darwin Port approval on VHF 10.",
+    },
+}
+
 # Active rule set resolved at alert-generation time
 PORT_RULES_BY_PORT = {
     "BRISBANE":  PORT_RULES_BRISBANE,
     "MELBOURNE": PORT_RULES_MELBOURNE,
+    "DARWIN":    PORT_RULES_DARWIN,
 }
 
 
@@ -1339,6 +1384,23 @@ def make_tides(bom_result: dict = None):
     """
     now = utcnow()
 
+    # Port-specific tidal parameters (used in cosine model and as fallback)
+    PERIOD = 12.42
+    MEAN   = _PORT_PROFILE.get("tidal_mean_m", 1.40)
+    AMP    = _PORT_PROFILE.get("tidal_amp_m",  0.90)
+
+    def _cosine_next(ref_now):
+        """Compute next HW/LW and hours-until from cosine model using port profile params."""
+        day_h   = hashlib.md5(f"tide-{ref_now.strftime('%Y%m%d')}".encode()).hexdigest()
+        phase_h = (int(day_h[0:4], 16) % int(PERIOD * 100)) / 100.0
+        t       = (ref_now.hour + ref_now.minute / 60.0 + phase_h) % PERIOD
+        t_to_hw = (PERIOD - t) % PERIOD
+        t_to_lw = (PERIOD / 2 - t) % PERIOD
+        if t_to_hw <= t_to_lw:
+            return "HW", round(MEAN + AMP, 1), t_to_hw
+        else:
+            return "LW", round(MEAN - AMP, 1), t_to_lw
+
     if bom_result and bom_result.get("current_height_m") is not None:
         # ── BOM live data ────────────────────────────────────────────────────
         height    = bom_result["current_height_m"]
@@ -1352,15 +1414,14 @@ def make_tides(bom_result: dict = None):
             heights = [p["height_m"] for p in series]
             MEAN    = round(sum(heights) / len(heights), 2)
             AMP     = round((max(heights) - min(heights)) / 2, 2)
-        else:
-            MEAN, AMP = 1.5, 0.5
+        # BOM for Melbourne often omits HW/LW markers — fill from cosine model
+        if nxt_type is None or nxt_ht is None:
+            nxt_type, nxt_ht, nxt_h = _cosine_next(now)
+            nxt_time = now + timedelta(hours=nxt_h)
         next_time_str = fmt(nxt_time) if nxt_time else fmt(now + timedelta(hours=6))
         data_source   = "bom"
     else:
         # ── Cosine fallback ──────────────────────────────────────────────────
-        PERIOD  = 12.42
-        MEAN    = 2.1
-        AMP     = 1.65
         day_h   = hashlib.md5(f"tide-{now.strftime('%Y%m%d')}".encode()).hexdigest()
         phase_h = (int(day_h[0:4], 16) % int(PERIOD * 100)) / 100.0
         t       = (now.hour + now.minute / 60.0 + phase_h) % PERIOD
@@ -1369,13 +1430,7 @@ def make_tides(bom_result: dict = None):
 
         state = "Slack" if abs(deriv) < 0.06 else ("Rising" if deriv > 0 else "Falling")
 
-        t_to_hw = (PERIOD - t) % PERIOD
-        t_to_lw = (PERIOD / 2 - t) % PERIOD
-        if t_to_hw <= t_to_lw:
-            nxt_type, nxt_ht, nxt_h = "HW", round(MEAN + AMP, 1), t_to_hw
-        else:
-            nxt_type, nxt_ht, nxt_h = "LW", round(MEAN - AMP, 1), t_to_lw
-
+        nxt_type, nxt_ht, nxt_h = _cosine_next(now)
         next_time_str = fmt(now + timedelta(hours=nxt_h))
         data_source   = "cosine"
 

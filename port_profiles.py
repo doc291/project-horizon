@@ -161,6 +161,81 @@ PORT_PROFILES = {
             ],
         },
     },
+    # ── Port of Darwin ────────────────────────────────────────────────────────
+    # Values sourced from Darwin Port Handbook 2026 (Darwin Port Corporation)
+    "DARWIN": {
+        "display_name":                 "Port of Darwin",
+        "short_name":                   "Darwin",
+        "timezone":                     "Australia/Darwin",
+        "lat":                          -12.4700,
+        "lon":                          130.8450,
+        "bom_station_id":               "IDO71013",   # Darwin tidal gauge
+        "bom_tide_url":                 "http://www.bom.gov.au/fwo/IDO71013/IDO71013.xml",
+        "tidal_mean_m":                 3.80,         # MSL above chart datum — Darwin extreme tidal range
+        "tidal_amp_m":                  3.50,         # Half spring range (~7.0m springs) — largest tidal range in Aus
+        "vessel_data_url":              None,
+        "vessel_data_source":           "static_roster",
+        "vessel_ingest_window_hours":   72,
+        "max_vessels":                  30,
+        "channel_depth_m":              13.0,         # Outer channel (East Arm Approach)
+        "ukc_minimum_m":                1.5,          # Inner harbour UKC (Handbook 2026, p.14)
+        "ukc_outer_harbour_m":          2.0,          # Outer Harbour Area A UKC (Handbook 2026, p.14)
+        "ukc_msb_fairway_m":            1.0,          # MSB Fairway Zone G UKC (Handbook 2026, p.14)
+        "ukc_creek_m":                  0.5,          # Hudson/Sadgroves Creek UKC (Handbook 2026, p.14)
+        "ukc_dukc_threshold_draught_m": 10.5,
+        "max_vessel_loa_m":             300,
+        "pilot_boarding_point":         "Darwin Harbour Entrance",
+        "compulsory_pilotage_loa_m":    50,           # Compulsory ≥50m LOA (Darwin Port Handbook 2026, p.13)
+        "wind_limit_berthing_knots":    30,           # Reasonable default — wind limits in Port Notice PN014
+        "wind_limit_critical_knots":    40,           # Reasonable default — wind limits in Port Notice PN014
+        "bridge_restrictions":          [],           # No bridge air-draft restrictions at Darwin
+        "cyclone_season_months":        [11, 12, 1, 2, 3, 4],  # November–April (Handbook 2026, p.18)
+        "harbour_master":               "Darwin Port Corporation",
+        "vts_callsign":                 "Darwin Port",
+        "vts_channel":                  "VHF 10",     # Darwin Port working channel (Handbook 2026, p.15-16)
+        "vts_distress_channel":         "VHF 16",
+        "notice_of_arrival_hours":      24,           # 24h prior notice required (Handbook 2026, p.12)
+        "speed_zones": {
+            "Zone A (Outer Harbour)":   16,           # kt (Handbook 2026, p.15)
+            "Zones B & C":              12,
+            "Zone D":                   10,
+            "Zones E, F, G (Inner)":     8,
+        },
+        "tug_companies":                ["Coastal Tug & Barge Pty Ltd", "Svitzer Australia Pty Ltd"],
+        "currency":                     "AUD",
+        "cost_per_hour_delay":          3500,
+        "port_geo": {
+            "center": {"lat": -12.470, "lon": 130.845},
+            "zoom": 12,
+            "berths": {
+                # Key berth areas mapped from Darwin Port Handbook 2026 (pp.7-11)
+                "B01": {"lat": -12.4678, "lon": 130.8432, "terminal": "Darwin Marine Supply Base (DMSB)", "heading": 180},
+                "B02": {"lat": -12.4730, "lon": 130.8562, "terminal": "East Arm Wharf Berth 1",           "heading": 190},
+                "B03": {"lat": -12.4750, "lon": 130.8575, "terminal": "East Arm Wharf Berth 3",           "heading": 190},
+                "B04": {"lat": -12.4595, "lon": 130.8648, "terminal": "HCK Berths (Hudson Creek)",        "heading": 270},
+                "B05": {"lat": -12.4700, "lon": 130.8510, "terminal": "Sea Swift Berth 1 (SSB1)",         "heading": 180},
+                "B06": {"lat": -12.4715, "lon": 130.8525, "terminal": "Sea Swift Berth 3 / Paspaley",     "heading": 180},
+            },
+            "anchorage": {
+                "lat": -12.390, "lon": 130.760,
+                "radius_km": 4.0,
+                "label": "Darwin Outer Anchorage",
+            },
+            "pilot_boarding_ground": {
+                "lat": -12.530, "lon": 130.820,
+                "label": "Darwin Harbour Pilot Boarding Ground",
+            },
+            "channel_waypoints": [
+                {"lat": -12.530, "lon": 130.820},
+                {"lat": -12.515, "lon": 130.828},
+                {"lat": -12.500, "lon": 130.835},
+                {"lat": -12.490, "lon": 130.840},
+                {"lat": -12.480, "lon": 130.843},
+                {"lat": -12.470, "lon": 130.845},
+            ],
+        },
+    },
+
 }
 
 
