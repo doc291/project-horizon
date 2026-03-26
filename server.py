@@ -1775,6 +1775,7 @@ def build_summary():
             "id":                    _ACTIVE_PORT_ID,
             "display_name":          profile["display_name"],
             "short_name":            profile["short_name"],
+            "timezone":              profile.get("timezone", "Australia/Brisbane"),
             "vts_callsign":          profile.get("vts_callsign", "VTS"),
             "harbour_master":        profile.get("harbour_master", ""),
             "using_live_vessel_data": using_live_vessel,

@@ -126,8 +126,8 @@ PORT_PROFILES = {
         "dukc_submission_arrival_hours":  (12, 24),
         "dukc_submission_departure_hours": 6,
         "port_geo": {
-            "center": {"lat": -37.8224, "lon": 144.9231},
-            "zoom": 12,
+            "center": {"lat": -38.05, "lon": 144.90},
+            "zoom": 10,
             "berths": {
                 # Swanson Dock / Appleton Dock / Webb Dock approximate positions
                 "B01": {"lat": -37.8178, "lon": 144.9255, "terminal": "Swanson Dock East",  "heading": 270},
