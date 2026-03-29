@@ -1545,9 +1545,9 @@ function renderGantt(d){
   berths.forEach((b,bi)=>{
     const y=22+bi*ROW;
     html+=`<rect x="0" y="${y}" width="${LEFT+W+PAD}" height="${ROW}" fill="${bi%2===0?'#0f1927':'#0b1520'}"/>`;
-    const bLabel=b.name||b.id; html+=`<text x="${LEFT-6}" y="${y+ROW/2+4}" text-anchor="end" fill="#6b82a8" font-size="11">${esc(bLabel.length>19?bLabel.slice(0,17)+'…':bLabel)}</text>`;
+    const bLabel=b.name||b.id; html+=`<text x="${LEFT-8}" y="${y+ROW/2+4}" text-anchor="end" fill="#6b82a8" font-size="11">${esc(bLabel.length>19?bLabel.slice(0,17)+'…':bLabel)}</text>`;
     const bc=b.status==='maintenance'?'#eab308':b.status==='available'?'#22c55e':'#3b82f6';
-    html+=`<circle cx="${LEFT-22}" cy="${y+ROW/2}" r="4" fill="${bc}" opacity="0.7"/>`;
+    html+=`<circle cx="10" cy="${y+ROW/2}" r="4" fill="${bc}" opacity="0.7"/>`;
     vessels.filter(v=>v.berth_id===b.id&&v.status!=='departed').forEach(v=>{
       const vS=Math.max(t0,new Date(v.ata||v.eta).getTime()),vE=Math.min(t1,new Date(v.atd||v.etd).getTime());
       if(vE<=t0||vS>=t1)return;
