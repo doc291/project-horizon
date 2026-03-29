@@ -1553,9 +1553,11 @@ function renderGantt(d){
       if(vE<=t0||vS>=t1)return;
       const xS=LEFT+((vS-t0)/tSpan)*W,xE=LEFT+((vE-t0)/tSpan)*W,bw=Math.max(4,xE-xS);
       const col=statusColor(v.status),isC=cvids.has(v.id);
+      const clipId=`vc${bi}_${vessels.indexOf(v)}`;
+      html+=`<clipPath id="${clipId}"><rect x="${xS+2}" y="${y+4}" width="${Math.max(0,bw-4)}" height="${ROW-8}"/></clipPath>`;
       html+=`<rect x="${xS}" y="${y+4}" width="${bw}" height="${ROW-8}" rx="3" fill="${col}" fill-opacity="0.75" stroke="${isC?'#ef4444':col}" stroke-width="${isC?2:1}" stroke-dasharray="${isC?'4,3':'none'}"><title>${v.name} | ${v.status}</title></rect>`;
       const vLabel=v.name.length>14?v.name.slice(0,12)+'…':v.name;
-      if(bw>vLabel.length*6.5+16)html+=`<text x="${xS+bw/2}" y="${y+ROW/2+4}" text-anchor="middle" fill="#fff" fill-opacity="0.9" font-size="10" pointer-events="none">${esc(vLabel)}</text>`;
+      if(bw>20)html+=`<text clip-path="url(#${clipId})" x="${xS+bw/2}" y="${y+ROW/2+4}" text-anchor="middle" fill="#fff" fill-opacity="0.9" font-size="10" pointer-events="none">${esc(vLabel)}</text>`;
     });
   });
   html+=`<line x1="${LEFT}" y1="20" x2="${LEFT}" y2="${H}" stroke="#38bdf8" stroke-width="2" opacity="0.8"/>`;
