@@ -27,6 +27,22 @@ PORT_PROFILES = {
         "max_vessel_loa_m":             300,
         "pilot_boarding_point":         "Brisbane Bar",
         "compulsory_pilotage_loa_m":    35,
+        "pilots": ["Capt. Walsh", "Capt. Thompson", "Capt. Nguyen", "Capt. Morrison"],
+        "pilot_stations": ["Brisbane Bar Pilot Station", "Spitfire Channel Anchorage"],
+        "tugs": [
+            {"name": "SVR Brisbane",  "bollard_pull_t": 70},
+            {"name": "SVR Apex",      "bollard_pull_t": 65},
+            {"name": "TKY Vigilant",  "bollard_pull_t": 72},
+            {"name": "TKY Resolute",  "bollard_pull_t": 68},
+            {"name": "TKY Hawk",      "bollard_pull_t": 55},
+        ],
+        "mooring_gangs": [
+            {"name": "Alpha Gang",   "linesmen": 4},
+            {"name": "Bravo Gang",   "linesmen": 4},
+            {"name": "Charlie Gang", "linesmen": 3},
+            {"name": "Delta Gang",   "linesmen": 4},
+            {"name": "Echo Gang",    "linesmen": 3},
+        ],
         "wind_limit_berthing_knots":    25,
         "wind_limit_critical_knots":    40,
         "bridge_restrictions":          [],
@@ -83,6 +99,22 @@ PORT_PROFILES = {
         "tidal_surge_negative_m":       0.2,
         "pilot_boarding_point":         "5 NM SW Point Lonsdale",
         "compulsory_pilotage_loa_m":    35,           # VPC HMD Ed. 13.1 §2.1
+        "pilots": ["Capt. Anderson", "Capt. Clarke", "Capt. O'Brien", "Capt. Patel"],
+        "pilot_stations": ["Point Lonsdale Pilot Station", "South Channel Anchorage"],
+        "tugs": [
+            {"name": "SVR Apex",    "bollard_pull_t": 72},
+            {"name": "SVR Mercury", "bollard_pull_t": 65},
+            {"name": "SVR Orion",   "bollard_pull_t": 80},
+            {"name": "SVR Atlas",   "bollard_pull_t": 58},
+            {"name": "SVR Titan",   "bollard_pull_t": 70},
+        ],
+        "mooring_gangs": [
+            {"name": "Gang 1", "linesmen": 4},
+            {"name": "Gang 2", "linesmen": 4},
+            {"name": "Gang 3", "linesmen": 3},
+            {"name": "Gang 4", "linesmen": 4},
+            {"name": "Gang 5", "linesmen": 3},
+        ],
         "wind_limit_berthing_knots":    25,           # HMD Ed. 13.1 §3.20 — no new berthing
         "wind_limit_critical_knots":    35,           # HMD Ed. 13.1 §3.20 — engines standby
         "west_gate_bridge_air_draft_m": 50.0,         # 50m clearance at MHWS
@@ -186,6 +218,20 @@ PORT_PROFILES = {
         "max_vessel_loa_m":             300,
         "pilot_boarding_point":         "Darwin Harbour Entrance",
         "compulsory_pilotage_loa_m":    50,           # Compulsory ≥50m LOA (Darwin Port Handbook 2026, p.13)
+        "pilots": ["Capt. Jackson", "Capt. Wilson", "Capt. Lee", "Capt. Nguyen"],
+        "pilot_stations": ["Darwin Harbour Pilot Boarding Ground", "Darwin Outer Anchorage"],
+        "tugs": [
+            {"name": "CTB Endeavour", "bollard_pull_t": 60},
+            {"name": "CTB Pioneer",   "bollard_pull_t": 55},
+            {"name": "SVR Kestrel",   "bollard_pull_t": 65},
+            {"name": "SVR Falcon",    "bollard_pull_t": 58},
+        ],
+        "mooring_gangs": [
+            {"name": "Darwin Alpha",   "linesmen": 4},
+            {"name": "Darwin Bravo",   "linesmen": 3},
+            {"name": "Darwin Charlie", "linesmen": 3},
+            {"name": "Darwin Delta",   "linesmen": 4},
+        ],
         "wind_limit_berthing_knots":    30,           # Reasonable default — wind limits in Port Notice PN014
         "wind_limit_critical_knots":    40,           # Reasonable default — wind limits in Port Notice PN014
         "bridge_restrictions":          [],           # No bridge air-draft restrictions at Darwin

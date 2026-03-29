@@ -1759,14 +1759,13 @@ function renderTowage(d){
     </tr>`;
   }).join('') || '<tr><td colspan="6" class="empty">No towage assignments</td></tr>';
 
-  // Fleet status
-  const allTugs=['TUG Stallion','TUG Hercules','TUG Neptune','TUG Samson','TUG Trident'];
-  const tugIdMap={'TUG Stallion':'TUG-STALLION','TUG Hercules':'TUG-HERCULES','TUG Neptune':'TUG-NEPTUNE','TUG Samson':'TUG-SAMSON','TUG Trident':'TUG-TRIDENT'};
+  // Fleet status — use port-specific tug fleet from API
+  const portTugs=d.port_tugs||[];
   const assignedTugIds=new Set(towage.flatMap(op=>(op.tugs||[]).map(t=>t.tug_id)));
   const fleetTbody=document.getElementById('tug-fleet-tbody');
-  fleetTbody.innerHTML=allTugs.map((tname,i)=>{
-    const tid=tugIdMap[tname];
-    const bp=TUG_BOLLARD[tid]||60;
+  fleetTbody.innerHTML=portTugs.map(tug=>{
+    const tid=tug.name.replace(/ /g,'-').toUpperCase();
+    const bp=tug.bollard_pull_t||60;
     const assigned=assignedTugIds.has(tid);
     const statusLbl=assigned?'Assigned':'Available';
     const statusCls=assigned?'standby':'available';
@@ -1774,7 +1773,7 @@ function renderTowage(d){
     const assignment=op?`${op.vessel_name} (${op.direction})`:'–';
     const nextAvail=op?fmtShort(op.scheduled_time):'Now';
     return`<tr>
-      <td><strong style="color:var(--text-bright)">${esc(tname)}</strong></td>
+      <td><strong style="color:var(--text-bright)">${esc(tug.name)}</strong></td>
       <td>${bp}t</td>
       <td><span class="ops-badge ${statusCls}">${statusLbl}</span></td>
       <td style="color:var(--text-dim)">${assignment}</td>
@@ -1788,8 +1787,9 @@ function renderLines(d){
   const vessels=d.vessels||[];
   const berths=d.berths||[];
 
-  const GANGS=['Alpha Gang','Bravo Gang','Charlie Gang','Delta Gang','Echo Gang'];
-  const LINESMEN=[4,4,3,4,3];
+  const portGangs=(d.port_gangs||[]).length>0 ? d.port_gangs :
+    [{name:'Alpha Gang',linesmen:4},{name:'Bravo Gang',linesmen:4},{name:'Charlie Gang',linesmen:3},
+     {name:'Delta Gang',linesmen:4},{name:'Echo Gang',linesmen:3}];
   const berthById={};
   berths.forEach(b=>berthById[b.id]=b);
 
@@ -1797,7 +1797,7 @@ function renderLines(d){
   const assigned=vessels.filter(v=>['berthed','confirmed','at_risk'].includes(v.status)&&v.berth_id);
   const tbody=document.getElementById('lines-tbody');
   tbody.innerHTML=assigned.map((v,i)=>{
-    const gangIdx=i%GANGS.length;
+    const gang=portGangs[i%portGangs.length];
     const isBerthed=v.status==='berthed';
     const lineStatus=isBerthed?'All Fast':'Standby';
     const lineCls=isBerthed?'all-fast':'ops-badge standby';
@@ -1805,10 +1805,10 @@ function renderLines(d){
     return`<tr>
       <td><strong style="color:var(--text-bright)">${esc(v.name)}</strong><br><span style="font-size:10px;color:var(--text-dim)">${esc(v.vessel_type||'')}</span></td>
       <td>${esc(_berthName(v.berth_id))}</td>
-      <td style="color:var(--text-dim)">${GANGS[gangIdx]}</td>
+      <td style="color:var(--text-dim)">${esc(gang.name)}</td>
       <td style="font-variant-numeric:tabular-nums">${fmtShort(schedTime)}</td>
       <td><span class="ops-badge ${lineStatus.toLowerCase().replace(' ','-')}">${lineStatus}</span></td>
-      <td>${LINESMEN[gangIdx]}</td>
+      <td>${gang.linesmen}</td>
     </tr>`;
   }).join('') || '<tr><td colspan="6" class="empty">No mooring assignments</td></tr>';
 

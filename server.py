@@ -564,45 +564,50 @@ def make_vessels(now: datetime) -> list:
     return vessels
 
 
-def make_pilotage(vessels: list, now: datetime) -> list:
+def make_pilotage(vessels: list, now: datetime, profile: dict = None) -> list:
+    p = profile or _PORT_PROFILE
+    pilots   = p.get("pilots",         PILOTS)
+    stations = p.get("pilot_stations", STATIONS)
     events = []
     inbound  = [v for v in vessels if v["status"] not in ("berthed", "departed")]
     outbound = [v for v in vessels if v["status"] == "berthed"]
     for v in inbound:
-        pilot_idx = int(hashlib.md5(v["id"].encode()).hexdigest(), 16) % len(PILOTS)
+        pilot_idx = int(hashlib.md5(v["id"].encode()).hexdigest(), 16) % len(pilots)
         sched = isoparse(v["eta"]) - timedelta(hours=1, minutes=30)
         events.append({
             "id": f"PIL-{v['id']}-IN",
             "vessel_id": v["id"], "vessel_name": v["name"],
-            "pilot_name": PILOTS[pilot_idx],
+            "pilot_name": pilots[pilot_idx],
             "scheduled_time": fmt(sched),
-            "boarding_station": STATIONS[pilot_idx % len(STATIONS)],
+            "boarding_station": stations[pilot_idx % len(stations)],
             "direction": "inbound",
             "status": "confirmed" if v["status"] == "confirmed" else "scheduled",
         })
     for v in outbound:
-        pilot_idx = (int(hashlib.md5(v["id"].encode()).hexdigest(), 16) + 1) % len(PILOTS)
+        pilot_idx = (int(hashlib.md5(v["id"].encode()).hexdigest(), 16) + 1) % len(pilots)
         sched = isoparse(v["etd"]) - timedelta(hours=1)
         events.append({
             "id": f"PIL-{v['id']}-OUT",
             "vessel_id": v["id"], "vessel_name": v["name"],
-            "pilot_name": PILOTS[pilot_idx],
+            "pilot_name": pilots[pilot_idx],
             "scheduled_time": fmt(sched),
-            "boarding_station": STATIONS[pilot_idx % len(STATIONS)],
+            "boarding_station": stations[pilot_idx % len(stations)],
             "direction": "outbound",
             "status": "scheduled",
         })
     return events
 
 
-def make_towage(vessels: list, now: datetime) -> list:
+def make_towage(vessels: list, now: datetime, profile: dict = None) -> list:
+    p = profile or _PORT_PROFILE
+    tug_list = p.get("tugs") or [{"name": t, "bollard_pull_t": 65} for t in TUGS]
     events = []
     eligible = [v for v in vessels if v["towage_required"]]
     for v in eligible:
         n_tugs = 2 if v["loa"] > 200 else 1
         # Deterministic tug assignment from vessel ID hash
         h = int(hashlib.md5(v["id"].encode()).hexdigest(), 16)
-        tug_indices = [(h + i) % len(TUGS) for i in range(n_tugs)]
+        tug_indices = [(h + i) % len(tug_list) for i in range(n_tugs)]
         # Ensure no duplicate indices
         seen_idx = set()
         unique_indices = []
@@ -610,7 +615,8 @@ def make_towage(vessels: list, now: datetime) -> list:
             if idx not in seen_idx:
                 seen_idx.add(idx)
                 unique_indices.append(idx)
-        tugs = [{"tug_id": TUGS[i].replace(" ", "-").upper(), "tug_name": TUGS[i]}
+        tugs = [{"tug_id": tug_list[i]["name"].replace(" ", "-").upper(),
+                 "tug_name": tug_list[i]["name"]}
                 for i in unique_indices]
 
         if v["status"] == "berthed":
@@ -1890,13 +1896,13 @@ def build_summary():
         using_live_tidal = False
 
     try:
-        pilotage = make_pilotage(vessels, now)
+        pilotage = make_pilotage(vessels, now, profile)
     except Exception as exc:
         log.error("make_pilotage failed: %s — using empty list", exc)
         pilotage = []
 
     try:
-        towage = make_towage(vessels, now)
+        towage = make_towage(vessels, now, profile)
     except Exception as exc:
         log.error("make_towage failed: %s — using empty list", exc)
         towage = []
@@ -1977,6 +1983,8 @@ def build_summary():
         "berths":            berths,
         "pilotage":          pilotage,
         "towage":            towage,
+        "port_tugs":         profile.get("tugs", [{"name": t, "bollard_pull_t": 65} for t in TUGS]),
+        "port_gangs":        profile.get("mooring_gangs", []),
         "conflicts":         conflicts,
         "guidance":          guidance,
         "port_geo":          profile.get("port_geo", PORT_GEO),
