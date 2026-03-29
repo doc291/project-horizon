@@ -1554,7 +1554,8 @@ function renderGantt(d){
       const xS=LEFT+((vS-t0)/tSpan)*W,xE=LEFT+((vE-t0)/tSpan)*W,bw=Math.max(4,xE-xS);
       const col=statusColor(v.status),isC=cvids.has(v.id);
       html+=`<rect x="${xS}" y="${y+4}" width="${bw}" height="${ROW-8}" rx="3" fill="${col}" fill-opacity="0.75" stroke="${isC?'#ef4444':col}" stroke-width="${isC?2:1}" stroke-dasharray="${isC?'4,3':'none'}"><title>${v.name} | ${v.status}</title></rect>`;
-      if(bw>40)html+=`<text x="${xS+bw/2}" y="${y+ROW/2+4}" text-anchor="middle" fill="#fff" fill-opacity="0.9" font-size="10" pointer-events="none">${esc(v.name.length>14?v.name.slice(0,12)+'…':v.name)}</text>`;
+      const vLabel=v.name.length>14?v.name.slice(0,12)+'…':v.name;
+      if(bw>vLabel.length*6.5+16)html+=`<text x="${xS+bw/2}" y="${y+ROW/2+4}" text-anchor="middle" fill="#fff" fill-opacity="0.9" font-size="10" pointer-events="none">${esc(vLabel)}</text>`;
     });
   });
   html+=`<line x1="${LEFT}" y1="20" x2="${LEFT}" y2="${H}" stroke="#38bdf8" stroke-width="2" opacity="0.8"/>`;
