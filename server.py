@@ -2309,12 +2309,12 @@ class HorizonHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _logo(self):
-        # Serve logo.svg, or any logo.png/jpg if present alongside it
+        # Prefer logo.png/jpg over logo.svg if present
         for candidate, mime in [
-            (LOGO_FILE,                              "image/svg+xml"),
             (LOGO_FILE.with_suffix(".png"),          "image/png"),
             (LOGO_FILE.with_suffix(".jpg"),          "image/jpeg"),
             (LOGO_FILE.with_suffix(".jpeg"),         "image/jpeg"),
+            (LOGO_FILE,                              "image/svg+xml"),
         ]:
             if candidate.exists():
                 body = candidate.read_bytes()
