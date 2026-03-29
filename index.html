@@ -1530,7 +1530,7 @@ function renderGantt(d){
   const berths=d.berths||[],vessels=d.vessels||[],conflicts=d.conflicts||[];
   const cvids=new Set(); conflicts.forEach(c=>(c.vessel_ids||[]).forEach(id=>cvids.add(id)));
   const now=Date.now(),t0=now,t1=now+48*3600*1000,tSpan=t1-t0;
-  const LEFT=110,ROW=34,PAD=10;
+  const LEFT=170,ROW=34,PAD=10;
   const W=Math.max(600,(document.getElementById('timeline-wrap').offsetWidth||800)-LEFT-PAD*2);
   const H=berths.length*ROW+40;
   const svg=document.getElementById('gantt');
@@ -1545,7 +1545,7 @@ function renderGantt(d){
   berths.forEach((b,bi)=>{
     const y=22+bi*ROW;
     html+=`<rect x="0" y="${y}" width="${LEFT+W+PAD}" height="${ROW}" fill="${bi%2===0?'#0f1927':'#0b1520'}"/>`;
-    html+=`<text x="${LEFT-6}" y="${y+ROW/2+4}" text-anchor="end" fill="#6b82a8" font-size="11">${esc(b.name||b.id)}</text>`;
+    const bLabel=b.name||b.id; html+=`<text x="${LEFT-6}" y="${y+ROW/2+4}" text-anchor="end" fill="#6b82a8" font-size="11">${esc(bLabel.length>19?bLabel.slice(0,17)+'…':bLabel)}</text>`;
     const bc=b.status==='maintenance'?'#eab308':b.status==='available'?'#22c55e':'#3b82f6';
     html+=`<circle cx="${LEFT-22}" cy="${y+ROW/2}" r="4" fill="${bc}" opacity="0.7"/>`;
     vessels.filter(v=>v.berth_id===b.id&&v.status!=='departed').forEach(v=>{
