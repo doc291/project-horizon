@@ -2062,12 +2062,16 @@ class HorizonHandler(BaseHTTPRequestHandler):
             params = parse_qs(body)
             user   = params.get("username", [""])[0].strip()
             pw     = params.get("password", [""])[0].strip()
+            next_p = params.get("next", ["/"])[0]
+            # Validate next to prevent open redirect
+            if not next_p.startswith("/"):
+                next_p = "/"
             user_ok = hmac.compare_digest(user, _AUTH_USER)
             pass_ok = hmac.compare_digest(pw,   _AUTH_PASS)
             if user_ok and pass_ok:
                 token = _make_token()
                 self.send_response(302)
-                self.send_header("Location", "/")
+                self.send_header("Location", next_p)
                 self.send_header(
                     "Set-Cookie",
                     f"{_COOKIE_NAME}={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age={_COOKIE_TTL}"
@@ -2075,7 +2079,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Length", "0")
                 self.end_headers()
             else:
-                self._serve_login(error=True)
+                self._serve_login(error=True, next_path=next_p)
         except Exception as exc:
             log.error("Login error: %s", exc)
             self.send_error(500)
@@ -2090,11 +2094,15 @@ class HorizonHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", "0")
         self.end_headers()
 
-    def _serve_login(self, error: bool = False):
+    def _serve_login(self, error: bool = False, next_path: str = "/"):
         error_html = (
             '<div class="login-error">Incorrect username or password. Please try again.</div>'
             if error else ""
         )
+        # Only allow relative paths to prevent open redirect
+        if not next_path.startswith("/"):
+            next_path = "/"
+        next_field = f'<input type="hidden" name="next" value="{next_path}" />'
         page = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2168,6 +2176,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
              onerror="this.closest('.login-amsg').style.display='none'" />
       </div>
       <form method="POST" action="/login" autocomplete="on">
+        {next_field}
         <label for="username">Username</label>
         <input id="username" name="username" type="text"
                autocomplete="username" required autofocus />
@@ -2222,10 +2231,14 @@ class HorizonHandler(BaseHTTPRequestHandler):
 
         # ── Auth gate ──────────────────────────────────────────────────────────
         if path == "/login":
-            self._serve_login()
+            from urllib.parse import urlparse, parse_qs
+            qs = parse_qs(urlparse(self.path).query)
+            next_path = qs.get("next", ["/"])[0]
+            self._serve_login(next_path=next_path)
             return
         if path not in _PUBLIC_PATHS and not self._is_authenticated():
-            self._redirect(f"/login")
+            safe_next = self.path if self.path.startswith("/") else "/"
+            self._redirect(f"/login?next={safe_next}")
             return
 
         if path == "/api/summary":
@@ -2415,7 +2428,7 @@ let _d=null,_cd=null,_dl={};
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(secs){if(secs<=0)return'00:00:00';const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
 function render(d){
-  const cs=(d.conflicts||[]).filter(c=>!c.acknowledged);
+  const cs=(d.conflicts||[]);
   const now=new Date();
   document.getElementById('ht').textContent=now.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
   document.getElementById('hs').textContent=cs.length;
@@ -2427,20 +2440,27 @@ function render(d){
   if(!cs.length){ct.innerHTML='<div class="empty"><div class="empty-icon">✓</div><div class="empty-title">All Clear</div><div class="empty-sub">No active decisions required.<br>Port operations running normally.</div></div>';return;}
   _dl={};
   const ro={'critical':0,'high':1,'medium':2,'low':3};
-  const sorted=[...cs].sort((a,b)=>(ro[a.risk_level]||9)-(ro[b.risk_level]||9));
-  sorted.forEach(c=>{_dl[c.id]=c.decide_by?new Date(c.decide_by).getTime():Date.now()+3*3600*1000;});
+  const sorted=[...cs].sort((a,b)=>(ro[a.severity]||9)-(ro[b.severity]||9));
+  sorted.forEach(c=>{
+    const ds=c.decision_support||{};
+    _dl[c.id]=ds.decision_deadline?new Date(ds.decision_deadline).getTime():Date.now()+3*3600*1000;
+  });
   ct.innerHTML=sorted.map(c=>{
-    const ic=c.risk_level==='critical',ih=c.risk_level==='high';
+    const sev=c.severity||'medium';
+    const ic=sev==='critical',ih=sev==='high';
     const rb=ic?'<span class="b b-crit">CRITICAL</span>':ih?'<span class="b b-high">HIGH RISK</span>':'<span class="b b-med">MED RISK</span>';
     const cb=c.signal_type==='CONFLICT'?'<span class="b b-conf">CONFLICT</span>':'';
-    const rec=(c.recommendations||[])[0]||{};
-    const rh=rec.action?`<div class="rec"><div class="rec-lbl">★ Recommended Action</div><div class="rec-txt">${esc(rec.action)}</div>${rec.description?`<div class="rec-sub">${esc(rec.description.slice(0,140))}${rec.description.length>140?'…':''}</div>`:''}</div>`:'';
-    const cost=rec.cost_display||c.cost_display||'~$3,800';
-    const delay=rec.delay_display||c.delay_display||'90 min';
-    const casc=rec.cascade_display||c.cascade_display||'1 vessel';
+    const vname=(c.vessel_names||[])[0]||'Unknown';
+    const ds=c.decision_support||{};
+    const opts=ds.options||[];
+    const rec=opts.find(o=>o.recommended)||opts[0]||{};
+    const rh=rec.label?`<div class="rec"><div class="rec-lbl">★ Recommended Action</div><div class="rec-txt">${esc(rec.label)}</div>${rec.description?`<div class="rec-sub">${esc(rec.description.slice(0,140))}${rec.description.length>140?'…':''}</div>`:''}</div>`:'';
+    const cost=rec.cost_label||'~$3,800';
+    const delay=rec.delay_mins!=null?(rec.delay_mins>0?rec.delay_mins+' min':'0 min'):'90 min';
+    const casc=rec.cascade_count!=null?(rec.cascade_count+' vessel'+(rec.cascade_count!==1?'s':'')):'1 vessel';
     return`<div class="card${ic?' crit':ih?' high':''}" id="card-${esc(c.id)}">
 <div class="badges">${rb}${cb}<span class="b b-sim">SIMULATION</span></div>
-<div class="vname">${esc(c.vessel_name||'Unknown')}</div>
+<div class="vname">${esc(vname)}</div>
 <div class="cdesc">${esc(c.description||c.conflict_type||'')}</div>
 ${rh}
 <div class="metrics">
