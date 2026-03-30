@@ -889,10 +889,10 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
         for i in range(len(bv)):
             for j in range(i + 1, len(bv)):
                 a, b = bv[i], bv[j]
-                a_start = isoparse(a["ata"] or a["eta"])
-                a_end   = isoparse(a["atd"] or a["etd"])
-                b_start = isoparse(b["ata"] or b["eta"])
-                b_end   = isoparse(b["atd"] or b["etd"])
+                a_start = isoparse(a.get("ata") or a.get("eta"))
+                a_end   = isoparse(a.get("atd") or a.get("etd"))
+                b_start = isoparse(b.get("ata") or b.get("eta"))
+                b_end   = isoparse(b.get("atd") or b.get("etd"))
                 if a_start > b_start:
                     a, b = b, a
                     a_start, a_end, b_start, b_end = b_start, b_end, a_start, a_end
@@ -1642,8 +1642,8 @@ def make_berth_utilisation(vessels, berths, now):
             for v in vessels:
                 if v["berth_id"] != b["id"] or v["status"] == "departed":
                     continue
-                v_start = isoparse(v["ata"] or v["eta"])
-                v_end   = isoparse(v["atd"] or v["etd"])
+                v_start = isoparse(v.get("ata") or v.get("eta"))
+                v_end   = isoparse(v.get("atd") or v.get("etd"))
                 if v_start < slot_end and v_end > slot_start:
                     occupants.append(v["name"])
             if b["status"] == "maintenance":
@@ -2254,8 +2254,16 @@ def build_summary():
         c["safety_score"] = _safety_score_for_conflict(c, weather, tides)
 
     # Beta 3 additions
-    berth_util = make_berth_utilisation(vessels, berths, now)
-    etd_risk   = compute_etd_risk(vessels, conflicts, weather, tides)
+    try:
+        berth_util = make_berth_utilisation(vessels, berths, now)
+    except Exception as exc:
+        log.error("make_berth_utilisation failed: %s — using empty list", exc)
+        berth_util = []
+    try:
+        etd_risk = compute_etd_risk(vessels, conflicts, weather, tides)
+    except Exception as exc:
+        log.error("compute_etd_risk failed: %s — using empty list", exc)
+        etd_risk = []
     dashboard  = make_dashboard(vessels, berths, conflicts, pilotage, towage,
                                 weather, tides, etd_risk, berth_util, now)
     ukc        = compute_ukc(vessels, berths, tides["current_height_m"])
