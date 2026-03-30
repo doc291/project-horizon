@@ -1037,7 +1037,7 @@ def build_guidance(conflicts, vessels, berths, pilotage, towage, now):
                     ),
                     "resolution_options": [],
                     "vessel_id": v["id"], "vessel_name": v["name"],
-                    "action_required": False,
+                    "action_required": hrs < 2,
                     "deadline": fmt(etd - timedelta(minutes=30)),
                 })
 
@@ -2563,13 +2563,8 @@ function render(d){
     }
   });
   movs.sort((a,b)=>a.time-b.time);
-  // For Your Attention — action_required guidance items, deadline within 3h
-  const attnItems=(d.guidance||[]).filter(g=>{
-    if(!g.action_required)return false;
-    // Exclude items already shown as conflict decision cards
-    if((d.conflicts||[]).some(c=>c.decision_support&&(c.vessel_ids||[]).includes(g.vessel_id)))return false;
-    return true;
-  }).slice(0,3);
+  // For Your Attention — action_required guidance items only
+  const attnItems=(d.guidance||[]).filter(g=>g.action_required).slice(0,3);
   const attnHtml=attnItems.length?`<div class="attn-section"><div class="section-hdr">For Your Attention</div>${attnItems.map(g=>{
     const isCrit=g.priority==='critical';
     const dl=g.deadline?new Date(g.deadline):null;
