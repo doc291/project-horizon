@@ -1129,7 +1129,7 @@ let _vesselMarkers={}, _conflictRings=[];
 let _activeTab='dashboard', _vesselTableOpen=true, _activeRTab='decisions';
 
 /* ── Storage keys ── */
-const SIG_KEY='horizon_signal_states', AUDIT_KEY='horizon_audit_log', NOTIF_KEY='horizon_notifications';
+const SIG_KEY='horizon_signal_states', AUDIT_KEY='horizon_audit_log', NOTIF_KEY='horizon_notifications_v2';
 
 /* ── Signal state ── */
 function getSigStates(){try{return JSON.parse(localStorage.getItem(SIG_KEY)||'{}')}catch(e){return{}}}
