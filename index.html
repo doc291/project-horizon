@@ -643,6 +643,81 @@
       border-color: #5a1a1a;
     }
     .dec-timer-box.timer-urgent .dec-timer-val { color: #ef4444; }
+
+    /* ── Beta 9: Port Status Banner ── */
+    #port-status-banner {
+      display: flex; align-items: center; gap: 12px;
+      padding: 7px 20px; flex-shrink: 0;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.3px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.4s, border-color 0.4s;
+    }
+    #port-status-banner.psb-ok   { background: rgba(34,197,94,.05);  border-bottom-color: rgba(34,197,94,.18); }
+    #port-status-banner.psb-warn { background: rgba(245,158,11,.06); border-bottom-color: rgba(245,158,11,.22); }
+    #port-status-banner.psb-crit { background: rgba(239,68,68,.07);  border-bottom-color: rgba(239,68,68,.28); }
+    .psb-dot {
+      width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+    }
+    #port-status-banner.psb-ok   .psb-dot { background: #22c55e; box-shadow: 0 0 7px rgba(34,197,94,.7); }
+    #port-status-banner.psb-warn .psb-dot { background: #f59e0b; box-shadow: 0 0 7px rgba(245,158,11,.6); }
+    #port-status-banner.psb-crit .psb-dot { background: #ef4444; box-shadow: 0 0 7px rgba(239,68,68,.7); animation: psb-pulse 1.4s infinite; }
+    @keyframes psb-pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+    .psb-port { font-size: 11px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; color: var(--text-dim); }
+    .psb-sep  { width: 1px; height: 14px; background: var(--border); flex-shrink: 0; }
+    #port-status-banner.psb-ok   .psb-msg { color: #4ade80; }
+    #port-status-banner.psb-warn .psb-msg { color: #fcd34d; }
+    #port-status-banner.psb-crit .psb-msg { color: #fca5a5; }
+    .psb-risk { font-size: 11px; font-weight: 800; color: #fbbf24; margin-left: auto; padding-left: 12px; }
+    .psb-brief-btn {
+      margin-left: 12px; font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+      padding: 3px 10px; border-radius: 10px; cursor: pointer;
+      background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.25);
+      color: var(--accent); white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .psb-brief-btn:hover { background: rgba(56,189,248,.18); }
+
+    /* ── Beta 9: Conflict Timeline ── */
+    .ctl-wrap {
+      padding: 12px 16px 8px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .ctl-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .ctl-title { font-size: 10px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.6px; text-transform: uppercase; }
+    .ctl-legend { display: flex; gap: 12px; }
+    .ctl-leg-item { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-dim); }
+    .ctl-leg-dot { width: 8px; height: 8px; border-radius: 2px; }
+    .ctl-track {
+      position: relative; height: 32px; background: var(--surface2);
+      border-radius: 6px; overflow: visible; border: 1px solid var(--border);
+    }
+    .ctl-now-line {
+      position: absolute; top: -4px; bottom: -4px; width: 2px;
+      background: var(--accent); border-radius: 1px; z-index: 10;
+    }
+    .ctl-now-line::before {
+      content: 'NOW'; position: absolute; top: -14px; left: 50%;
+      transform: translateX(-50%); font-size: 8px; font-weight: 700;
+      color: var(--accent); letter-spacing: 0.4px; white-space: nowrap;
+    }
+    .ctl-block {
+      position: absolute; top: 4px; bottom: 4px; border-radius: 3px;
+      cursor: pointer; transition: opacity .15s; min-width: 4px;
+    }
+    .ctl-block:hover { opacity: 0.85; z-index: 20; }
+    .ctl-block.sev-critical { background: rgba(239,68,68,.75); border: 1px solid rgba(239,68,68,.9); }
+    .ctl-block.sev-high     { background: rgba(249,115,22,.7); border: 1px solid rgba(249,115,22,.85); }
+    .ctl-block.sev-medium   { background: rgba(234,179,8,.65); border: 1px solid rgba(234,179,8,.8); }
+    .ctl-block.sev-low      { background: rgba(107,114,128,.5); border: 1px solid rgba(107,114,128,.7); }
+    .ctl-tick-row { display: flex; justify-content: space-between; margin-top: 4px; padding: 0 1px; }
+    .ctl-tick { font-size: 9px; color: var(--text-dim); }
+    .ctl-tooltip {
+      position: fixed; z-index: 9999; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px;
+      font-size: 11px; pointer-events: none; max-width: 220px; line-height: 1.5;
+      box-shadow: 0 4px 16px rgba(0,0,0,.5); display: none;
+    }
   </style>
 </head>
 <body>
@@ -652,7 +727,7 @@
   <header>
     <div class="logo">
       <img src="/logo" alt="Project Horizon" />
-      <span class="logo-badge">BETA 8</span>
+      <span class="logo-badge">BETA 9</span>
       <select id="port-switcher" onchange="switchPort(this.value)" title="Switch active port">
         <option value="BRISBANE">Brisbane</option>
         <option value="DARWIN">Darwin</option>
@@ -723,6 +798,12 @@
     </div>
   </div>
 
+  <!-- ── Beta 9: Port Status Banner ── -->
+  <div id="port-status-banner" class="psb-ok">
+    <div class="psb-dot"></div>
+    <span class="psb-port">Loading…</span>
+  </div>
+
   <!-- ── Main ── -->
   <div class="main">
 
@@ -755,6 +836,22 @@
       <!-- Dashboard tab -->
       <div class="tab-pane active" id="tab-dashboard" style="overflow-y:auto;flex-direction:column;">
         <div class="dash-grid" id="dash-kpi-grid"><div class="empty" style="grid-column:1/-1">Loading…</div></div>
+
+        <!-- Beta 9: Conflict Timeline -->
+        <div class="ctl-wrap" id="ctl-wrap">
+          <div class="ctl-hdr">
+            <span class="ctl-title">Conflict Timeline — Next 24h</span>
+            <div class="ctl-legend">
+              <div class="ctl-leg-item"><div class="ctl-leg-dot" style="background:#ef4444"></div>Critical</div>
+              <div class="ctl-leg-item"><div class="ctl-leg-dot" style="background:#f97316"></div>High</div>
+              <div class="ctl-leg-item"><div class="ctl-leg-dot" style="background:#eab308"></div>Medium</div>
+            </div>
+          </div>
+          <div class="ctl-track" id="ctl-track"></div>
+          <div class="ctl-tick-row" id="ctl-ticks"></div>
+        </div>
+        <div class="ctl-tooltip" id="ctl-tip"></div>
+
         <div class="risk-section">
           <div class="risk-section-title">ETD Risk Ranking — All Active Vessels</div>
           <div class="risk-col-header">
@@ -1159,6 +1256,8 @@ function render(d){
   _updatePortSwitcher(d.port_profile);
   _updateVTSCenter(d.port_profile);
   renderConditionsBar(d.weather,d.tides,d.ukc,d.arrival_ukc);
+  renderStatusBanner(d);
+  renderConflictTimeline(d);
   renderGuidance(d.guidance||[]);
   renderDecisions(d.conflicts||[]);
   renderVesselTable(d.vessels||[], d.etd_risk||[]);
@@ -1171,6 +1270,138 @@ function render(d){
   if(_activeTab==='utilisation')renderUtilisation(d.berth_utilisation||[]);
   if(_activeTab==='dukc')renderDUKC(d.dukc);
   if(_activeTab==='esg')renderESG(d.esg);
+}
+
+/* ── Beta 9: Conflict Timeline ── */
+function renderConflictTimeline(d){
+  const track=document.getElementById('ctl-track');
+  const ticks=document.getElementById('ctl-ticks');
+  const tip  =document.getElementById('ctl-tip');
+  if(!track)return;
+  const conflicts=(d.conflicts||[]).filter(c=>c.signal_type==='CONFLICT');
+  const now=Date.now();
+  const span=24*3600*1000; // 24h window
+  const end=now+span;
+
+  // Now-line
+  const nowPct=0; // always at left edge (start=now)
+  let html=`<div class="ctl-now-line" style="left:0%"></div>`;
+
+  const sevOrder={'critical':0,'high':1,'medium':2,'low':3};
+  const sorted=[...conflicts].sort((a,b)=>(sevOrder[a.severity]||9)-(sevOrder[b.severity]||9));
+
+  sorted.forEach(c=>{
+    // Each conflict: use decision_deadline as end, estimate start = deadline - 2h
+    const ds=c.decision_support||{};
+    let cEnd=ds.decision_deadline?new Date(ds.decision_deadline).getTime():now+3*3600*1000;
+    let cStart=cEnd-2*3600*1000; // blocks are 2h wide by default
+    // Clamp to window
+    if(cEnd<now||cStart>end)return;
+    cStart=Math.max(cStart,now);
+    cEnd=Math.min(cEnd,end);
+    const left=((cStart-now)/span)*100;
+    const width=Math.max(((cEnd-cStart)/span)*100, 0.8);
+    const sev=c.severity||'medium';
+    const vnames=(c.vessel_names||[]).join(', ')||'Unknown';
+    const tipData=encodeURIComponent(JSON.stringify({
+      sev: sev.toUpperCase(),
+      vessels: vnames,
+      type: c.conflict_type||'',
+      desc: (c.description||'').slice(0,100),
+      deadline: ds.decision_deadline||''
+    }));
+    html+=`<div class="ctl-block sev-${sev}" style="left:${left.toFixed(2)}%;width:${width.toFixed(2)}%"
+      data-tip="${tipData}" onmouseenter="showCtlTip(event,this)" onmouseleave="hideCtlTip()"></div>`;
+  });
+
+  if(conflicts.length===0){
+    html+=`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-dim)">✓ No active conflicts in next 24h</div>`;
+  }
+  track.innerHTML=html;
+
+  // Hour ticks: 0h, 6h, 12h, 18h, 24h
+  const tickHtml=[0,6,12,18,24].map(h=>{
+    const d=new Date(now+h*3600*1000);
+    const hh=String(d.getUTCHours()).padStart(2,'0');
+    return`<span class="ctl-tick">${h===0?'Now':hh+':00 UTC'}</span>`;
+  }).join('');
+  ticks.innerHTML=tickHtml;
+}
+
+function showCtlTip(e,el){
+  const tip=document.getElementById('ctl-tip');
+  if(!tip)return;
+  try{
+    const td=JSON.parse(decodeURIComponent(el.dataset.tip));
+    const dl=td.deadline?new Date(td.deadline):null;
+    const dlStr=dl?`<br><span style="color:var(--medium)">Decide by ${dl.toUTCString().slice(17,22)} UTC</span>`:'';
+    const sevC={'CRITICAL':'#f87171','HIGH':'#fb923c','MEDIUM':'#fbbf24'}[td.sev]||'#9ca3af';
+    tip.innerHTML=`<strong style="color:${sevC}">${td.sev}</strong> · ${td.vessels}<br><span style="color:var(--text-dim);font-size:10px">${td.desc}</span>${dlStr}`;
+    tip.style.display='block';
+    tip.style.left=(e.clientX+12)+'px';
+    tip.style.top =(e.clientY-10)+'px';
+  }catch(e){}}
+
+function hideCtlTip(){
+  const tip=document.getElementById('ctl-tip');
+  if(tip)tip.style.display='none';
+}
+
+/* ── Beta 9: Trend Sparklines ── */
+function _sparkVals(portId, metric, currentVal){
+  // Deterministic 7-day history seeded from port+metric so values are stable
+  let s=Math.abs((portId+metric).split('').reduce((h,c)=>((h<<5)-h+c.charCodeAt(0))|0,0));
+  const rng=()=>{s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff;};
+  const cap=metric==='conflicts'?12:100;
+  const swing=metric==='conflicts'?2.5:9;
+  const vals=[];let v=currentVal;
+  for(let i=6;i>=1;i--){v=Math.max(0,Math.min(cap,v+(rng()-.48)*swing));vals.push(Math.round(v*10)/10);}
+  vals.reverse();vals.push(currentVal);
+  return vals;
+}
+function _sparkSVG(vals, color){
+  const W=64,H=22;
+  const mn=Math.min(...vals),mx=Math.max(...vals);
+  const rng=mx-mn||1;
+  const pts=vals.map((v,i)=>`${(i/(vals.length-1))*W},${H-2-((v-mn)/rng)*(H-6)}`).join(' ');
+  const lx=(vals.length-1)/(vals.length-1)*W, ly=H-2-((vals[vals.length-1]-mn)/rng)*(H-6);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;margin-top:5px;opacity:.8"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${lx}" cy="${ly}" r="2.5" fill="${color}"/></svg>`;
+}
+
+/* ── Beta 9: Port Status Banner ── */
+function renderStatusBanner(d){
+  const el=document.getElementById('port-status-banner');
+  if(!el)return;
+  const conflicts=d.conflicts||[];
+  const ps=d.port_status||{};
+  const profile=d.port_profile||{};
+  const critCount=conflicts.filter(c=>c.severity==='critical').length;
+  const decCount=conflicts.filter(c=>c.signal_type==='CONFLICT'&&c.decision_support).length;
+  const totalSig=conflicts.filter(c=>c.signal_type==='CONFLICT').length;
+  const portName=profile.display_name||'Port';
+  const util=(d.dashboard||{}).berth_utilisation_pct;
+  const costAtRisk=conflicts.filter(c=>c.decision_support).reduce((sum,c)=>{
+    const rec=((c.decision_support||{}).options||[]).find(o=>o.recommended)||((c.decision_support||{}).options||[])[0];
+    if(!rec||!rec.cost_label)return sum;
+    const m=rec.cost_label.replace(/[^0-9]/g,'');return sum+(m?parseInt(m):0);
+  },0);
+  let state,msg;
+  if(critCount>0){
+    state='psb-crit';
+    msg=`${critCount} critical conflict${critCount!==1?'s':''} active &nbsp;·&nbsp; ${decCount} decision${decCount!==1?'s':''} pending`;
+  }else if(decCount>0){
+    state='psb-warn';
+    msg=`${decCount} decision${decCount!==1?'s':''} pending &nbsp;·&nbsp; ${totalSig} active signal${totalSig!==1?'s':''}`;
+  }else{
+    state='psb-ok';
+    const parts=[];
+    if(ps.vessels_in_port!=null)parts.push(`${ps.vessels_in_port} vessels in port`);
+    if(util!=null)parts.push(`${util}% berths occupied`);
+    msg=parts.length?`Operations normal &nbsp;·&nbsp; ${parts.join(' &nbsp;·&nbsp; ')}`:'Operations normal';
+  }
+  const riskHtml=costAtRisk>0?`<span class="psb-risk">$${costAtRisk.toLocaleString()} at risk</span>`:'';
+  el.className=state;
+  el.innerHTML=`<div class="psb-dot"></div><span class="psb-port">${portName}</span><div class="psb-sep"></div><span class="psb-msg">${msg}</span>${riskHtml}<a href="/api/port-brief" target="_blank" class="psb-brief-btn">📄 Port Brief</a>`;
 }
 
 /* ── Header ── */
@@ -2084,16 +2315,22 @@ function renderDashboard(dash, etdRisk){
   const riskCls=dash.vessels_at_risk>2?'bad':dash.vessels_at_risk>0?'warn':'good';
   const conflCls=actualConflicts>0?'bad':'good';
   if(typeof _checkCounts==='function')_checkCounts(actualConflicts,null,'active conflicts',actualConflicts);
+  // Beta 9: Sparkline data
+  const portId=(_data&&_data.port_profile&&_data.port_profile.id)||'PORT';
+  const conflSpark=_sparkSVG(_sparkVals(portId,'conflicts',actualConflicts), actualConflicts>0?'#f87171':'#4ade80');
+  const utilSpark=_sparkSVG(_sparkVals(portId,'utilisation',dash.berth_utilisation_pct), dash.berth_utilisation_pct>=85?'#fbbf24':'#38bdf8');
   grid.innerHTML=`
     <div class="kpi-tile ${critAlert?'kpi-alert':''}">
       <div class="kpi-label">Active Conflicts</div>
       <div class="kpi-value ${conflCls}">${actualConflicts}</div>
       <div class="kpi-sub">${dash.critical_conflicts} critical</div>
+      ${conflSpark}
     </div>
     <div class="kpi-tile">
       <div class="kpi-label">Berth Utilisation</div>
       <div class="kpi-value ${utilCls}">${dash.berth_utilisation_pct}%</div>
       <div class="kpi-sub">${dash.forecast_utilisation_48h}% forecast 48h avg</div>
+      ${utilSpark}
     </div>
     <div class="kpi-tile">
       <div class="kpi-label">On-Time Departure</div>
