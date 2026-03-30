@@ -154,6 +154,33 @@ def _schedule_mst_refresh():
     t = threading.Thread(target=_loop, daemon=True, name="mst-refresh")
     t.start()
 
+def _schedule_bom_weather_warmup():
+    """
+    Background thread: pre-warm BOM tides + weather caches for all ports on
+    startup, then re-warm every 25 minutes so caches never expire mid-request.
+    BOM TTL = 60 min, weather TTL = 30 min — refreshing at 25 min keeps both warm.
+    """
+    def _loop():
+        time.sleep(6)   # let server bind before making outbound calls
+        while True:
+            now = utcnow()
+            for port_id, prof in PORT_PROFILES.items():
+                try:
+                    fetch_bom_tides(prof, now)
+                    log.info("BOM cache refreshed for %s", port_id)
+                except Exception as exc:
+                    log.warning("BOM refresh failed for %s: %s", port_id, exc)
+                try:
+                    fetch_weather(prof)
+                    log.info("Weather cache refreshed for %s", port_id)
+                except Exception as exc:
+                    log.warning("Weather refresh failed for %s: %s", port_id, exc)
+            time.sleep(25 * 60)   # 25 minutes — refreshes before either cache expires
+
+    t = threading.Thread(target=_loop, daemon=True, name="bom-weather-warmup")
+    t.start()
+
+
 MAX_LIVE_VESSELS = 80   # Safety cap — conflict engine is O(n²); reject bad scrapes
 
 def load_qships_data():
@@ -3655,6 +3682,7 @@ if __name__ == "__main__":
     _schedule_scrapes()
     load_qships_data()
     _schedule_mst_refresh()
+    _schedule_bom_weather_warmup()
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()
