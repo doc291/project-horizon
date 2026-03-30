@@ -2572,14 +2572,26 @@ class HorizonHandler(BaseHTTPRequestHandler):
             try:
                 self._json(build_summary())
             except Exception as exc:
-                log.error("build_summary crashed: %s — forcing simulation fallback", exc)
+                import traceback
+                tb = traceback.format_exc()
+                log.error("build_summary crashed: %s\n%s", exc, tb)
                 global _qships_data
                 _qships_data = None
                 try:
                     self._json(build_summary())
                 except Exception as exc2:
-                    log.error("Simulation fallback also crashed: %s", exc2)
-                    self.send_error(500)
+                    tb2 = traceback.format_exc()
+                    log.error("Simulation fallback also crashed: %s\n%s", exc2, tb2)
+                    # Return the actual error as JSON so we can diagnose remotely
+                    self._json({"error": str(exc2), "traceback": tb2}, status=500)
+        elif path == "/api/diag":
+            # Temporary diagnostic — calls build_summary and returns any exception
+            import traceback as _tb
+            try:
+                data = build_summary()
+                self._json({"ok": True, "keys": list(data.keys())})
+            except Exception as exc:
+                self._json({"ok": False, "error": str(exc), "traceback": _tb.format_exc()})
         elif path == "/api/scrape":
             self._scrape()
         elif path == "/api/debug":
@@ -2680,9 +2692,9 @@ class HorizonHandler(BaseHTTPRequestHandler):
             out["note"] = "No debug file — API call likely failed before writing (network/HTTP error)"
         self._json(out)
 
-    def _json(self, data):
+    def _json(self, data, status=200):
         body = json.dumps(data, default=str).encode()
-        self.send_response(200)
+        self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Access-Control-Allow-Origin", "*")
