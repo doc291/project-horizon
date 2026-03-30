@@ -2368,7 +2368,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
 <meta name="apple-mobile-web-app-title" content="Horizon">
 <meta name="theme-color" content="#0a1628">
 <link rel="apple-touch-icon" href="/mobile-icon?v=2">
-<title>Horizon — Decisions</title>
+<title>Horizon - Port Intelligence</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{--bg:#0a1628;--card:#0f1f35;--card2:#132238;--acc:#00b4c8;--txt:#c8d8e8;--bright:#e8f4ff;--dim:#6b82a8;--red:#ef4444;--amber:#f59e0b;--green:#22c55e}
