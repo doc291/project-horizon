@@ -1259,6 +1259,9 @@ function render(d){
   updateTabBadges(d.conflicts||[], d.dukc);
   renderGantt(d);
   renderDashboard(d.dashboard, d.etd_risk||[]);
+  renderPilotage(d);
+  renderTowage(d);
+  renderLines(d);
   if(_activeTab==='utilisation')renderUtilisation(d.berth_utilisation||[]);
   if(_activeTab==='dukc')renderDUKC(d.dukc);
   if(_activeTab==='esg')renderESG(d.esg);
