@@ -245,6 +245,7 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
     # Add 2–3 simulated inbound vessels so the conflict engine has something
     # to work with on arrivals (MST port/estimate often returns empty).
     # Names are seeded from the UNLOCO so they're stable across refreshes.
+    # The pool is shuffled per-port so each port gets distinct names.
     _INBOUND_NAMES = [
         "PACIFIC NAVIGATOR", "SOUTHERN CROSS", "CORAL SEA",
         "BASS STRAIT", "GREAT BARRIER", "IRON MONARCH",
@@ -252,6 +253,10 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
     ]
     rng = random.Random(int(hashlib.md5(unloco.encode()).hexdigest(), 16))
     n_inbound = rng.randint(2, 3)
+    # Shuffle a copy of the pool seeded by UNLOCO, then slice — guarantees
+    # no duplicate names within a single port's inbound set.
+    name_pool = list(_INBOUND_NAMES)
+    rng.shuffle(name_pool)
     for j in range(n_inbound):
         fake_mmsi = f"SIM-{unloco}-{j}"
         props = _sim_vessel_props(fake_mmsi, now)
@@ -259,9 +264,7 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
         eta_str = eta_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
         etd_dt  = eta_dt + timedelta(hours=rng.uniform(8, 48))
         berth = assignable[j % len(assignable)] if assignable else None
-        inbound_name = _INBOUND_NAMES[
-            (int(hashlib.md5(f"{unloco}-{j}".encode()).hexdigest(), 16)) % len(_INBOUND_NAMES)
-        ]
+        inbound_name = name_pool[j]
         vessels_out.append({
             "id":              fake_mmsi,
             "name":            inbound_name,
