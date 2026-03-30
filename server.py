@@ -156,28 +156,38 @@ def _schedule_mst_refresh():
 
 def _schedule_bom_weather_warmup():
     """
-    Background thread: pre-warm BOM tides + weather caches for all ports on
-    startup, then re-warm every 25 minutes so caches never expire mid-request.
-    BOM TTL = 60 min, weather TTL = 30 min — refreshing at 25 min keeps both warm.
+    Background thread: pre-warm BOM tides + weather + vessel scraper caches for
+    all ports on startup, then re-warm every 20 minutes.
+    This ensures build_summary() always reads from warm in-memory caches and
+    never makes blocking HTTP calls in the request path.
     """
     def _loop():
-        time.sleep(6)   # let server bind before making outbound calls
+        time.sleep(2)   # minimal delay — just let the server socket bind
         while True:
             now = utcnow()
             for port_id, prof in PORT_PROFILES.items():
+                # BOM tides (TTL 60 min)
                 try:
                     fetch_bom_tides(prof, now)
                     log.info("BOM cache refreshed for %s", port_id)
                 except Exception as exc:
                     log.warning("BOM refresh failed for %s: %s", port_id, exc)
+                # Weather (TTL 30 min)
                 try:
                     fetch_weather(prof)
                     log.info("Weather cache refreshed for %s", port_id)
                 except Exception as exc:
                     log.warning("Weather refresh failed for %s: %s", port_id, exc)
-            time.sleep(25 * 60)   # 25 minutes — refreshes before either cache expires
+                # Vessel scraper (TTL 30 min) — only for ports with a live URL
+                if prof.get("vessel_data_url") and prof.get("vessel_data_source") != "simulated":
+                    try:
+                        fetch_vessel_movements(prof, now)
+                        log.info("Vessel scraper cache refreshed for %s", port_id)
+                    except Exception as exc:
+                        log.warning("Vessel scraper warmup failed for %s: %s", port_id, exc)
+            time.sleep(20 * 60)   # re-warm every 20 min (before 30-min TTLs expire)
 
-    t = threading.Thread(target=_loop, daemon=True, name="bom-weather-warmup")
+    t = threading.Thread(target=_loop, daemon=True, name="cache-warmup")
     t.start()
 
 
