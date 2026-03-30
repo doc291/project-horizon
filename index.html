@@ -2541,11 +2541,12 @@ function wiUpdateForm(){
         <option value="6">6 hours</option><option value="12">12 hours</option>
       </select></div>`;
   } else if(type==='resource_offline'){
-    const tugs = (_data&&_data.towage&&_data.towage.tug_fleet||[]).map(t=>({key:'tug:'+t.name,lbl:'🚢 '+t.name}));
-    const pilots = (_data&&_data.pilotage&&_data.pilotage.pilot_roster||[]).map(p=>({key:'pilot:'+(p.name||p.id),lbl:'⚓ '+(p.name||p.id)}));
-    const opts = [...tugs,...pilots];
+    const tugs = (_data&&_data.port_tugs||[]).map(t=>({key:'tug:'+t.name,lbl:'🚢 '+t.name}));
+    const pilots = [...new Set((_data&&_data.pilotage||[]).map(p=>p.pilot_name).filter(Boolean))].map(n=>({key:'pilot:'+n,lbl:'⚓ '+n}));
+    const gangs = (_data&&_data.port_gangs||[]).map(g=>({key:'gang:'+(g.name||g),lbl:'🔗 '+(g.name||g)}));
+    const opts = [...tugs,...pilots,...gangs];
     extra.innerHTML = `<div class="wi-field"><label>Resource</label>
-      <select class="wi-sel" id="wi-res">${opts.map(o=>`<option value="${esc(o.key)}">${esc(o.lbl)}</option>`).join('')}</select></div>`;
+      <select class="wi-sel" id="wi-res">${opts.length?opts.map(o=>`<option value="${esc(o.key)}">${esc(o.lbl)}</option>`).join(''):'<option value="">No resources found</option>'}</select></div>`;
   }
 }
 
