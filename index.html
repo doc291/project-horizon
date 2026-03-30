@@ -506,6 +506,31 @@
     .kpi-value.bad  { color: var(--critical); }
     .kpi-sub  { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
 
+    /* ── Performance tab ── */
+    .perf-wrap  { padding: 16px; overflow-y: auto; flex: 1; }
+    .perf-header{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .perf-title { font-size: 11px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--text-dim); }
+    .perf-sim-badge { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 10px; background: rgba(0,180,200,.08); border: 1px solid rgba(0,180,200,.2); color: var(--accent); letter-spacing: .3px; }
+    .perf-grid  { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+    .perf-card  { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .perf-card-lbl { font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+    .perf-card-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+    .perf-card-val { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+    .perf-card-delta { font-size: 11px; font-weight: 700; }
+    .perf-card-delta.up   { color: #4ade80; }
+    .perf-card-delta.down { color: #f87171; }
+    .perf-card-delta.flat { color: var(--text-dim); }
+    .perf-card-delta.up-bad  { color: #f87171; }  /* conflicts going up is bad */
+    .perf-card-delta.down-good { color: #4ade80; }
+    .perf-chart-wrap { margin-top: 12px; }
+    .perf-bars  { display: flex; align-items: flex-end; gap: 4px; height: 52px; }
+    .perf-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 3px; }
+    .perf-bar   { width: 100%; border-radius: 3px 3px 0 0; min-height: 3px; transition: opacity .2s; }
+    .perf-bar:hover { opacity: .75; }
+    .perf-bar.today { outline: 1px solid rgba(255,255,255,.25); }
+    .perf-day-lbl { font-size: 8px; color: var(--text-dim); text-align: center; font-variant-numeric: tabular-nums; }
+    .perf-day-lbl.today { color: var(--accent); font-weight: 700; }
+
     /* ETD risk section inside dashboard */
     .risk-section { padding: 0 14px 14px; }
     .risk-section-title {
@@ -827,6 +852,7 @@
         <button class="tab-btn" onclick="switchTab('lines')">Lines</button>
         <button class="tab-btn" id="tabbtn-dukc" onclick="switchTab('dukc')">DUKC <span class="tab-badge" id="tbadge-dukc"></span></button>
         <button class="tab-btn" id="tabbtn-esg" onclick="switchTab('esg')">ESG</button>
+        <button class="tab-btn" onclick="switchTab('performance')">Performance</button>
       </div>
 
       <!-- Dashboard tab -->
@@ -1066,6 +1092,19 @@
     </div>
 
     <!-- Right: Decisions + Audit -->
+      <!-- Performance tab -->
+      <div class="tab-pane" id="tab-performance" style="overflow-y:auto;flex-direction:column;">
+        <div class="perf-wrap">
+          <div class="perf-header">
+            <span class="perf-title">Port Performance — 7 Day Overview</span>
+            <span class="perf-sim-badge" id="perf-data-badge">Simulated History</span>
+          </div>
+          <div class="perf-grid" id="perf-grid">
+            <div style="grid-column:1/-1;color:var(--text-dim);padding:20px;text-align:center;">Loading…</div>
+          </div>
+        </div>
+      </div>
+
     <div class="panel panel-right" style="display:flex;flex-direction:column;">
       <div class="panel-hdr">
         <span>Decisions</span>
@@ -1216,7 +1255,7 @@ function renderAuditLog(){
 
 
 /* ── Tab switching ── */
-const _TABS = ['dashboard','timeline','utilisation','vts','pilotage','towage','lines','dukc','esg'];
+const _TABS = ['dashboard','timeline','utilisation','vts','pilotage','towage','lines','dukc','esg','performance'];
 function switchTab(name){
   _activeTab=name;
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',_TABS[i]===name));
@@ -1229,6 +1268,7 @@ function switchTab(name){
   if(name==='lines'&&_data)renderLines(_data);
   if(name==='dukc'&&_data)renderDUKC(_data.dukc);
   if(name==='esg'&&_data)renderESG(_data.esg);
+  if(name==='performance'&&_data)renderPerformance(_data);
 }
 function switchRTab(name){
   _activeRTab=name;
@@ -1266,6 +1306,7 @@ function render(d){
   if(_activeTab==='utilisation')renderUtilisation(d.berth_utilisation||[]);
   if(_activeTab==='dukc')renderDUKC(d.dukc);
   if(_activeTab==='esg')renderESG(d.esg);
+  if(_activeTab==='performance')renderPerformance(d);
 }
 
 /* ── Beta 9: Conflict Timeline ── */
@@ -2044,6 +2085,108 @@ function renderESG(esg){
       <td style="color:var(--text-dim);font-size:11px">${esc(v.optimisation_reason)}</td>
     </tr>`;
   }).join('');
+}
+
+/* ── Performance tab ── */
+function renderPerformance(d){
+  const grid = document.getElementById('perf-grid');
+  const badge = document.getElementById('perf-data-badge');
+  if(!grid) return;
+
+  const dash    = d.dashboard || {};
+  const portId  = (d.port_profile && d.port_profile.id) || 'PORT';
+  const isLive  = d.data_source === 'live';
+  if(badge) badge.textContent = isLive ? 'Live Data' : 'Simulated History';
+
+  // Day labels: past 6 days + Today
+  const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const now = new Date();
+  const dayLabels = [];
+  for(let i=6; i>=1; i--){
+    const d2 = new Date(now); d2.setDate(d2.getDate()-i);
+    dayLabels.push(DAY_NAMES[d2.getDay()]);
+  }
+  dayLabels.push('Today');
+
+  // Deterministic 7-day history using LCG seeded from portId + metric name
+  function _hist(metric, currentVal, cap, swing){
+    let s = Math.abs((portId+metric).split('').reduce((h,c)=>((h<<5)-h+c.charCodeAt(0))|0, 0));
+    const rng = () => { s=(s*1664525+1013904223)&0xffffffff; return (s>>>0)/0xffffffff; };
+    const vals=[], rawSwing = swing || cap*0.12;
+    let v = currentVal;
+    for(let i=6; i>=1; i--){ v=Math.max(0, Math.min(cap, v+(rng()-.48)*rawSwing)); vals.push(Math.round(v*10)/10); }
+    vals.reverse(); vals.push(currentVal);
+    return vals;
+  }
+
+  // Build a bar-chart card
+  function _card(label, vals, unit, colorFn, higherIsBetter){
+    const mn = Math.min(...vals), mx = Math.max(...vals), rng = mx-mn || 1;
+    const current = vals[vals.length-1];
+    const prev    = vals[0];
+    const delta   = current - prev;
+    const deltaPct = prev > 0 ? Math.round((delta/prev)*100) : 0;
+    const deltaStr = (delta >= 0 ? '+' : '') + (unit==='%' ? deltaPct+'%' : (Number.isInteger(delta)?delta:delta.toFixed(1))+unit);
+    // Delta colour — for conflicts, up=bad; for everything else up=good
+    let deltaCls;
+    if(Math.abs(deltaPct) < 3){ deltaCls='flat'; }
+    else if(higherIsBetter){ deltaCls = delta>0 ? 'up' : 'down'; }
+    else { deltaCls = delta>0 ? 'up-bad' : 'down-good'; }
+
+    const valDisplay = unit === '%' ? current+'%' : (Number.isInteger(current) ? current : current.toFixed(1)) + (unit && unit!=='%' ? ' '+unit : '');
+
+    const bars = vals.map((v,i) => {
+      const heightPct = Math.max(8, Math.round(((v-mn)/rng)*100));
+      const color = colorFn(v);
+      const isToday = i === vals.length-1;
+      return `<div class="perf-bar-col">
+        <div class="perf-bar${isToday?' today':''}" style="height:${heightPct}%;background:${color};opacity:${isToday?1:.65};" title="${v}${unit}"></div>
+        <div class="perf-day-lbl${isToday?' today':''}">${dayLabels[i]}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="perf-card">
+      <div class="perf-card-lbl">${label}</div>
+      <div class="perf-card-row">
+        <span class="perf-card-val">${valDisplay}</span>
+        <span class="perf-card-delta ${deltaCls}">${deltaStr} vs 7d ago</span>
+      </div>
+      <div class="perf-chart-wrap">
+        <div class="perf-bars">${bars}</div>
+      </div>
+    </div>`;
+  }
+
+  const activeConflicts = (d.conflicts||[]).filter(c=>c.signal_type==='CONFLICT').length;
+
+  const cards = [
+    _card('Active Conflicts',
+      _hist('conflicts', activeConflicts, 12, 2.5),
+      '', v => v===0 ? '#4ade80' : v<=2 ? '#fbbf24' : '#f87171',
+      false),
+    _card('Berth Utilisation',
+      _hist('utilisation', dash.berth_utilisation_pct||0, 100, 10),
+      '%', v => v>=90 ? '#f87171' : v>=75 ? '#fbbf24' : '#38bdf8',
+      true),
+    _card('On-Time Departure',
+      _hist('otd', dash.on_time_departure_pct||0, 100, 8),
+      '%', v => v>=85 ? '#4ade80' : v>=70 ? '#fbbf24' : '#f87171',
+      true),
+    _card('Vessels in Port',
+      _hist('vessels', dash.vessels_in_port||0, 16, 2),
+      '', v => '#38bdf8',
+      true),
+    _card('Pilot Ops (12h)',
+      _hist('pilots', dash.pilot_ops_12h||0, 12, 2),
+      '', v => '#a78bfa',
+      true),
+    _card('Tug Ops (12h)',
+      _hist('tugs', dash.tug_ops_12h||0, 10, 2),
+      '', v => '#a78bfa',
+      true),
+  ];
+
+  grid.innerHTML = cards.join('');
 }
 
 /* ── Vessel table ── */
