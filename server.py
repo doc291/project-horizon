@@ -2493,7 +2493,6 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
       <option value="MELBOURNE">Melbourne</option>
       <option value="DARWIN">Darwin</option>
     </select>
-    <span class="cond" id="hc">–</span>
   </div>
   <div class="status-line" id="status-line">
     <div class="status-dot ok" id="status-dot"></div>
@@ -2501,6 +2500,8 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
     <span class="status-risk" id="status-risk"></span>
   </div>
   <div class="wx-row" id="wx-row">
+    <span class="wx-chip"><b id="hc">–</b></span>
+    <span class="wx-sep">·</span>
     <span class="wx-chip"><b id="wx-wind">–</b></span>
     <span class="wx-sep">·</span>
     <span class="wx-chip"><b id="wx-swell">–</b></span>
@@ -2532,7 +2533,6 @@ function render(d){
   const cond=(wx.conditions||'').toUpperCase()||'–';
   const ce=document.getElementById('hc');
   ce.textContent=cond;
-  ce.className='cond'+(cond==='POOR'||cond==='ROUGH'?' poor':cond==='MODERATE'?' moderate':'');
   const windKts=wx.wind_speed_kts!=null?Math.round(wx.wind_speed_kts):null;
   const windDir=wx.wind_direction_label||'';
   document.getElementById('wx-wind').textContent=windKts!=null?`WIND ${windKts}kt${windDir?' '+windDir:''}`:' WIND –';
