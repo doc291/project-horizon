@@ -2428,7 +2428,8 @@ let _d=null,_cd=null,_dl={};
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(secs){if(secs<=0)return'00:00:00';const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
 function render(d){
-  const cs=(d.conflicts||[]);
+  // Match desktop Decisions panel: only CONFLICT signals that have decision support
+  const cs=(d.conflicts||[]).filter(c=>c.signal_type==='CONFLICT'&&c.decision_support);
   const now=new Date();
   document.getElementById('ht').textContent=now.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
   document.getElementById('hs').textContent=cs.length;
