@@ -397,13 +397,19 @@ BERTH_LAT_DEPTHS = {
 
 def make_berths(now: datetime) -> list:
     # Simulation slots: (id, max_loa, max_draught, status, cranes, ready_offset_h)
+    # Use port-profile-specific slots if defined, otherwise fall back to Brisbane defaults
+    _slot_defs = _PORT_PROFILE.get("sim_berth_slots") or [
+        ("B01", 350, 14.5, "occupied",     4,  4),
+        ("B02", 300, 13.0, "occupied",     4,  8),
+        ("B03", 250, 11.5, "reserved",     2,  2),
+        ("B04", 320, 14.0, "available",    3,  None),
+        ("B05", 280, 12.5, "maintenance",  0,  20),
+        ("B06", 220, 10.0, "occupied",     0,  6),
+    ]
     raw = [
-        ("B01", 350, 14.5, "occupied",     4, now + timedelta(hours=4)),
-        ("B02", 300, 13.0, "occupied",     4, now + timedelta(hours=8)),
-        ("B03", 250, 11.5, "reserved",     2, now + timedelta(hours=2)),
-        ("B04", 320, 14.0, "available",    3, None),
-        ("B05", 280, 12.5, "maintenance",  0, now + timedelta(hours=20)),
-        ("B06", 220, 10.0, "occupied",     0, now + timedelta(hours=6)),
+        (bid, loa, dr, status, cranes,
+         now + timedelta(hours=rh) if rh is not None else None)
+        for bid, loa, dr, status, cranes, rh in _slot_defs
     ]
     # Pull berth names and coordinates from the active port profile
     port_geo   = _PORT_PROFILE.get("port_geo", PORT_GEO)
@@ -479,7 +485,8 @@ def make_vessels(now: datetime) -> list:
 
     # Structural slots: (id, berth, eta_h, etd_h, status, note)
     # Conflicts are baked into timing — V007 vs V005 at B04, V010 vs V004 at B03
-    slots = [
+    # Port profiles may set sim_vessel_count to trim this list (smaller ports = fewer vessels)
+    _all_slots = [
         ("V001","B01",-18, 4,  "berthed",   None),
         ("V002","B02", -6, 8,  "berthed",   None),
         ("V003","B06",-12, 6,  "berthed",   None),
@@ -494,6 +501,8 @@ def make_vessels(now: datetime) -> list:
         ("V012","B01", 30, 48, "scheduled", None),
         ("V013","B06", 36, 56, "scheduled", None),
     ]
+    n_vessels = _PORT_PROFILE.get("sim_vessel_count", len(_all_slots))
+    slots = _all_slots[:n_vessels]
 
     # Deterministic daily shuffle of roster so vessels rotate each day
     day_seed = f"roster-{_ACTIVE_PORT_ID}-{now.strftime('%Y%m%d')}"
@@ -2240,6 +2249,8 @@ class HorizonHandler(BaseHTTPRequestHandler):
                         "data_source": ds["source"], "scraped_at": ds["scraped_at"]})
         elif path in ("/", "/index.html"):
             self._html()
+        elif path == "/mobile":
+            self._serve_mobile()
         elif path == "/logo":
             self._logo()
         elif path == "/amsg-logo":
@@ -2313,6 +2324,160 @@ class HorizonHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _serve_mobile(self):
+        """Mobile PWA — decisions-only companion view."""
+        html = r"""<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Horizon">
+<meta name="theme-color" content="#0a1628">
+<link rel="apple-touch-icon" href="/logo">
+<title>Horizon — Decisions</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0a1628;--card:#0f1f35;--card2:#132238;--acc:#00b4c8;--txt:#c8d8e8;--bright:#e8f4ff;--dim:#6b82a8;--red:#ef4444;--amber:#f59e0b;--green:#22c55e}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overscroll-behavior:none}
+.hdr{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid rgba(0,180,200,.15);padding:max(12px,env(safe-area-inset-top)) 16px 10px}
+.hdr-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.hdr-logo{height:30px;width:auto}
+.hdr-title{font-size:13px;font-weight:700;color:var(--acc);letter-spacing:.5px;flex:1}
+.hdr-time{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.sig-badge{font-size:11px;font-weight:700;background:var(--red);color:#fff;border-radius:10px;padding:3px 8px;min-width:26px;text-align:center}
+.port-row{display:flex;align-items:center;gap:8px}
+.port-sel{background:#132238;border:1px solid rgba(0,180,200,.3);border-radius:8px;color:var(--bright);font-size:13px;font-weight:600;padding:6px 10px;flex:1;-webkit-appearance:none}
+.cond{font-size:10px;font-weight:700;letter-spacing:.8px;padding:4px 8px;border-radius:6px;background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.cond.poor{background:rgba(239,68,68,.15);color:var(--red);border-color:rgba(239,68,68,.3)}
+.content{padding:12px 16px;padding-bottom:calc(60px + env(safe-area-inset-bottom))}
+.card{background:var(--card);border:1px solid rgba(0,180,200,.12);border-radius:14px;padding:16px;margin-bottom:12px}
+.card.crit{border-color:rgba(239,68,68,.45);background:linear-gradient(135deg,#0f1f35,#180f1a)}
+.card.high{border-color:rgba(245,158,11,.4)}
+.badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.b{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:3px 7px;border-radius:4px}
+.b-crit{background:rgba(239,68,68,.2);color:var(--red);border:1px solid rgba(239,68,68,.4)}
+.b-high{background:rgba(245,158,11,.2);color:var(--amber);border:1px solid rgba(245,158,11,.4)}
+.b-med{background:rgba(234,179,8,.15);color:#eab308;border:1px solid rgba(234,179,8,.35)}
+.b-conf{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.b-sim{background:rgba(107,130,168,.15);color:var(--dim);border:1px solid rgba(107,130,168,.25)}
+.vname{font-size:19px;font-weight:700;color:var(--bright);margin-bottom:4px}
+.cdesc{font-size:12px;color:var(--txt);margin-bottom:12px;line-height:1.5}
+.rec{background:rgba(0,180,200,.08);border:1px solid rgba(0,180,200,.2);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.rec-lbl{font-size:10px;font-weight:700;color:var(--acc);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px}
+.rec-txt{font-size:12px;color:var(--bright);font-weight:600;line-height:1.4}
+.rec-sub{font-size:11px;color:var(--dim);margin-top:3px;line-height:1.4}
+.metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.met{background:var(--card2);border-radius:8px;padding:8px;text-align:center}
+.met-val{font-size:14px;font-weight:700;color:var(--amber)}
+.met-val.g{color:var(--green)}
+.met-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.timer-row{display:flex;align-items:center;justify-content:space-between;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px 12px}
+.timer-lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px}
+.timer{font-size:16px;font-weight:700;color:var(--red);font-variant-numeric:tabular-nums}
+.timer.warn{color:var(--amber)}
+.open-btn{display:block;width:100%;background:rgba(0,180,200,.1);border:1px solid rgba(0,180,200,.25);border-radius:10px;padding:12px;text-align:center;color:var(--acc);font-size:13px;font-weight:600;text-decoration:none;margin-top:4px}
+.empty{text-align:center;padding:60px 20px;color:var(--dim)}
+.empty-icon{font-size:52px;margin-bottom:14px}
+.empty-title{font-size:17px;font-weight:600;color:var(--txt);margin-bottom:6px}
+.empty-sub{font-size:13px;line-height:1.6}
+.pill{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));right:16px;background:var(--card);border:1px solid rgba(0,180,200,.2);border-radius:20px;padding:8px 14px;font-size:11px;color:var(--dim);display:flex;align-items:center;gap:6px;box-shadow:0 4px 20px rgba(0,0,0,.5);cursor:pointer;z-index:200}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--acc);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+</style></head>
+<body>
+<div class="hdr">
+  <div class="hdr-top">
+    <img src="/logo" class="hdr-logo" alt="Horizon">
+    <span class="hdr-title">DECISIONS</span>
+    <span class="hdr-time" id="ht">––:––</span>
+    <span class="sig-badge" id="hs">–</span>
+  </div>
+  <div class="port-row">
+    <select class="port-sel" id="ps" onchange="switchPort(this.value)">
+      <option value="BRISBANE">Brisbane</option>
+      <option value="MELBOURNE">Melbourne</option>
+      <option value="DARWIN">Darwin</option>
+    </select>
+    <span class="cond" id="hc">–</span>
+  </div>
+</div>
+<div class="content" id="ct"><p style="text-align:center;padding:40px;color:var(--dim)">Loading…</p></div>
+<div class="pill" onclick="doRefresh()"><div class="dot"></div><span id="rl">Live</span></div>
+<script>
+let _d=null,_cd=null,_dl={};
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmt(secs){if(secs<=0)return'00:00:00';const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
+function render(d){
+  const cs=(d.conflicts||[]).filter(c=>!c.acknowledged);
+  const now=new Date();
+  document.getElementById('ht').textContent=now.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
+  document.getElementById('hs').textContent=cs.length;
+  const wx=d.weather||{};
+  const cond=(wx.conditions||'').toUpperCase()||'–';
+  const ce=document.getElementById('hc');ce.textContent=cond;ce.className='cond'+(cond==='POOR'||cond==='ROUGH'?' poor':'');
+  document.getElementById('ps').value=(d.port_profile&&d.port_profile.id)||'BRISBANE';
+  const ct=document.getElementById('ct');
+  if(!cs.length){ct.innerHTML='<div class="empty"><div class="empty-icon">✓</div><div class="empty-title">All Clear</div><div class="empty-sub">No active decisions required.<br>Port operations running normally.</div></div>';return;}
+  _dl={};
+  const ro={'critical':0,'high':1,'medium':2,'low':3};
+  const sorted=[...cs].sort((a,b)=>(ro[a.risk_level]||9)-(ro[b.risk_level]||9));
+  sorted.forEach(c=>{_dl[c.id]=c.decide_by?new Date(c.decide_by).getTime():Date.now()+3*3600*1000;});
+  ct.innerHTML=sorted.map(c=>{
+    const ic=c.risk_level==='critical',ih=c.risk_level==='high';
+    const rb=ic?'<span class="b b-crit">CRITICAL</span>':ih?'<span class="b b-high">HIGH RISK</span>':'<span class="b b-med">MED RISK</span>';
+    const cb=c.signal_type==='CONFLICT'?'<span class="b b-conf">CONFLICT</span>':'';
+    const rec=(c.recommendations||[])[0]||{};
+    const rh=rec.action?`<div class="rec"><div class="rec-lbl">★ Recommended Action</div><div class="rec-txt">${esc(rec.action)}</div>${rec.description?`<div class="rec-sub">${esc(rec.description.slice(0,140))}${rec.description.length>140?'…':''}</div>`:''}</div>`:'';
+    const cost=rec.cost_display||c.cost_display||'~$3,800';
+    const delay=rec.delay_display||c.delay_display||'90 min';
+    const casc=rec.cascade_display||c.cascade_display||'1 vessel';
+    return`<div class="card${ic?' crit':ih?' high':''}" id="card-${esc(c.id)}">
+<div class="badges">${rb}${cb}<span class="b b-sim">SIMULATION</span></div>
+<div class="vname">${esc(c.vessel_name||'Unknown')}</div>
+<div class="cdesc">${esc(c.description||c.conflict_type||'')}</div>
+${rh}
+<div class="metrics">
+<div class="met"><div class="met-val">${esc(cost)}</div><div class="met-lbl">Cost</div></div>
+<div class="met"><div class="met-val">${esc(delay)}</div><div class="met-lbl">Delay</div></div>
+<div class="met"><div class="met-val g">${esc(casc)}</div><div class="met-lbl">Cascade</div></div>
+</div>
+<div class="timer-row"><span class="timer-lbl">⏱ Decide within</span><span class="timer" id="t-${esc(c.id)}">–:––:––</span></div>
+</div>`;
+  }).join('')+`<a href="/" class="open-btn">Open Full Platform →</a>`;
+  startCd();
+}
+function startCd(){
+  if(_cd)clearInterval(_cd);
+  _cd=setInterval(()=>{
+    const now=Date.now();
+    Object.entries(_dl).forEach(([id,dl])=>{
+      const el=document.getElementById(`t-${id}`);if(!el)return;
+      const s=Math.max(0,Math.round((dl-now)/1000));
+      el.textContent=fmt(s);el.className='timer'+(s<3600?' warn':'');
+    });
+  },1000);
+}
+async function doRefresh(){
+  document.getElementById('rl').textContent='Refreshing…';
+  try{const r=await fetch('/api/summary');_d=await r.json();render(_d);document.getElementById('rl').textContent='Live';}
+  catch(e){document.getElementById('rl').textContent='Offline';}
+}
+async function switchPort(p){
+  try{await fetch('/api/set_port',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({port:p})});}catch(e){}
+  doRefresh();
+}
+doRefresh();setInterval(doRefresh,30000);
+</script>
+</body></html>"""
+        body = html.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
 

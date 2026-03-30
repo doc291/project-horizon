@@ -46,6 +46,9 @@ PORT_PROFILES = {
         "wind_limit_berthing_knots":    25,
         "wind_limit_critical_knots":    40,
         "bridge_restrictions":          [],
+        # Simulation scenario — vessel/berth counts for this port
+        "sim_vessel_count": 13,
+        # sim_berth_slots: None → use server.py defaults (B01-B06, 4/6 occupied)
         "harbour_master":               "Port of Brisbane",
         "vts_callsign":                 "Brisbane VTS",
         "vts_channel":                  "VHF 12",
@@ -117,6 +120,17 @@ PORT_PROFILES = {
         ],
         "wind_limit_berthing_knots":    25,           # HMD Ed. 13.1 §3.20 — no new berthing
         "wind_limit_critical_knots":    35,           # HMD Ed. 13.1 §3.20 — engines standby
+        # Simulation scenario — 9 vessels, Melbourne-specific berth occupancy (3/6)
+        "sim_vessel_count": 9,
+        "sim_berth_slots": [
+            # (id, max_loa, max_draught, status, cranes, ready_offset_h)
+            ("B01", 350, 14.0, "occupied",     4,  4),
+            ("B02", 300, 13.0, "occupied",     4,  8),
+            ("B03", 280, 12.5, "available",    2,  None),
+            ("B04", 320, 14.0, "reserved",     3,  3),
+            ("B05", 260, 11.5, "available",    2,  None),
+            ("B06", 220, 10.0, "maintenance",  0,  22),
+        ],
         "west_gate_bridge_air_draft_m": 50.0,         # 50m clearance at MHWS
         "bridge_restrictions": [
             {
@@ -235,6 +249,15 @@ PORT_PROFILES = {
         "wind_limit_berthing_knots":    30,           # Reasonable default — wind limits in Port Notice PN014
         "wind_limit_critical_knots":    40,           # Reasonable default — wind limits in Port Notice PN014
         "bridge_restrictions":          [],           # No bridge air-draft restrictions at Darwin
+        # Simulation scenario — 7 vessels, Darwin-specific berth occupancy (2/4)
+        "sim_vessel_count": 7,
+        "sim_berth_slots": [
+            # (id, max_loa, max_draught, status, cranes, ready_offset_h)
+            ("B01", 240, 10.5, "occupied",     2,  8),
+            ("B02", 200, 10.0, "occupied",     2,  12),
+            ("B03", 180,  9.5, "available",    1,  None),
+            ("B04", 160,  8.5, "maintenance",  0,  24),
+        ],
         "cyclone_season_months":        [11, 12, 1, 2, 3, 4],  # November–April (Handbook 2026, p.18)
         "harbour_master":               "Darwin Port Corporation",
         "vts_callsign":                 "Darwin Port",
