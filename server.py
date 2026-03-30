@@ -2102,42 +2102,17 @@ def build_summary():
         active_port_id  = _ACTIVE_PORT_ID
 
     # ── Beta 8b: Data layer — port profile drives vessel + tidal source ────────
-    # Priority order: (1) vessel scraper for configured port, (2) QShips fallback,
-    # (3) simulation.  Tides: BOM live > cosine fallback.
+    # Priority order: (1) MST AIS cache (non-blocking), (2) vessel scraper,
+    # (3) QShips fallback, (4) simulation.  Tides: BOM live > cosine fallback.
     ds          = get_data_source()
     is_live     = False
     using_live_vessel = False
     using_live_tidal  = False
 
-    # Attempt vessel scraper for active port profile
-    scrape_result = fetch_vessel_movements(profile, now)
-    if scrape_result["using_live_data"] and scrape_result["vessels"]:
-        try:
-            vessels   = build_vessels_from_qships({"vessels": scrape_result["vessels"], "berths": []})
-            berths    = make_berths(now)   # always simulated berths for now
-            port_name = profile["display_name"]
-            is_live   = True
-            using_live_vessel = True
-            log.info("Using live vessel data: %d vessels from %s",
-                     len(vessels), profile["short_name"])
-        except Exception as exc:
-            log.error("Live vessel build failed (%s) — falling back", exc)
-            vessels = None
-
-    if not using_live_vessel:
-        # QShips fallback for Brisbane — only use when active port IS Brisbane
-        if ds["source"] == "qships" and _qships_data and active_port_id == "BRISBANE":
-            try:
-                vessels   = build_vessels_from_qships(_qships_data)
-                berths    = build_berths_from_qships(_qships_data)
-                port_name = _qships_data.get("port_name", profile["display_name"])
-                is_live   = True
-            except Exception as exc:
-                log.error("QShips vessel build failed (%s) — falling back to simulation", exc)
-                vessels = None
-
-    # MST AIS connector — reads from background cache (never blocks on HTTP)
-    if not using_live_vessel and not is_live and mst_scraper.is_configured():
+    # ── MST AIS connector — check FIRST (non-blocking, reads background cache) ─
+    # MST takes priority over the HTML scraper to avoid blocking HTTP calls in the
+    # request path (Melbourne's ports.vic.gov.au scrape hangs 15 s on every hit).
+    if mst_scraper.is_configured():
         unloco = profile.get("unloco")
         if unloco:
             with _mst_cache_lock:
@@ -2156,6 +2131,34 @@ def build_summary():
                 except Exception as exc:
                     log.error("MST vessel build failed (%s) — falling back", exc)
                     vessels = None
+
+    # ── Vessel scraper fallback (only runs when MST has no cached data) ────────
+    if not using_live_vessel:
+        scrape_result = fetch_vessel_movements(profile, now)
+        if scrape_result["using_live_data"] and scrape_result["vessels"]:
+            try:
+                vessels   = build_vessels_from_qships({"vessels": scrape_result["vessels"], "berths": []})
+                berths    = make_berths(now)   # always simulated berths for now
+                port_name = profile["display_name"]
+                is_live   = True
+                using_live_vessel = True
+                log.info("Using live vessel data: %d vessels from %s",
+                         len(vessels), profile["short_name"])
+            except Exception as exc:
+                log.error("Live vessel build failed (%s) — falling back", exc)
+                vessels = None
+
+    if not using_live_vessel:
+        # QShips fallback for Brisbane — only use when active port IS Brisbane
+        if ds["source"] == "qships" and _qships_data and active_port_id == "BRISBANE":
+            try:
+                vessels   = build_vessels_from_qships(_qships_data)
+                berths    = build_berths_from_qships(_qships_data)
+                port_name = _qships_data.get("port_name", profile["display_name"])
+                is_live   = True
+            except Exception as exc:
+                log.error("QShips vessel build failed (%s) — falling back to simulation", exc)
+                vessels = None
 
     if not using_live_vessel and (not is_live or not vessels):
         berths    = make_berths(now)
