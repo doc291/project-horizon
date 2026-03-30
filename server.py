@@ -2487,11 +2487,6 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
 
     <span class="sig-badge" id="hs">–</span>
   </div>
-  <div class="status-line" id="status-line">
-    <div class="status-dot ok" id="status-dot"></div>
-    <span class="status-txt" id="status-txt">Loading…</span>
-    <span class="status-risk" id="status-risk"></span>
-  </div>
   <div class="port-row">
     <select class="port-sel" id="ps" onchange="switchPort(this.value)">
       <option value="BRISBANE">Brisbane</option>
@@ -2499,6 +2494,11 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
       <option value="DARWIN">Darwin</option>
     </select>
     <span class="cond" id="hc">–</span>
+  </div>
+  <div class="status-line" id="status-line">
+    <div class="status-dot ok" id="status-dot"></div>
+    <span class="status-txt" id="status-txt">Loading…</span>
+    <span class="status-risk" id="status-risk"></span>
   </div>
   <div class="wx-row" id="wx-row">
     <span class="wx-chip"><b id="wx-wind">–</b></span>
