@@ -2449,6 +2449,14 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
 .mov-tag.pend{background:rgba(245,158,11,.15);color:var(--amber)}
 .mov-tag.berth{background:rgba(0,180,200,.1);color:var(--acc)}
 .mov-section{margin-bottom:16px}
+.attn-section{margin-bottom:16px}
+.attn{background:var(--card);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
+.attn.crit{border-color:rgba(239,68,68,.35);background:linear-gradient(135deg,#0f1f35,#180f1a)}
+.attn-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.attn-body{flex:1;min-width:0}
+.attn-msg{font-size:12px;font-weight:700;color:var(--bright);line-height:1.4;margin-bottom:3px}
+.attn-detail{font-size:11px;color:var(--dim);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.attn-deadline{font-size:10px;font-weight:700;color:var(--amber);margin-top:4px;font-variant-numeric:tabular-nums}
 .empty{text-align:center;padding:40px 20px 20px;color:var(--dim)}
 .empty-icon{font-size:48px;margin-bottom:12px}
 .empty-title{font-size:17px;font-weight:600;color:var(--txt);margin-bottom:6px}
@@ -2553,6 +2561,25 @@ function render(d){
     }
   });
   movs.sort((a,b)=>a.time-b.time);
+  // For Your Attention — action_required guidance items, deadline within 3h
+  const attnItems=(d.guidance||[]).filter(g=>{
+    if(!g.action_required)return false;
+    // Exclude items already shown as conflict decision cards
+    if((d.conflicts||[]).some(c=>c.decision_support&&(c.vessel_ids||[]).includes(g.vessel_id)))return false;
+    return true;
+  }).slice(0,3);
+  const attnHtml=attnItems.length?`<div class="attn-section"><div class="section-hdr">For Your Attention</div>${attnItems.map(g=>{
+    const isCrit=g.priority==='critical';
+    const dl=g.deadline?new Date(g.deadline):null;
+    const dlStr=dl?dl.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false}):null;
+    return`<div class="attn${isCrit?' crit':''}">
+<span class="attn-icon">${isCrit?'🔴':'⚡'}</span>
+<div class="attn-body">
+<div class="attn-msg">${esc(g.message)}</div>
+<div class="attn-detail">${esc((g.detail||'').slice(0,100))}</div>
+${dlStr?`<div class="attn-deadline">Act by ${dlStr}</div>`:''}
+</div></div>`;
+  }).join('')}</div>`:'';
   const movsHtml=movs.slice(0,4).length?`<div class="mov-section"><div class="section-hdr">Next Movements</div>${movs.slice(0,4).map(m=>{
     const tStr=m.time.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
     const tags=(m.berth?`<span class="mov-tag berth">${esc(m.berth)}</span>`:'')+
@@ -2562,7 +2589,7 @@ function render(d){
   }).join('')}</div>`:'';
   const ct=document.getElementById('ct');
   if(!cs.length){
-    ct.innerHTML=movsHtml+`<div class="empty">
+    ct.innerHTML=movsHtml+attnHtml+`<div class="empty">
 <div class="empty-icon">✓</div>
 <div class="empty-title">All Clear</div>
 <div class="empty-sub">No active decisions required.<br>Port operations running normally.</div>
@@ -2586,7 +2613,7 @@ function render(d){
     const ds=c.decision_support||{};
     _dl[c.id]=ds.decision_deadline?new Date(ds.decision_deadline).getTime():Date.now()+3*3600*1000;
   });
-  ct.innerHTML=movsHtml+`<div class="section-hdr" style="margin-top:4px">Decisions</div>`+sorted.map(c=>{
+  ct.innerHTML=movsHtml+attnHtml+`<div class="section-hdr" style="margin-top:4px">Decisions</div>`+sorted.map(c=>{
     const sev=c.severity||'medium';
     const ic=sev==='critical',ih=sev==='high';
     const rb=ic?'<span class="b b-crit">CRITICAL</span>':ih?'<span class="b b-high">HIGH RISK</span>':'<span class="b b-med">MED RISK</span>';
