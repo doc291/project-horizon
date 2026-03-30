@@ -14,7 +14,7 @@ PORT_PROFILES = {
         "lat":                          -27.3818,
         "lon":                          153.1653,
         "bom_station_id":               "IDO71004",   # Brisbane Bar tidal gauge
-        "bom_tide_url":                 "http://www.bom.gov.au/fwo/IDO71004/IDO71004.xml",
+        "bom_tide_url":                 "https://www.bom.gov.au/fwo/IDO71004/IDO71004.xml",
         "tidal_mean_m":                 1.40,         # Mean tide level (cosine fallback)
         "tidal_amp_m":                  0.90,         # HW~2.3m, LW~0.5m
         "vessel_data_url":              "https://www.ports.com.au/port/port-of-brisbane/ship-movements/",
@@ -85,7 +85,7 @@ PORT_PROFILES = {
         "lat":                          -37.8224,
         "lon":                          144.9231,
         "bom_station_id":               "IDO71001",   # Williamstown tidal gauge
-        "bom_tide_url":                 "http://www.bom.gov.au/fwo/IDO71001/IDO71001.xml",
+        "bom_tide_url":                 "https://www.bom.gov.au/fwo/IDO71001/IDO71001.xml",
         "tidal_mean_m":                 0.45,         # Mean tide level (cosine fallback)
         "tidal_amp_m":                  0.25,         # HW~0.7m, LW~0.2m — Port Phillip small range
         "vessel_data_url":              "https://www.ports.vic.gov.au/port-of-melbourne/shipping/ship-movements",
@@ -146,12 +146,6 @@ PORT_PROFILES = {
                 "clearance_notice_hours":   24,
                 "clearance_contact":        "CityLink Operations +61 3 9674 2001",
                 "notes":                    "Vessels >24.36m air draught must obtain CityLink permission 24h prior",
-            },
-            {
-                "name":             "Shepherd Bridge (Maribyrnong)",
-                "max_air_draught_m": 4.74,
-                "absolute_limit":   True,
-                "notes":            "Highly restrictive — container/bulker vessels cannot transit",
             },
         ],
         "priority_rules": [
@@ -216,7 +210,7 @@ PORT_PROFILES = {
         "lat":                          -12.4700,
         "lon":                          130.8450,
         "bom_station_id":               "IDO71013",   # Darwin tidal gauge
-        "bom_tide_url":                 "http://www.bom.gov.au/fwo/IDO71013/IDO71013.xml",
+        "bom_tide_url":                 "https://www.bom.gov.au/fwo/IDO71013/IDO71013.xml",
         "tidal_mean_m":                 3.80,         # MSL above chart datum — Darwin extreme tidal range
         "tidal_amp_m":                  3.50,         # Half spring range (~7.0m springs) — largest tidal range in Aus
         "vessel_data_url":              None,

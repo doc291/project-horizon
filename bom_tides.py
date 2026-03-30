@@ -17,9 +17,11 @@ from datetime import datetime, timedelta, timezone
 log = logging.getLogger("horizon.bom_tides")
 
 # ── In-memory cache ───────────────────────────────────────────────────────────
-_cache: dict = {}       # station_id -> {"events": [...], "fetched_at": float}
+_cache: dict = {}        # station_id -> {"events": [...], "fetched_at": float}
+_fail_at: dict = {}      # station_id -> monotonic time of last failure
 _cache_lock = threading.Lock()
-CACHE_TTL_SECS = 3600   # 60 minutes
+CACHE_TTL_SECS   = 3600  # 60 minutes
+COOLDOWN_SECS    = 300   # 5 minutes between retry attempts after a failure
 
 
 def _cosine_fallback(now: datetime = None, profile: dict = None) -> list:
@@ -237,14 +239,25 @@ def fetch_bom_tides(profile: dict, now: datetime = None) -> dict:
             series = cached["series"]
             return _build_result(series, "bom", station_id, now)
 
+    # ── Cooldown check — don't hammer BOM after a failure ─────────────────────
+    with _cache_lock:
+        last_fail = _fail_at.get(station_id, 0)
+    if (time.monotonic() - last_fail) < COOLDOWN_SECS:
+        log.debug("BOM cooldown active for %s — using cosine fallback", station_id)
+        return _build_result(_cosine_fallback(now, profile), "cosine", station_id, now)
+
     # ── Live fetch ────────────────────────────────────────────────────────────
     try:
         series = _fetch_live(profile, now)
         with _cache_lock:
             _cache[station_id] = {"series": series, "fetched_at": time.monotonic()}
+            _fail_at.pop(station_id, None)   # clear any previous failure
         return _build_result(series, "bom", station_id, now)
     except Exception as exc:
-        log.error("BOM fetch failed for %s — falling back to cosine model: %s", station_id, exc)
+        log.error("BOM fetch failed for %s — cooling down %ds, cosine fallback: %s",
+                  station_id, COOLDOWN_SECS, exc)
+        with _cache_lock:
+            _fail_at[station_id] = time.monotonic()
         return _build_result(_cosine_fallback(now, profile), "cosine", station_id, now)
 
 
@@ -261,18 +274,20 @@ def _build_result(series: list, source: str, station_id, now: datetime) -> dict:
     closest = min(series, key=lambda p: abs((p["datetime"] - now).total_seconds()))
     current_h = closest["height_m"]
 
-    # Derive state from slope
+    # Derive state from slope — handle boundary indices gracefully
     idx = series.index(closest)
-    if idx > 0 and idx < len(series) - 1:
-        diff = series[idx + 1]["height_m"] - series[idx - 1]["height_m"]
-        if abs(diff) < 0.08:
-            state = "Slack"
-        elif diff > 0:
-            state = "Rising"
-        else:
-            state = "Falling"
+    if idx == 0:
+        diff = series[1]["height_m"] - series[0]["height_m"] if len(series) > 1 else 0
+    elif idx == len(series) - 1:
+        diff = series[-1]["height_m"] - series[-2]["height_m"] if len(series) > 1 else 0
     else:
-        state = "Unknown"
+        diff = series[idx + 1]["height_m"] - series[idx - 1]["height_m"]
+    if abs(diff) < 0.08:
+        state = "Slack"
+    elif diff > 0:
+        state = "Rising"
+    else:
+        state = "Falling"
 
     # Next turning point after now
     future_events = [p for p in series if p.get("type") in ("HW", "LW") and p["datetime"] > now]
