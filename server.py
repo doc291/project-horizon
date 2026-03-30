@@ -2130,18 +2130,18 @@ class HorizonHandler(BaseHTTPRequestHandler):
       border-radius: 12px; padding: 40px 36px; text-align: center;
     }}
     .login-logo {{
-      height: 216px; width: auto; margin-bottom: 6px;
+      height: 216px; width: auto; margin-bottom: 20px;
     }}
     .login-title {{
-      font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
-      text-transform: uppercase; color: #38bdf8; margin-bottom: 28px;
+      font-size: 16px; font-weight: 700; letter-spacing: 1.2px;
+      text-transform: uppercase; color: #38bdf8; margin-bottom: 20px;
     }}
     .login-amsg {{
       background: rgba(255,255,255,.95); border-radius: 6px;
-      padding: 4px 12px; display: inline-flex; align-items: center;
+      padding: 6px 16px; display: inline-flex; align-items: center;
       margin-bottom: 28px;
     }}
-    .login-amsg img {{ height: 22px; width: auto; }}
+    .login-amsg img {{ height: 44px; width: auto; }}
     label {{
       display: block; text-align: left; font-size: 11px; font-weight: 600;
       letter-spacing: .5px; text-transform: uppercase; color: #64748b;
