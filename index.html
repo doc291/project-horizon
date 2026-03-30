@@ -141,10 +141,6 @@
     .main { flex: 1; display: flex; overflow: hidden; }
     .panel { display: flex; flex-direction: column; border-right: 1px solid var(--border); overflow: hidden; }
     .panel-left   { width: 276px; flex-shrink: 0; }
-    /* Full-width mode for Performance tab */
-    .main.full-width-tab .panel-left,
-    .main.full-width-tab .panel-right { display: none; }
-    .main.full-width-tab .panel-center { flex: 1; }
     .panel-center { flex: 1; min-width: 0; }
     .panel-right  { width: 320px; flex-shrink: 0; border-right: none; }
     .panel-hdr {
@@ -511,11 +507,10 @@
     .kpi-sub  { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
 
     /* ── Performance tab ── */
-    .perf-wrap  { padding: 16px; overflow-y: auto; flex: 1; }
-    .perf-header{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .perf-header{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding: 16px 16px 0; }
     .perf-title { font-size: 11px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--text-dim); }
     .perf-sim-badge { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 10px; background: rgba(0,180,200,.08); border: 1px solid rgba(0,180,200,.2); color: var(--accent); letter-spacing: .3px; }
-    .perf-grid  { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+    .perf-grid  { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; padding: 0 16px 16px; }
     .perf-card  { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
     .perf-card-lbl { font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
     .perf-card-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
@@ -1129,14 +1124,12 @@
     <!-- Right: Decisions + Audit -->
       <!-- Performance tab -->
       <div class="tab-pane" id="tab-performance" style="overflow-y:auto;flex-direction:column;">
-        <div class="perf-wrap">
-          <div class="perf-header">
-            <span class="perf-title">Port Performance — 7 Day Overview</span>
-            <span class="perf-sim-badge" id="perf-data-badge">Simulated History</span>
-          </div>
-          <div class="perf-grid" id="perf-grid">
-            <div style="grid-column:1/-1;color:var(--text-dim);padding:20px;text-align:center;">Loading…</div>
-          </div>
+        <div class="perf-header">
+          <span class="perf-title">Port Performance — 7 Day Overview</span>
+          <span class="perf-sim-badge" id="perf-data-badge">Simulated History</span>
+        </div>
+        <div class="perf-grid" id="perf-grid">
+          <div style="grid-column:1/-1;color:var(--text-dim);padding:20px;text-align:center;">Loading…</div>
         </div>
       </div>
 

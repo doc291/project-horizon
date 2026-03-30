@@ -2742,8 +2742,11 @@ async function doRefresh(){
   return Promise.resolve();
 }
 async function switchPort(p){
-  try{await fetch('/api/set_port',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({port:p})});}catch(e){}
-  doRefresh();
+  try{
+    const r=await fetch('/api/set_port',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({port:p})});
+    const res=await r.json();
+    if(res.success) await doRefresh(); else doRefresh();
+  }catch(e){doRefresh();}
 }
 doRefresh();setInterval(doRefresh,30000);
 
