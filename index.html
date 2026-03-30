@@ -108,47 +108,6 @@
     .btn-refresh:hover { opacity: .8; }
 
     /* ── Bell / Notifications ── */
-    .bell-btn {
-      position: relative; background: none; border: none; cursor: pointer;
-      color: var(--text-dim); font-size: 18px; padding: 4px 6px;
-      transition: color .15s; line-height: 1;
-    }
-    .bell-btn:hover { color: var(--text-bright); }
-    .bell-badge {
-      position: absolute; top: -1px; right: -1px;
-      min-width: 16px; height: 16px; border-radius: 8px; padding: 0 3px;
-      background: var(--critical); color: #fff; font-size: 9px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      pointer-events: none;
-    }
-    .bell-badge.hidden { display: none; }
-    #notif-panel {
-      display: none; position: absolute; top: calc(var(--header-h) + 2px); right: 16px;
-      width: 340px; max-height: 440px;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,.6);
-      flex-direction: column; overflow: hidden; z-index: 500;
-    }
-    #notif-panel.open { display: flex; }
-    .notif-hdr {
-      padding: 10px 14px; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-      font-size: 12px; font-weight: 700; color: var(--text-dim);
-      letter-spacing: .6px; text-transform: uppercase;
-    }
-    .notif-clear { font-size: 10px; font-weight: 600; color: var(--text-dim); background: none; border: none; cursor: pointer; padding: 2px 6px; }
-    .notif-clear:hover { color: var(--critical); }
-    .notif-list { flex: 1; overflow-y: auto; }
-    .notif-list::-webkit-scrollbar { width: 4px; }
-    .notif-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-    .notif-item { padding: 9px 14px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start; }
-    .notif-item.unread { background: rgba(56,189,248,.05); }
-    .notif-item:last-child { border-bottom: none; }
-    .notif-dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
-    .notif-body { flex: 1; }
-    .notif-msg  { font-size: 12px; color: var(--text-bright); line-height: 1.4; }
-    .notif-ts   { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
-    .notif-empty { padding: 20px; text-align: center; color: var(--text-dim); font-size: 12px; }
 
     /* ── Conditions bar ── */
     #conditions-bar {
@@ -713,22 +672,11 @@
         <span id="ds-time"></span>
       </div>
       <span id="clock">--:--:-- UTC</span>
-      <button class="bell-btn" onclick="toggleNotifPanel()" title="Notifications">
-        🔔<span class="bell-badge hidden" id="bell-badge">0</span>
-      </button>
       <button class="btn-refresh" onclick="refresh()">↺ Refresh</button>
       <div class="header-divider"></div>
       <div class="amsg-logo-wrap" title="AMS Group">
         <img src="/amsg-logo" alt="AMS Group" onerror="this.closest('.amsg-logo-wrap').style.display='none'" />
       </div>
-    </div>
-    <!-- Notifications dropdown -->
-    <div id="notif-panel">
-      <div class="notif-hdr">
-        <span>Notifications</span>
-        <button class="notif-clear" onclick="clearNotifications()">Clear all</button>
-      </div>
-      <div class="notif-list" id="notif-list"><div class="notif-empty">No notifications</div></div>
     </div>
   </header>
 
@@ -1129,7 +1077,7 @@ let _vesselMarkers={}, _conflictRings=[];
 let _activeTab='dashboard', _vesselTableOpen=true, _activeRTab='decisions';
 
 /* ── Storage keys ── */
-const SIG_KEY='horizon_signal_states', AUDIT_KEY='horizon_audit_log', NOTIF_KEY='horizon_notifications_v2';
+const SIG_KEY='horizon_signal_states', AUDIT_KEY='horizon_audit_log';
 
 /* ── Signal state ── */
 function getSigStates(){try{return JSON.parse(localStorage.getItem(SIG_KEY)||'{}')}catch(e){return{}}}
@@ -1173,47 +1121,6 @@ function renderAuditLog(){
     </div>`).join('');
 }
 
-/* ── Notifications ── */
-function getNotifs(){try{return JSON.parse(localStorage.getItem(NOTIF_KEY)||'[]')}catch(e){return[]}}
-function saveNotifs(a){localStorage.setItem(NOTIF_KEY,JSON.stringify(a))}
-function pushNotif(type,message,color){
-  const n=getNotifs();
-  n.unshift({id:Date.now(),ts:new Date().toISOString(),type,message,color:color||'#38bdf8',read:false});
-  if(n.length>100)n.length=100;
-  saveNotifs(n);
-  renderNotifPanel();
-  updateBellBadge();
-}
-function renderNotifPanel(){
-  const el=document.getElementById('notif-list'),n=getNotifs();
-  if(!n.length){el.innerHTML='<div class="notif-empty">No notifications</div>';return}
-  el.innerHTML=n.map(x=>`
-    <div class="notif-item ${x.read?'':'unread'}">
-      <div class="notif-dot" style="background:${x.color}"></div>
-      <div class="notif-body">
-        <div class="notif-msg">${esc(x.message)}</div>
-        <div class="notif-ts">${fmtShort(x.ts)}</div>
-      </div>
-    </div>`).join('');
-}
-function updateBellBadge(){
-  const u=getNotifs().filter(n=>!n.read).length;
-  const b=document.getElementById('bell-badge');
-  b.textContent=u; b.classList.toggle('hidden',u===0);
-}
-function toggleNotifPanel(){
-  const p=document.getElementById('notif-panel');
-  p.classList.toggle('open');
-  if(p.classList.contains('open')){
-    saveNotifs(getNotifs().map(n=>({...n,read:true})));
-    renderNotifPanel(); updateBellBadge();
-  }
-}
-function clearNotifications(){saveNotifs([]);renderNotifPanel();updateBellBadge()}
-document.addEventListener('click',e=>{
-  const p=document.getElementById('notif-panel');
-  if(p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.bell-btn'))p.classList.remove('open');
-});
 
 /* ── Tab switching ── */
 const _TABS = ['dashboard','timeline','utilisation','vts','pilotage','towage','lines','dukc','esg'];
@@ -1240,10 +1147,6 @@ function switchRTab(name){
 }
 
 /* ── Fetch & render ── */
-const _KNOWN_KEY='_knownCIds_v1';
-function _loadKnownCIds(){try{return new Set(JSON.parse(localStorage.getItem(_KNOWN_KEY)||'[]'))}catch(e){return new Set()}}
-function _saveKnownCIds(){try{localStorage.setItem(_KNOWN_KEY,JSON.stringify([..._knownCIds].slice(-500)))}catch(e){}}
-let _knownCIds=_loadKnownCIds();
 async function refresh(){
   try{
     const r=await fetch('/api/summary');
@@ -1268,23 +1171,6 @@ function render(d){
   if(_activeTab==='utilisation')renderUtilisation(d.berth_utilisation||[]);
   if(_activeTab==='dukc')renderDUKC(d.dukc);
   if(_activeTab==='esg')renderESG(d.esg);
-  // Notify new conflicts
-  (d.conflicts||[]).forEach(c=>{
-    if(!_knownCIds.has(c.id)){
-      _knownCIds.add(c.id);
-      _saveKnownCIds();
-      const col=c.signal_type==='CONFLICT'?'#ef4444':c.signal_type==='WARNING'?'#f97316':c.signal_type==='WEATHER'?'#38bdf8':'#eab308';
-      pushNotif('new_conflict',`New ${c.signal_type}: ${(c.description||c.conflict_type).slice(0,70)}`,col);
-    }
-  });
-  // Tide restriction notification (once per height change)
-  if(d.tides&&d.tides.berth_restrictions&&d.tides.berth_restrictions.length){
-    const k='tide_'+d.tides.current_height_m;
-    if(!sessionStorage.getItem(k)){
-      sessionStorage.setItem(k,'1');
-      pushNotif('tide_warning',`Tide ${d.tides.state} ${d.tides.current_height_m}m — restrictions: ${d.tides.berth_restrictions.join(', ')},'#eab308`);
-    }
-  }
 }
 
 /* ── Header ── */
@@ -1527,8 +1413,6 @@ function sigAction(id,desc,state,e){
   const lbl={acknowledged:'ACK',deferred:'DEFER',dismissed:'DISMISS',new:'RESTORE'}[state]||state.toUpperCase();
   if(lbl==='ACK')_bumpResolved();
   writeAudit(id,desc,lbl);
-  const col={ACK:'#4ade80',DEFER:'#9ca3af',DISMISS:'#f87171',RESTORE:'#38bdf8'}[lbl]||'#38bdf8';
-  pushNotif('signal_change',`${lbl}: ${(desc||id).slice(0,70)}`,col);
   if(_data)renderDecisions(_data.conflicts||[]);
 }
 
@@ -2056,7 +1940,6 @@ async function switchPort(portId) {
     if (res.success) {
       // Clear decision cards and known conflict IDs from old port
       _resolvedToday = 0;
-      _knownCIds=new Set();_saveKnownCIds();
       document.getElementById('decisions-list').innerHTML =
         '<div class="dec-empty">↺ Switching port…</div>';
       showToast(`Switched to ${res.display_name} — refreshing data`);
@@ -2177,7 +2060,6 @@ function commitDecision() {
   writeAudit(_dswConflict.id, `[DECISION] ${_dswSelectedAlt.label}`, 'ACK');
   setSigState(_dswConflict.id, 'acknowledged');
   _bumpResolved();
-  pushNotif('decision', `Decision committed: ${_dswSelectedAlt.label}`, '#4ade80');
   if (_data) renderDecisions(_data.conflicts || []);
   closeDSW();
 }
@@ -2352,7 +2234,7 @@ function _checkCounts(observed,badgeId,label,expected){
 }
 
 /* ── Boot ── */
-renderAuditLog(); renderNotifPanel(); updateBellBadge(); refresh();
+renderAuditLog(); refresh();
 </script>
 </body>
 </html>
