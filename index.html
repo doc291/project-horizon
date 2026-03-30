@@ -686,8 +686,15 @@
     .wi-discard-btn { padding: 10px 16px; border-radius: 7px; border: 1px solid var(--border); background: none; color: var(--text-dim); font-size: 12px; font-weight: 700; cursor: pointer; }
     .wi-discard-btn:hover { color: var(--text-bright); border-color: var(--text-dim); }
     /* What If trigger button on dec-card */
-    .dec-wi-btn { width: calc(100% - 24px); margin: 0 12px 10px; padding: 7px 0; border-radius: 6px; border: 1px solid rgba(56,189,248,.35); background: rgba(56,189,248,.07); color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer; letter-spacing: .3px; transition: background .15s; }
-    .dec-wi-btn:hover { background: rgba(56,189,248,.15); }
+    .dec-wi-btn {
+      width: calc(100% - 24px); margin: 0 12px 8px;
+      padding: 9px 0; border-radius: 7px; border: none;
+      background: rgba(139,92,246,.85); color: #fff;
+      font-size: 12px; font-weight: 800; cursor: pointer;
+      letter-spacing: .3px; transition: opacity .15s, transform .1s;
+    }
+    .dec-wi-btn:hover { opacity: .88; transform: translateY(-1px); }
+    .dec-wi-btn:active { transform: translateY(0); }
     /* Scenario active banner */
     #wi-banner {
       display: none; flex-shrink: 0; align-items: center; gap: 10px;
@@ -1849,8 +1856,8 @@ function renderDecisions(conflicts){
           </div>
         </div>
         ${hasDeadline ? `<div class="dec-timer" id="dec-timer-${c.id}"><span class="dec-timer-lbl">⏱ Decide within</span><span class="dec-timer-box" id="dec-tbox-${c.id}"><span class="dec-timer-val" id="dec-tval-${c.id}">--:--:--</span></span></div>` : ''}
-        <button class="dec-wi-btn" onclick="openWhatIf('${c.id}')">🔀 What If →</button>
         <button class="dec-open-btn" onclick="openDSW('${c.id}')">⚡ Open Decision Support →</button>
+        <button class="dec-wi-btn" onclick="openWhatIf('${c.id}')">? What If →</button>
       </div>`;
   }).join('');
 
