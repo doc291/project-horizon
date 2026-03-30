@@ -37,6 +37,7 @@ _PORT_IDS = {
 _EXCLUDE_NAME_FRAGMENTS = {
     "FERRY", "FLYER", "CAT", "REEF", "VEDETTE", "IRONCLAD",
     "MICAT", "OXLEY", "MULGUMPIN",
+    "SVITZER", "RIVTOW", "SMIT", "TITAN", "SEAHORSE",  # tug operators
 }
 
 
