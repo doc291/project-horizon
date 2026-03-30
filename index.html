@@ -678,32 +678,28 @@
 
     /* ── Beta 9: Conflict Timeline ── */
     .ctl-wrap {
-      padding: 12px 16px 8px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+      padding: 10px 16px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
     .ctl-hdr {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 8px;
+      margin-bottom: 7px;
     }
     .ctl-title { font-size: 10px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.6px; text-transform: uppercase; }
-    .ctl-legend { display: flex; gap: 12px; }
+    .ctl-legend { display: flex; gap: 10px; }
     .ctl-leg-item { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-dim); }
     .ctl-leg-dot { width: 8px; height: 8px; border-radius: 2px; }
     .ctl-track {
-      position: relative; height: 32px; background: var(--surface2);
-      border-radius: 6px; overflow: visible; border: 1px solid var(--border);
+      position: relative; height: 36px; background: var(--surface2);
+      border-radius: 6px; overflow: hidden; border: 1px solid var(--border);
     }
     .ctl-now-line {
-      position: absolute; top: -4px; bottom: -4px; width: 2px;
-      background: var(--accent); border-radius: 1px; z-index: 10;
-    }
-    .ctl-now-line::before {
-      content: 'NOW'; position: absolute; top: -14px; left: 50%;
-      transform: translateX(-50%); font-size: 8px; font-weight: 700;
-      color: var(--accent); letter-spacing: 0.4px; white-space: nowrap;
+      position: absolute; top: 0; bottom: 0; width: 2px;
+      background: var(--accent); border-radius: 0; z-index: 10;
+      opacity: 0.9;
     }
     .ctl-block {
-      position: absolute; top: 4px; bottom: 4px; border-radius: 3px;
-      cursor: pointer; transition: opacity .15s; min-width: 4px;
+      position: absolute; top: 3px; bottom: 3px; border-radius: 3px;
+      cursor: pointer; transition: opacity .15s; min-width: 6px;
     }
     .ctl-block:hover { opacity: 0.85; z-index: 20; }
     .ctl-block.sev-critical { background: rgba(239,68,68,.75); border: 1px solid rgba(239,68,68,.9); }
