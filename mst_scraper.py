@@ -15,7 +15,10 @@ import logging
 import hashlib
 import random
 from datetime import datetime, timedelta, timezone
-from dateutil.parser import isoparse
+
+
+def isoparse(s: str) -> datetime:
+    return datetime.fromisoformat(s.replace("Z", "+00:00"))
 
 log = logging.getLogger(__name__)
 
