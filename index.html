@@ -1657,7 +1657,7 @@ function updateHeader(d){
   document.getElementById('s-conflicts').textContent=_confVids.size;
   document.getElementById('s-conflict-chip').classList.toggle('alert',(ps.critical_conflicts||0)>0);
   // Data source indicator
-  const isLive = d.data_source==='qships';
+  const isLive = d.data_source==='qships' || d.data_source==='live';
   const ind=document.getElementById('ds-indicator');
   const dot=document.getElementById('ds-dot');
   const lbl=document.getElementById('ds-label');
