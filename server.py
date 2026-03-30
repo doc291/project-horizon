@@ -2431,6 +2431,24 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
 .alt-m{font-size:10px;color:var(--dim)}
 .alt-m b{color:var(--txt)}
 .open-btn{display:block;width:100%;background:rgba(0,180,200,.1);border:1px solid rgba(0,180,200,.25);border-radius:10px;padding:12px;text-align:center;color:var(--acc);font-size:13px;font-weight:600;text-decoration:none;margin-top:4px}
+.restrict{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:8px 12px;margin-top:8px;display:flex;align-items:flex-start;gap:8px}
+.restrict.warn{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.35)}
+.restrict-icon{font-size:13px;flex-shrink:0;margin-top:1px}
+.restrict-txt{font-size:11px;color:var(--bright);font-weight:600;flex:1;line-height:1.4}
+.section-hdr{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+.mov{background:var(--card);border:1px solid rgba(0,180,200,.1);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.mov-top{display:flex;align-items:center;gap:8px}
+.mov-dir{font-size:9px;font-weight:700;letter-spacing:.5px;padding:2px 6px;border-radius:4px;text-transform:uppercase;flex-shrink:0}
+.mov-in{background:rgba(59,130,246,.2);color:#60a5fa}
+.mov-out{background:rgba(34,197,94,.15);color:var(--green)}
+.mov-name{font-size:13px;font-weight:700;color:var(--bright);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mov-time{font-size:13px;font-weight:700;color:var(--acc);font-variant-numeric:tabular-nums;flex-shrink:0}
+.mov-meta{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.mov-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.3px}
+.mov-tag.ok{background:rgba(34,197,94,.15);color:var(--green)}
+.mov-tag.pend{background:rgba(245,158,11,.15);color:var(--amber)}
+.mov-tag.berth{background:rgba(0,180,200,.1);color:var(--acc)}
+.mov-section{margin-bottom:16px}
 .empty{text-align:center;padding:40px 20px 20px;color:var(--dim)}
 .empty-icon{font-size:48px;margin-bottom:12px}
 .empty-title{font-size:17px;font-weight:600;color:var(--txt);margin-bottom:6px}
@@ -2475,6 +2493,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
     <div class="stat"><div class="stat-val" id="st-berths">–</div><div class="stat-lbl">Berths</div></div>
     <div class="stat"><div class="stat-val" id="st-arr">–</div><div class="stat-lbl">Arriving 24h</div></div>
   </div>
+  <div id="restrict-row"></div>
 </div>
 <div class="content" id="ct"><p style="text-align:center;padding:40px;color:var(--dim)">Loading…</p></div>
 <div class="pill" onclick="doRefresh()"><div class="dot"></div><span id="rl">Live</span></div>
@@ -2510,9 +2529,40 @@ function render(d){
   document.getElementById('st-berths').textContent=ps.berths_occupied!=null?`${ps.berths_occupied}/${ps.berths_total}`:'–';
   document.getElementById('st-arr').textContent=ps.vessels_expected_24h??'–';
   document.getElementById('ps').value=(d.port_profile&&d.port_profile.id)||'BRISBANE';
+  // Active port restrictions (WEATHER conflicts)
+  const wxCs=(d.conflicts||[]).filter(c=>c.signal_type==='WEATHER');
+  const rr=document.getElementById('restrict-row');
+  if(wxCs.length){
+    const sevO={'critical':0,'high':1,'medium':2};
+    const top=[...wxCs].sort((a,b)=>(sevO[a.severity]||9)-(sevO[b.severity]||9))[0];
+    const isCrit=top.severity==='critical';
+    const shortDesc=(top.description||'').split('.')[0].slice(0,120);
+    rr.innerHTML=`<div class="restrict${isCrit?'':' warn'}"><span class="restrict-icon">${isCrit?'🚫':'⚠️'}</span><div class="restrict-txt">${esc(shortDesc)}</div></div>`;
+  }else{rr.innerHTML='';}
+  // Next movements (arrivals + departures within 8h)
+  const _now=new Date();
+  const movs=[];
+  (d.vessels||[]).forEach(v=>{
+    if(['scheduled','confirmed','at_risk'].includes(v.status)&&v.eta){
+      const t=new Date(v.eta);const hrs=(t-_now)/3600000;
+      if(hrs>-0.5&&hrs<8)movs.push({dir:'ARR',name:v.name,time:t,berth:v.berth_id,pilot:v.pilotage_required,tug:v.towage_required});
+    }
+    if(v.status==='berthed'&&v.etd){
+      const t=new Date(v.etd);const hrs=(t-_now)/3600000;
+      if(hrs>-0.5&&hrs<6)movs.push({dir:'DEP',name:v.name,time:t,berth:v.berth_id,pilot:v.pilotage_required,tug:v.towage_required});
+    }
+  });
+  movs.sort((a,b)=>a.time-b.time);
+  const movsHtml=movs.slice(0,4).length?`<div class="mov-section"><div class="section-hdr">Next Movements</div>${movs.slice(0,4).map(m=>{
+    const tStr=m.time.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
+    const tags=(m.berth?`<span class="mov-tag berth">${esc(m.berth)}</span>`:'')+
+               (m.pilot?`<span class="mov-tag pend">PILOT</span>`:'')+
+               (m.tug?`<span class="mov-tag pend">TUG</span>`:'');
+    return`<div class="mov"><div class="mov-top"><span class="mov-dir ${m.dir==='ARR'?'mov-in':'mov-out'}">${m.dir}</span><span class="mov-name">${esc(m.name)}</span><span class="mov-time">${tStr}</span></div>${tags?`<div class="mov-meta">${tags}</div>`:''}</div>`;
+  }).join('')}</div>`:'';
   const ct=document.getElementById('ct');
   if(!cs.length){
-    ct.innerHTML=`<div class="empty">
+    ct.innerHTML=movsHtml+`<div class="empty">
 <div class="empty-icon">✓</div>
 <div class="empty-title">All Clear</div>
 <div class="empty-sub">No active decisions required.<br>Port operations running normally.</div>
@@ -2536,7 +2586,7 @@ function render(d){
     const ds=c.decision_support||{};
     _dl[c.id]=ds.decision_deadline?new Date(ds.decision_deadline).getTime():Date.now()+3*3600*1000;
   });
-  ct.innerHTML=sorted.map(c=>{
+  ct.innerHTML=movsHtml+sorted.map(c=>{
     const sev=c.severity||'medium';
     const ic=sev==='critical',ih=sev==='high';
     const rb=ic?'<span class="b b-crit">CRITICAL</span>':ih?'<span class="b b-high">HIGH RISK</span>':'<span class="b b-med">MED RISK</span>';
