@@ -2467,7 +2467,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
 <div class="hdr">
   <div class="hdr-top">
     <img src="/logo" class="hdr-logo" alt="Horizon">
-    <span class="hdr-title">DECISIONS</span>
+    <span class="hdr-title">PORT BRIEF</span>
 
     <span class="sig-badge" id="hs">–</span>
   </div>
@@ -2586,7 +2586,7 @@ function render(d){
     const ds=c.decision_support||{};
     _dl[c.id]=ds.decision_deadline?new Date(ds.decision_deadline).getTime():Date.now()+3*3600*1000;
   });
-  ct.innerHTML=movsHtml+sorted.map(c=>{
+  ct.innerHTML=movsHtml+`<div class="section-hdr" style="margin-top:4px">Decisions</div>`+sorted.map(c=>{
     const sev=c.severity||'medium';
     const ic=sev==='critical',ih=sev==='high';
     const rb=ic?'<span class="b b-crit">CRITICAL</span>':ih?'<span class="b b-high">HIGH RISK</span>':'<span class="b b-med">MED RISK</span>';
