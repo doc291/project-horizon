@@ -505,10 +505,6 @@
     .kpi-value.warn { color: var(--medium); }
     .kpi-value.bad  { color: var(--critical); }
     .kpi-sub  { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
-    .spark-wrap { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
-    .spark-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-    .spark-lbl  { font-size: 9px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text-dim); }
-    .spark-dir  { font-size: 11px; font-weight: 800; line-height: 1; }
 
     /* ETD risk section inside dashboard */
     .risk-section { padding: 0 14px 14px; }
@@ -1348,41 +1344,6 @@ function hideCtlTip(){
 }
 
 /* ── Beta 9: Trend Sparklines ── */
-function _sparkVals(portId, metric, currentVal){
-  // Deterministic 7-day history seeded from port+metric so values are stable
-  let s=Math.abs((portId+metric).split('').reduce((h,c)=>((h<<5)-h+c.charCodeAt(0))|0,0));
-  const rng=()=>{s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff;};
-  const cap=metric==='conflicts'?12:100;
-  const swing=metric==='conflicts'?2.5:9;
-  const vals=[];let v=currentVal;
-  for(let i=6;i>=1;i--){v=Math.max(0,Math.min(cap,v+(rng()-.48)*swing));vals.push(Math.round(v*10)/10);}
-  vals.reverse();vals.push(currentVal);
-  return vals;
-}
-function _sparkSVG(vals, color, label){
-  const W=100,H=26;
-  const mn=Math.min(...vals),mx=Math.max(...vals);
-  const rng=mx-mn||1;
-  const x=i=>(i/(vals.length-1))*W;
-  const y=v=>H-2-((v-mn)/rng)*(H-6);
-  const pts=vals.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
-  const lx=W, ly=y(vals[vals.length-1]);
-  const area=`M0,${H} ${pts} L${W},${H} Z`;
-  // Trend direction: compare last value against first
-  const first=vals[0],last=vals[vals.length-1];
-  const pct=first>0?((last-first)/first)*100:0;
-  const up=pct>3,down=pct<-3;
-  const dir=up?'↑':down?'↓':'→';
-  const dirColor=up?(color==='#f87171'?'#f87171':color):down?(color==='#4ade80'?'#f87171':color):color;
-  return `<div class="spark-wrap">
-    <div class="spark-meta"><span class="spark-lbl">${label||'7D TREND'}</span><span class="spark-dir" style="color:${dirColor}">${dir}</span></div>
-    <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:${H}px">
-      <path d="${area}" fill="${color}" opacity="0.12"/>
-      <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="${lx}" cy="${ly}" r="2.5" fill="${color}"/>
-    </svg>
-  </div>`;
-}
 
 /* ── Beta 9: Port Status Banner ── */
 function renderStatusBanner(d){
@@ -2331,22 +2292,16 @@ function renderDashboard(dash, etdRisk){
   const riskCls=dash.vessels_at_risk>2?'bad':dash.vessels_at_risk>0?'warn':'good';
   const conflCls=actualConflicts>0?'bad':'good';
   if(typeof _checkCounts==='function')_checkCounts(actualConflicts,null,'active conflicts',actualConflicts);
-  // Beta 9: Sparkline data
-  const portId=(_data&&_data.port_profile&&_data.port_profile.id)||'PORT';
-  const conflSpark=_sparkSVG(_sparkVals(portId,'conflicts',actualConflicts), actualConflicts>0?'#f87171':'#4ade80','CONFLICTS 7D');
-  const utilSpark=_sparkSVG(_sparkVals(portId,'utilisation',dash.berth_utilisation_pct), dash.berth_utilisation_pct>=85?'#fbbf24':'#38bdf8','UTILISATION 7D');
   grid.innerHTML=`
     <div class="kpi-tile ${critAlert?'kpi-alert':''}">
       <div class="kpi-label">Active Conflicts</div>
       <div class="kpi-value ${conflCls}">${actualConflicts}</div>
       <div class="kpi-sub">${dash.critical_conflicts} critical</div>
-      ${conflSpark}
     </div>
     <div class="kpi-tile">
       <div class="kpi-label">Berth Utilisation</div>
       <div class="kpi-value ${utilCls}">${dash.berth_utilisation_pct}%</div>
       <div class="kpi-sub">${dash.forecast_utilisation_48h}% forecast 48h avg</div>
-      ${utilSpark}
     </div>
     <div class="kpi-tile">
       <div class="kpi-label">On-Time Departure</div>
