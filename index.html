@@ -1240,7 +1240,10 @@ function switchRTab(name){
 }
 
 /* ── Fetch & render ── */
-let _knownCIds=new Set();
+const _KNOWN_KEY='_knownCIds_v1';
+function _loadKnownCIds(){try{return new Set(JSON.parse(localStorage.getItem(_KNOWN_KEY)||'[]'))}catch(e){return new Set()}}
+function _saveKnownCIds(){try{localStorage.setItem(_KNOWN_KEY,JSON.stringify([..._knownCIds].slice(-500)))}catch(e){}}
+let _knownCIds=_loadKnownCIds();
 async function refresh(){
   try{
     const r=await fetch('/api/summary');
@@ -1269,6 +1272,7 @@ function render(d){
   (d.conflicts||[]).forEach(c=>{
     if(!_knownCIds.has(c.id)){
       _knownCIds.add(c.id);
+      _saveKnownCIds();
       const col=c.signal_type==='CONFLICT'?'#ef4444':c.signal_type==='WARNING'?'#f97316':c.signal_type==='WEATHER'?'#38bdf8':'#eab308';
       pushNotif('new_conflict',`New ${c.signal_type}: ${(c.description||c.conflict_type).slice(0,70)}`,col);
     }
@@ -2050,8 +2054,9 @@ async function switchPort(portId) {
     });
     const res = await r.json();
     if (res.success) {
-      // Clear decision cards from old port
+      // Clear decision cards and known conflict IDs from old port
       _resolvedToday = 0;
+      _knownCIds=new Set();_saveKnownCIds();
       document.getElementById('decisions-list').innerHTML =
         '<div class="dec-empty">↺ Switching port…</div>';
       showToast(`Switched to ${res.display_name} — refreshing data`);
