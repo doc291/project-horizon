@@ -2353,7 +2353,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Horizon">
 <meta name="theme-color" content="#0a1628">
-<link rel="apple-touch-icon" href="/mobile-icon">
+<link rel="apple-touch-icon" href="/mobile-icon?v=2">
 <title>Horizon — Decisions</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -2539,7 +2539,7 @@ doRefresh();setInterval(doRefresh,30000);
                 self.send_response(200)
                 self.send_header("Content-Type", mime)
                 self.send_header("Content-Length", str(len(body)))
-                self.send_header("Cache-Control", "max-age=3600")
+                self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
                 self.end_headers()
                 self.wfile.write(body)
                 return
