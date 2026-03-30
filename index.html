@@ -99,13 +99,6 @@
     .src-badge { font-size:8px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; padding:1px 5px; border-radius:3px; margin-top:3px; display:inline-block; }
     .src-badge.live { background:rgba(20,184,166,.12); color:#14b8a6; border:1px solid rgba(20,184,166,.3); }
     .src-badge.simulated { background:rgba(107,114,128,.12); color:#9ca3af; border:1px solid rgba(107,114,128,.25); }
-    .btn-refresh {
-      padding: 6px 12px; border-radius: 6px;
-      background: var(--accent-dim); border: 1px solid var(--accent);
-      color: var(--accent); font-size: 11px; font-weight: 600;
-      cursor: pointer; transition: opacity .15s;
-    }
-    .btn-refresh:hover { opacity: .8; }
 
     /* ── Bell / Notifications ── */
 
@@ -900,7 +893,6 @@
         <span id="ds-time"></span>
       </div>
       <span id="clock">--:--:-- UTC</span>
-      <button class="btn-refresh" onclick="refresh()">↺ Refresh</button>
       <div class="header-divider"></div>
       <div class="amsg-logo-wrap" title="AMS Group">
         <img src="/amsg-logo" alt="AMS Group" onerror="this.closest('.amsg-logo-wrap').style.display='none'" />
@@ -2535,10 +2527,10 @@ function wiUpdateForm(){
         <input class="wi-inp" id="wi-mins" type="number" min="15" max="720" step="15" value="60">
       </div>`;
   } else if(type==='berth_change'){
-    const berths = [...new Set((_data&&_data.vessels||[]).map(v=>v.berth).filter(Boolean))];
+    const berths = (_data&&_data.berths||[]).filter(b=>b.status!=='maintenance');
     extra.innerHTML = `<div class="wi-field"><label>New Berth</label>
       <select class="wi-sel" id="wi-berth">
-        ${berths.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('')}
+        ${berths.map(b=>`<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('')}
         <option value="__anch__">Anchorage</option>
       </select></div>`;
   } else if(type==='hold_anchorage'){
