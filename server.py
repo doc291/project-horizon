@@ -1859,7 +1859,8 @@ def make_esg_data(vessels: list, now: datetime) -> dict:
 def build_summary():
     now = utcnow()
     with _profile_lock:
-        profile = dict(_PORT_PROFILE)
+        profile         = dict(_PORT_PROFILE)
+        active_port_id  = _ACTIVE_PORT_ID
 
     # ── Beta 8b: Data layer — port profile drives vessel + tidal source ────────
     # Priority order: (1) vessel scraper for configured port, (2) QShips fallback,
@@ -1885,8 +1886,8 @@ def build_summary():
             vessels = None
 
     if not using_live_vessel:
-        # QShips fallback for Brisbane
-        if ds["source"] == "qships" and _qships_data:
+        # QShips fallback for Brisbane — only use when active port IS Brisbane
+        if ds["source"] == "qships" and _qships_data and active_port_id == "BRISBANE":
             try:
                 vessels   = build_vessels_from_qships(_qships_data)
                 berths    = build_berths_from_qships(_qships_data)
@@ -1992,8 +1993,8 @@ def build_summary():
             "vessels_departing_24h": dep_24,
             "active_conflicts":   len(conflicts),
             "critical_conflicts": critical,
-            "pilots_available":   _PORT_PROFILE.get("pilots_available", 3),
-            "tugs_available":     _PORT_PROFILE.get("tugs_available", 4),
+            "pilots_available":   profile.get("pilots_available", 3),
+            "tugs_available":     profile.get("tugs_available", 4),
         },
         "vessels":           vessels,
         "berths":            berths,
@@ -2014,7 +2015,7 @@ def build_summary():
         "dukc":              dukc,
         "esg":               esg,
         "port_profile": {
-            "id":                    _ACTIVE_PORT_ID,
+            "id":                    active_port_id,
             "display_name":          profile["display_name"],
             "short_name":            profile["short_name"],
             "timezone":              profile.get("timezone", "Australia/Brisbane"),
