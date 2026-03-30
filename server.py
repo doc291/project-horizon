@@ -2130,7 +2130,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
       border-radius: 12px; padding: 40px 36px; text-align: center;
     }}
     .login-logo {{
-      height: 216px; width: auto; margin-bottom: 20px;
+      height: 216px; width: auto; display: block; margin: 0 auto -40px;
     }}
     .login-title {{
       font-size: 16px; font-weight: 700; letter-spacing: 1.2px;
