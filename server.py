@@ -2374,6 +2374,13 @@ class HorizonHandler(BaseHTTPRequestHandler):
 :root{--bg:#0a1628;--card:#0f1f35;--card2:#132238;--acc:#00b4c8;--txt:#c8d8e8;--bright:#e8f4ff;--dim:#6b82a8;--red:#ef4444;--amber:#f59e0b;--green:#22c55e}
 html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overscroll-behavior:none}
 .hdr{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid rgba(0,180,200,.15);padding:max(12px,env(safe-area-inset-top)) 16px 10px}
+.status-line{display:flex;align-items:center;gap:7px;margin-bottom:10px;padding:7px 11px;border-radius:8px;background:rgba(19,34,56,.9);border:1px solid rgba(0,180,200,.12)}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.status-dot.ok{background:var(--green);box-shadow:0 0 6px rgba(34,197,94,.6)}
+.status-dot.warn{background:var(--amber);box-shadow:0 0 6px rgba(245,158,11,.6)}
+.status-dot.crit{background:var(--red);box-shadow:0 0 6px rgba(239,68,68,.6);animation:pulse 1.5s infinite}
+.status-txt{font-size:11px;font-weight:700;color:var(--bright);letter-spacing:.3px;flex:1}
+.status-risk{font-size:11px;font-weight:700;color:var(--amber)}
 .hdr-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .hdr-logo{height:30px;width:auto}
 .hdr-title{font-size:13px;font-weight:700;color:var(--acc);letter-spacing:.5px;flex:1}
@@ -2480,6 +2487,11 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
 
     <span class="sig-badge" id="hs">–</span>
   </div>
+  <div class="status-line" id="status-line">
+    <div class="status-dot ok" id="status-dot"></div>
+    <span class="status-txt" id="status-txt">Loading…</span>
+    <span class="status-risk" id="status-risk"></span>
+  </div>
   <div class="port-row">
     <select class="port-sel" id="ps" onchange="switchPort(this.value)">
       <option value="BRISBANE">Brisbane</option>
@@ -2539,6 +2551,31 @@ function render(d){
   document.getElementById('st-berths').textContent=ps.berths_occupied!=null?`${ps.berths_occupied}/${ps.berths_total}`:'–';
   document.getElementById('st-arr').textContent=ps.vessels_expected_24h??'–';
   document.getElementById('ps').value=(d.port_profile&&d.port_profile.id)||'BRISBANE';
+  // Port status summary line
+  const allConflicts=d.conflicts||[];
+  const critCount=allConflicts.filter(c=>c.severity==='critical').length;
+  const decCount=cs.length;
+  const dot=document.getElementById('status-dot');
+  const txt=document.getElementById('status-txt');
+  const risk=document.getElementById('status-risk');
+  if(critCount>0){
+    dot.className='status-dot crit';
+    txt.textContent=`${decCount} DECISION${decCount!==1?'S':''} PENDING`;
+  } else if(decCount>0){
+    dot.className='status-dot warn';
+    txt.textContent=`${decCount} DECISION${decCount!==1?'S':''} PENDING`;
+  } else {
+    dot.className='status-dot ok';
+    txt.textContent=`PORT OPERATIONS NORMAL · ${(d.port_status||{}).vessels_in_port??'–'} VESSELS`;
+  }
+  // Cost at risk from recommended options
+  const costAtRisk=allConflicts.filter(c=>c.decision_support).reduce((sum,c)=>{
+    const rec=((c.decision_support||{}).options||[]).find(o=>o.recommended)||((c.decision_support||{}).options||[])[0];
+    if(!rec||!rec.cost_label)return sum;
+    const m=rec.cost_label.replace(/[^0-9]/g,'');
+    return sum+(m?parseInt(m):0);
+  },0);
+  risk.textContent=costAtRisk>0?`$${costAtRisk.toLocaleString()} AT RISK`:'';
   // Active port restrictions (WEATHER conflicts)
   const wxCs=(d.conflicts||[]).filter(c=>c.signal_type==='WEATHER');
   const rr=document.getElementById('restrict-row');
