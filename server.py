@@ -2262,6 +2262,14 @@ class HorizonHandler(BaseHTTPRequestHandler):
             self._json({"status": "ok", "time": fmt(utcnow()),
                         "data_source": ds["source"], "scraped_at": ds["scraped_at"]})
         elif path in ("/", "/index.html"):
+            # Auto-redirect mobile browsers to the PWA companion, unless ?full=1
+            from urllib.parse import urlparse, parse_qs as _pqs
+            _qs = _pqs(urlparse(self.path).query)
+            if _qs.get("full", ["0"])[0] != "1":
+                ua = self.headers.get("User-Agent", "")
+                if any(k in ua for k in ("iPhone", "Android", "Mobile", "iPod")):
+                    self._redirect("/mobile")
+                    return
             self._html()
         elif path == "/mobile":
             self._serve_mobile()
@@ -2471,7 +2479,7 @@ ${rh}
 </div>
 <div class="timer-row"><span class="timer-lbl">⏱ Decide within</span><span class="timer" id="t-${esc(c.id)}">–:––:––</span></div>
 </div>`;
-  }).join('')+`<a href="/" class="open-btn">Open Full Platform →</a>`;
+  }).join('')+`<a href="/?full=1" class="open-btn">Open Full Platform →</a>`;
   startCd();
 }
 function startCd(){
