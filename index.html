@@ -143,8 +143,6 @@
     .panel-left   { width: 276px; flex-shrink: 0; }
     .panel-center { flex: 1; min-width: 0; }
     .panel-right  { width: 320px; flex-shrink: 0; border-right: none; }
-    .main.full-width-tab .panel-left,
-    .main.full-width-tab .panel-right { display: none !important; }
     .panel-hdr {
       padding: 9px 14px; background: var(--surface); border-bottom: 1px solid var(--border);
       font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
@@ -1310,12 +1308,10 @@ function renderAuditLog(){
 
 /* ── Tab switching ── */
 const _TABS = ['dashboard','timeline','utilisation','vts','pilotage','towage','lines','dukc','esg','performance'];
-const _FULL_WIDTH_TABS = new Set(['performance']);
 function switchTab(name){
   _activeTab=name;
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',_TABS[i]===name));
   _TABS.forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===name));
-  document.querySelector('.main').classList.toggle('full-width-tab', _FULL_WIDTH_TABS.has(name));
   if(name==='utilisation'&&_data)renderUtilisation(_data.berth_utilisation||[]);
   if(name==='dashboard'&&_data)renderDashboard(_data.dashboard,_data.etd_risk||[]);
   if(name==='vts')setTimeout(initVTS,80);
