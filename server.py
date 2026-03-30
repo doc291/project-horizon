@@ -2377,7 +2377,6 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
 .hdr-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .hdr-logo{height:30px;width:auto}
 .hdr-title{font-size:13px;font-weight:700;color:var(--acc);letter-spacing:.5px;flex:1}
-.hdr-time{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
 .sig-badge{font-size:11px;font-weight:700;background:var(--red);color:#fff;border-radius:10px;padding:3px 8px;min-width:26px;text-align:center}
 .sig-badge.zero{background:rgba(34,197,94,.25);color:var(--green)}
 .port-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
@@ -2451,7 +2450,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
   <div class="hdr-top">
     <img src="/logo" class="hdr-logo" alt="Horizon">
     <span class="hdr-title">DECISIONS</span>
-    <span class="hdr-time" id="ht">––:––</span>
+
     <span class="sig-badge" id="hs">–</span>
   </div>
   <div class="port-row">
@@ -2486,8 +2485,6 @@ function fmtTimer(secs){if(secs<=0)return'00:00:00';const h=Math.floor(secs/3600
 function toggleAlts(id){const el=document.getElementById('alts-'+id);const btn=document.getElementById('altbtn-'+id);if(!el)return;const open=el.classList.toggle('open');btn.textContent=open?'▲ Hide options':'▼ View all options';}
 function render(d){
   const cs=(d.conflicts||[]).filter(c=>c.signal_type==='CONFLICT'&&c.decision_support);
-  const now=new Date();
-  document.getElementById('ht').textContent=now.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
   const sb=document.getElementById('hs');sb.textContent=cs.length;sb.className='sig-badge'+(cs.length===0?' zero':'');
   // Weather context
   const wx=d.weather||{};
@@ -2600,10 +2597,6 @@ async function switchPort(p){
   doRefresh();
 }
 doRefresh();setInterval(doRefresh,30000);
-setInterval(()=>{
-  const el=document.getElementById('ht');
-  if(el) el.textContent=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
-},1000);
 </script>
 </body></html>"""
         body = html.encode()
