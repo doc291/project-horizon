@@ -58,6 +58,14 @@ _COOKIE_TTL  = 60 * 60 * 12                   # 12 hours
 # Paths that bypass auth entirely (assets needed by the login page itself)
 _PUBLIC_PATHS = {"/login", "/logo", "/amsg-logo", "/health"}
 
+# ── Port Brief email config ───────────────────────────────────────────────────
+_SMTP_HOST       = os.environ.get("SMTP_HOST", "")
+_SMTP_PORT       = int(os.environ.get("SMTP_PORT", "587"))
+_SMTP_USER       = os.environ.get("SMTP_USER", "")
+_SMTP_PASS       = os.environ.get("SMTP_PASS", "")
+_SMTP_FROM       = os.environ.get("SMTP_FROM", "") or _SMTP_USER
+_BRIEF_RECIPIENTS = [r.strip() for r in os.environ.get("BRIEF_RECIPIENTS", "").split(",") if r.strip()]
+
 def _make_token() -> str:
     """Return an HMAC-signed session token."""
     payload = f"{_AUTH_USER}:{int(time.time())}"
@@ -2059,6 +2067,11 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 self.send_error(401)
                 return
             self._set_port()
+        elif path == "/api/send-brief":
+            if not self._is_authenticated():
+                self.send_error(401)
+                return
+            self._send_brief()
         else:
             self.send_error(405)
 
@@ -2288,6 +2301,11 @@ class HorizonHandler(BaseHTTPRequestHandler):
             self._amsg_logo()
         elif path == "/api/port-brief":
             self._port_brief_pdf()
+        elif path == "/api/brief-config":
+            self._json({
+                "default_recipients": _BRIEF_RECIPIENTS,
+                "smtp_configured": bool(_SMTP_HOST),
+            })
         else:
             self.send_error(404)
 
@@ -2827,333 +2845,338 @@ doRefresh();setInterval(doRefresh,30000);
         self.end_headers()
         self.wfile.write(body)
 
-    def _port_brief_pdf(self):
-        """Generate a one-page Port Brief PDF using ReportLab."""
-        try:
-            from reportlab.lib.pagesizes import A4
-            from reportlab.lib.units import mm
-            from reportlab.lib.colors import HexColor, white, black
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
-            from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-            from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
-            import io
+    def _build_brief_pdf(self):
+        """Generate Port Brief PDF. Returns (pdf_bytes, filename, port_name, date_str)."""
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import mm
+        from reportlab.lib.colors import HexColor, white, black
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+        from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+        import io
 
-            data = build_summary()
-            profile  = data.get("port_profile", {})
-            ps       = data.get("port_status", {})
-            wx       = data.get("weather", {})
-            tides    = data.get("tides", {})
-            conflicts = data.get("conflicts", [])
-            guidance  = data.get("guidance", [])
-            vessels   = data.get("vessels", [])
-            dash      = data.get("dashboard", {}) or {}
+        data = build_summary()
+        profile  = data.get("port_profile", {})
+        ps       = data.get("port_status", {})
+        wx       = data.get("weather", {})
+        tides    = data.get("tides", {})
+        conflicts = data.get("conflicts", [])
+        guidance  = data.get("guidance", [])
+        vessels   = data.get("vessels", [])
+        dash      = data.get("dashboard", {}) or {}
 
-            port_name = profile.get("display_name", "Port")
-            now_utc   = utcnow()
-            date_str  = now_utc.strftime("%d %B %Y  %H:%M UTC")
+        port_name = profile.get("display_name", "Port")
+        now_utc   = utcnow()
+        date_str  = now_utc.strftime("%d %B %Y  %H:%M UTC")
 
-            # Colour palette
-            C_BG     = HexColor("#0b1120")
-            C_HDR    = HexColor("#131e30")
-            C_ACC    = HexColor("#38bdf8")
-            C_GREEN  = HexColor("#22c55e")
-            C_AMBER  = HexColor("#f59e0b")
-            C_RED    = HexColor("#ef4444")
-            C_DIM    = HexColor("#6b82a8")
-            C_TEXT   = HexColor("#cdd9f0")
-            C_BRIGHT = HexColor("#e8f0ff")
-            C_SURF   = HexColor("#1a2840")
+        # Colour palette
+        C_BG     = HexColor("#0b1120")
+        C_HDR    = HexColor("#131e30")
+        C_ACC    = HexColor("#38bdf8")
+        C_GREEN  = HexColor("#22c55e")
+        C_AMBER  = HexColor("#f59e0b")
+        C_RED    = HexColor("#ef4444")
+        C_DIM    = HexColor("#6b82a8")
+        C_TEXT   = HexColor("#cdd9f0")
+        C_BRIGHT = HexColor("#e8f0ff")
+        C_SURF   = HexColor("#1a2840")
 
-            # Determine status
-            crit_count = sum(1 for c in conflicts if c.get("severity") == "critical")
-            dec_count  = sum(1 for c in conflicts if c.get("signal_type") == "CONFLICT" and c.get("decision_support"))
-            total_sig  = sum(1 for c in conflicts if c.get("signal_type") == "CONFLICT")
-            if crit_count > 0:
-                status_col = C_RED
-                status_txt = f"{crit_count} CRITICAL CONFLICT{'S' if crit_count!=1 else ''} ACTIVE  ·  {dec_count} DECISION{'S' if dec_count!=1 else ''} PENDING"
-            elif dec_count > 0:
-                status_col = C_AMBER
-                status_txt = f"{dec_count} DECISION{'S' if dec_count!=1 else ''} PENDING  ·  {total_sig} ACTIVE SIGNAL{'S' if total_sig!=1 else ''}"
-            else:
-                vip = ps.get("vessels_in_port", "–")
-                util = dash.get("berth_utilisation_pct", "–")
-                status_txt = f"OPERATIONS NORMAL  ·  {vip} VESSELS IN PORT  ·  {util}% BERTHS OCCUPIED"
-                status_col = C_GREEN
+        # Determine status
+        crit_count = sum(1 for c in conflicts if c.get("severity") == "critical")
+        dec_count  = sum(1 for c in conflicts if c.get("signal_type") == "CONFLICT" and c.get("decision_support"))
+        total_sig  = sum(1 for c in conflicts if c.get("signal_type") == "CONFLICT")
+        if crit_count > 0:
+            status_col = C_RED
+            status_txt = f"{crit_count} CRITICAL CONFLICT{'S' if crit_count!=1 else ''} ACTIVE  ·  {dec_count} DECISION{'S' if dec_count!=1 else ''} PENDING"
+        elif dec_count > 0:
+            status_col = C_AMBER
+            status_txt = f"{dec_count} DECISION{'S' if dec_count!=1 else ''} PENDING  ·  {total_sig} ACTIVE SIGNAL{'S' if total_sig!=1 else ''}"
+        else:
+            vip = ps.get("vessels_in_port", "–")
+            util = dash.get("berth_utilisation_pct", "–")
+            status_txt = f"OPERATIONS NORMAL  ·  {vip} VESSELS IN PORT  ·  {util}% BERTHS OCCUPIED"
+            status_col = C_GREEN
 
-            # Cost at risk
-            cost_at_risk = 0
-            for c in conflicts:
-                if not c.get("decision_support"): continue
-                opts = (c["decision_support"] or {}).get("options", [])
-                rec = next((o for o in opts if o.get("recommended")), opts[0] if opts else None)
-                if rec and rec.get("cost_label"):
-                    m = "".join(ch for ch in rec["cost_label"] if ch.isdigit())
-                    if m: cost_at_risk += int(m)
+        # Cost at risk
+        cost_at_risk = 0
+        for c in conflicts:
+            if not c.get("decision_support"): continue
+            opts = (c["decision_support"] or {}).get("options", [])
+            rec = next((o for o in opts if o.get("recommended")), opts[0] if opts else None)
+            if rec and rec.get("cost_label"):
+                m = "".join(ch for ch in rec["cost_label"] if ch.isdigit())
+                if m: cost_at_risk += int(m)
 
-            buf = io.BytesIO()
-            doc = SimpleDocTemplate(buf, pagesize=A4,
-                                    leftMargin=14*mm, rightMargin=14*mm,
-                                    topMargin=12*mm, bottomMargin=12*mm)
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4,
+                                leftMargin=14*mm, rightMargin=14*mm,
+                                topMargin=12*mm, bottomMargin=12*mm)
 
-            W = A4[0] - 28*mm  # usable width
+        W = A4[0] - 28*mm  # usable width
 
-            styles = getSampleStyleSheet()
-            def sty(name, **kw):
-                s = ParagraphStyle(name, **kw)
-                return s
+        styles = getSampleStyleSheet()
+        def sty(name, **kw):
+            s = ParagraphStyle(name, **kw)
+            return s
 
-            # ── Styles ──────────────────────────────────────────────────────
-            s_label = sty("label", fontName="Helvetica-Bold", fontSize=7,
-                          textColor=C_DIM, leading=10, spaceAfter=1)
-            s_val   = sty("val",   fontName="Helvetica-Bold", fontSize=11,
-                          textColor=C_BRIGHT, leading=13)
-            s_sub   = sty("sub",   fontName="Helvetica",      fontSize=8,
-                          textColor=C_DIM,    leading=11)
-            s_sec   = sty("sec",   fontName="Helvetica-Bold", fontSize=8,
-                          textColor=C_ACC,    leading=12, spaceBefore=8)
-            s_body  = sty("body",  fontName="Helvetica",      fontSize=9,
-                          textColor=C_TEXT,   leading=12)
-            s_bold  = sty("bold",  fontName="Helvetica-Bold", fontSize=9,
-                          textColor=C_BRIGHT, leading=12)
-            s_small = sty("small", fontName="Helvetica",      fontSize=7.5,
-                          textColor=C_DIM,    leading=11)
-            s_hdr   = sty("hdr",   fontName="Helvetica-Bold", fontSize=20,
-                          textColor=white,    leading=24)
-            s_sub_hdr = sty("subhdr", fontName="Helvetica", fontSize=9,
-                             textColor=C_ACC, leading=12)
-            s_status  = sty("status", fontName="Helvetica-Bold", fontSize=8.5,
-                             textColor=white, leading=12, alignment=TA_CENTER)
-            s_footer  = sty("footer", fontName="Helvetica", fontSize=7,
-                             textColor=C_DIM, leading=10, alignment=TA_CENTER)
+        # ── Styles ──────────────────────────────────────────────────────
+        s_label = sty("label", fontName="Helvetica-Bold", fontSize=7,
+                      textColor=C_DIM, leading=10, spaceAfter=1)
+        s_val   = sty("val",   fontName="Helvetica-Bold", fontSize=11,
+                      textColor=C_BRIGHT, leading=13)
+        s_sub   = sty("sub",   fontName="Helvetica",      fontSize=8,
+                      textColor=C_DIM,    leading=11)
+        s_sec   = sty("sec",   fontName="Helvetica-Bold", fontSize=8,
+                      textColor=C_ACC,    leading=12, spaceBefore=8)
+        s_body  = sty("body",  fontName="Helvetica",      fontSize=9,
+                      textColor=C_TEXT,   leading=12)
+        s_bold  = sty("bold",  fontName="Helvetica-Bold", fontSize=9,
+                      textColor=C_BRIGHT, leading=12)
+        s_small = sty("small", fontName="Helvetica",      fontSize=7.5,
+                      textColor=C_DIM,    leading=11)
+        s_hdr   = sty("hdr",   fontName="Helvetica-Bold", fontSize=20,
+                      textColor=white,    leading=24)
+        s_sub_hdr = sty("subhdr", fontName="Helvetica", fontSize=9,
+                         textColor=C_ACC, leading=12)
+        s_status  = sty("status", fontName="Helvetica-Bold", fontSize=8.5,
+                         textColor=white, leading=12, alignment=TA_CENTER)
+        s_footer  = sty("footer", fontName="Helvetica", fontSize=7,
+                         textColor=C_DIM, leading=10, alignment=TA_CENTER)
 
-            story = []
+        story = []
 
-            # ── Header block ─────────────────────────────────────────────────
-            hdr_data = [[
-                Paragraph(f"PORT BRIEF", sty("hdr2", fontName="Helvetica-Bold", fontSize=22, textColor=white, leading=26)),
-                Paragraph(f"{port_name.upper()}<br/><font size='9' color='#{C_ACC.hexval()[2:]}' face='Helvetica'>{date_str}</font>",
-                          sty("hdrright", fontName="Helvetica-Bold", fontSize=14, textColor=white, leading=18, alignment=TA_RIGHT))
-            ]]
-            hdr_tbl = Table(hdr_data, colWidths=[W*0.55, W*0.45])
-            hdr_tbl.setStyle(TableStyle([
-                ("BACKGROUND", (0,0), (-1,-1), C_HDR),
-                ("VALIGN",     (0,0), (-1,-1), "MIDDLE"),
-                ("TOPPADDING", (0,0), (-1,-1), 10),
-                ("BOTTOMPADDING",(0,0),(-1,-1),10),
-                ("LEFTPADDING", (0,0),(0,-1), 12),
-                ("RIGHTPADDING",(-1,0),(-1,-1),12),
-                ("LINEABOVE",  (0,0),(-1,0), 3, C_ACC),
+        # ── Header block ─────────────────────────────────────────────────
+        hdr_data = [[
+            Paragraph(f"PORT BRIEF", sty("hdr2", fontName="Helvetica-Bold", fontSize=22, textColor=white, leading=26)),
+            Paragraph(f"{port_name.upper()}<br/><font size='9' color='#{C_ACC.hexval()[2:]}' face='Helvetica'>{date_str}</font>",
+                      sty("hdrright", fontName="Helvetica-Bold", fontSize=14, textColor=white, leading=18, alignment=TA_RIGHT))
+        ]]
+        hdr_tbl = Table(hdr_data, colWidths=[W*0.55, W*0.45])
+        hdr_tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,-1), C_HDR),
+            ("VALIGN",     (0,0), (-1,-1), "MIDDLE"),
+            ("TOPPADDING", (0,0), (-1,-1), 10),
+            ("BOTTOMPADDING",(0,0),(-1,-1),10),
+            ("LEFTPADDING", (0,0),(0,-1), 12),
+            ("RIGHTPADDING",(-1,0),(-1,-1),12),
+            ("LINEABOVE",  (0,0),(-1,0), 3, C_ACC),
+        ]))
+        story.append(hdr_tbl)
+
+        # ── Status banner ─────────────────────────────────────────────────
+        risk_str = f"  ·  ${cost_at_risk:,} AT RISK" if cost_at_risk > 0 else ""
+        stat_data = [[Paragraph(status_txt + risk_str, s_status)]]
+        stat_tbl = Table(stat_data, colWidths=[W])
+        stat_tbl.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0),(-1,-1), status_col),
+            ("TOPPADDING",    (0,0),(-1,-1), 7),
+            ("BOTTOMPADDING", (0,0),(-1,-1), 7),
+        ]))
+        story.append(stat_tbl)
+        story.append(Spacer(1, 5*mm))
+
+        # ── Snapshot row (Weather + Port Stats + Movements) ───────────────
+        cond  = wx.get("conditions", "–").capitalize()
+        wind  = f"{wx.get('wind_speed_kts','–')} kts {wx.get('wind_direction_label','')}"
+        swell = f"{wx.get('swell_height_m','–')}m {wx.get('swell_direction_label','')}"
+        vis   = f"{wx.get('visibility_nm','–')} nm"
+        tide_arrow = "↑" if (tides.get("state")=="rising") else "↓" if (tides.get("state")=="falling") else "→"
+        tide_h = tides.get("current_height_m")
+        tide_str = f"{tide_arrow} {tide_h:.2f}m ({tides.get('state','–')})" if tide_h is not None else "–"
+
+        vip    = ps.get("vessels_in_port", "–")
+        berths = f"{ps.get('berths_occupied','–')}/{ps.get('berths_total','–')}"
+        arr24  = ps.get("vessels_expected_24h", "–")
+        util   = dash.get("berth_utilisation_pct", "–")
+        otd    = dash.get("on_time_departure_pct", "–")
+
+        # Next movements
+        _now = utcnow()
+        movs = []
+        for v in vessels:
+            if v.get("status") in ("scheduled","confirmed","at_risk") and v.get("eta"):
+                try:
+                    t = datetime.fromisoformat(v["eta"].replace("Z","+00:00"))
+                    hrs = (t - _now).total_seconds() / 3600
+                    if -0.5 < hrs < 8:
+                        movs.append(("ARR", v.get("name",""), t, v.get("berth_id","")))
+                except: pass
+            if v.get("status") == "berthed" and v.get("etd"):
+                try:
+                    t = datetime.fromisoformat(v["etd"].replace("Z","+00:00"))
+                    hrs = (t - _now).total_seconds() / 3600
+                    if -0.5 < hrs < 6:
+                        movs.append(("DEP", v.get("name",""), t, v.get("berth_id","")))
+                except: pass
+        movs.sort(key=lambda x: x[2])
+
+        def wx_cell():
+            rows = [
+                [Paragraph("WEATHER", s_label), ""],
+                [Paragraph("Conditions", s_small), Paragraph(f"<b>{cond}</b>", s_bold)],
+                [Paragraph("Wind",       s_small), Paragraph(wind,  s_body)],
+                [Paragraph("Swell",      s_small), Paragraph(swell, s_body)],
+                [Paragraph("Visibility", s_small), Paragraph(vis,   s_body)],
+                [Paragraph("Tide",       s_small), Paragraph(tide_str, s_body)],
+            ]
+            t = Table(rows, colWidths=[18*mm, None])
+            t.setStyle(TableStyle([("SPAN",(0,0),(1,0)),
+                ("BACKGROUND",(0,0),(-1,-1), C_SURF),
+                ("TOPPADDING",(0,0),(-1,-1),2),("BOTTOMPADDING",(0,0),(-1,-1),2),
+                ("LEFTPADDING",(0,0),(-1,-1),5),("RIGHTPADDING",(0,0),(-1,-1),5),
+                ("LINEBELOW",(0,0),(-1,0),0.5,C_ACC),
+                ("ROWBACKGROUNDS",(0,0),(-1,-1),[C_SURF, C_HDR]),
             ]))
-            story.append(hdr_tbl)
+            return t
 
-            # ── Status banner ─────────────────────────────────────────────────
-            risk_str = f"  ·  ${cost_at_risk:,} AT RISK" if cost_at_risk > 0 else ""
-            stat_data = [[Paragraph(status_txt + risk_str, s_status)]]
-            stat_tbl = Table(stat_data, colWidths=[W])
-            stat_tbl.setStyle(TableStyle([
-                ("BACKGROUND",    (0,0),(-1,-1), status_col),
-                ("TOPPADDING",    (0,0),(-1,-1), 7),
-                ("BOTTOMPADDING", (0,0),(-1,-1), 7),
+        def stats_cell():
+            rows = [
+                [Paragraph("PORT STATUS", s_label), ""],
+                [Paragraph("Vessels in port",  s_small), Paragraph(f"<b>{vip}</b>", s_bold)],
+                [Paragraph("Berths occupied",  s_small), Paragraph(berths, s_body)],
+                [Paragraph("Arriving 24h",     s_small), Paragraph(str(arr24), s_body)],
+                [Paragraph("Utilisation",      s_small), Paragraph(f"{util}%", s_body)],
+                [Paragraph("On-time departure",s_small), Paragraph(f"{otd}%", s_body)],
+            ]
+            t = Table(rows, colWidths=[26*mm, None])
+            t.setStyle(TableStyle([("SPAN",(0,0),(1,0)),
+                ("BACKGROUND",(0,0),(-1,-1), C_SURF),
+                ("TOPPADDING",(0,0),(-1,-1),2),("BOTTOMPADDING",(0,0),(-1,-1),2),
+                ("LEFTPADDING",(0,0),(-1,-1),5),("RIGHTPADDING",(0,0),(-1,-1),5),
+                ("LINEBELOW",(0,0),(-1,0),0.5,C_ACC),
+                ("ROWBACKGROUNDS",(0,0),(-1,-1),[C_SURF, C_HDR]),
             ]))
-            story.append(stat_tbl)
-            story.append(Spacer(1, 5*mm))
+            return t
 
-            # ── Snapshot row (Weather + Port Stats + Movements) ───────────────
-            cond  = wx.get("conditions", "–").capitalize()
-            wind  = f"{wx.get('wind_speed_kts','–')} kts {wx.get('wind_direction_label','')}"
-            swell = f"{wx.get('swell_height_m','–')}m {wx.get('swell_direction_label','')}"
-            vis   = f"{wx.get('visibility_nm','–')} nm"
-            tide_arrow = "↑" if (tides.get("state")=="rising") else "↓" if (tides.get("state")=="falling") else "→"
-            tide_h = tides.get("current_height_m")
-            tide_str = f"{tide_arrow} {tide_h:.2f}m ({tides.get('state','–')})" if tide_h is not None else "–"
-
-            vip    = ps.get("vessels_in_port", "–")
-            berths = f"{ps.get('berths_occupied','–')}/{ps.get('berths_total','–')}"
-            arr24  = ps.get("vessels_expected_24h", "–")
-            util   = dash.get("berth_utilisation_pct", "–")
-            otd    = dash.get("on_time_departure_pct", "–")
-
-            # Next movements
-            _now = utcnow()
-            movs = []
-            for v in vessels:
-                if v.get("status") in ("scheduled","confirmed","at_risk") and v.get("eta"):
-                    try:
-                        t = datetime.fromisoformat(v["eta"].replace("Z","+00:00"))
-                        hrs = (t - _now).total_seconds() / 3600
-                        if -0.5 < hrs < 8:
-                            movs.append(("ARR", v.get("name",""), t, v.get("berth_id","")))
-                    except: pass
-                if v.get("status") == "berthed" and v.get("etd"):
-                    try:
-                        t = datetime.fromisoformat(v["etd"].replace("Z","+00:00"))
-                        hrs = (t - _now).total_seconds() / 3600
-                        if -0.5 < hrs < 6:
-                            movs.append(("DEP", v.get("name",""), t, v.get("berth_id","")))
-                    except: pass
-            movs.sort(key=lambda x: x[2])
-
-            def wx_cell():
-                rows = [
-                    [Paragraph("WEATHER", s_label), ""],
-                    [Paragraph("Conditions", s_small), Paragraph(f"<b>{cond}</b>", s_bold)],
-                    [Paragraph("Wind",       s_small), Paragraph(wind,  s_body)],
-                    [Paragraph("Swell",      s_small), Paragraph(swell, s_body)],
-                    [Paragraph("Visibility", s_small), Paragraph(vis,   s_body)],
-                    [Paragraph("Tide",       s_small), Paragraph(tide_str, s_body)],
-                ]
-                t = Table(rows, colWidths=[18*mm, None])
-                t.setStyle(TableStyle([("SPAN",(0,0),(1,0)),
-                    ("BACKGROUND",(0,0),(-1,-1), C_SURF),
-                    ("TOPPADDING",(0,0),(-1,-1),2),("BOTTOMPADDING",(0,0),(-1,-1),2),
-                    ("LEFTPADDING",(0,0),(-1,-1),5),("RIGHTPADDING",(0,0),(-1,-1),5),
-                    ("LINEBELOW",(0,0),(-1,0),0.5,C_ACC),
-                    ("ROWBACKGROUNDS",(0,0),(-1,-1),[C_SURF, C_HDR]),
-                ]))
-                return t
-
-            def stats_cell():
-                rows = [
-                    [Paragraph("PORT STATUS", s_label), ""],
-                    [Paragraph("Vessels in port",  s_small), Paragraph(f"<b>{vip}</b>", s_bold)],
-                    [Paragraph("Berths occupied",  s_small), Paragraph(berths, s_body)],
-                    [Paragraph("Arriving 24h",     s_small), Paragraph(str(arr24), s_body)],
-                    [Paragraph("Utilisation",      s_small), Paragraph(f"{util}%", s_body)],
-                    [Paragraph("On-time departure",s_small), Paragraph(f"{otd}%", s_body)],
-                ]
-                t = Table(rows, colWidths=[26*mm, None])
-                t.setStyle(TableStyle([("SPAN",(0,0),(1,0)),
-                    ("BACKGROUND",(0,0),(-1,-1), C_SURF),
-                    ("TOPPADDING",(0,0),(-1,-1),2),("BOTTOMPADDING",(0,0),(-1,-1),2),
-                    ("LEFTPADDING",(0,0),(-1,-1),5),("RIGHTPADDING",(0,0),(-1,-1),5),
-                    ("LINEBELOW",(0,0),(-1,0),0.5,C_ACC),
-                    ("ROWBACKGROUNDS",(0,0),(-1,-1),[C_SURF, C_HDR]),
-                ]))
-                return t
-
-            def movs_cell():
-                rows = [[Paragraph("NEXT MOVEMENTS", s_label), "", ""]]
-                if movs:
-                    for d, name, t, berth in movs[:5]:
-                        tstr = t.strftime("%H:%M")
-                        dir_col = C_ACC if d == "ARR" else C_GREEN
-                        rows.append([
-                            Paragraph(f'<font color="#{dir_col.hexval()[2:]}">{d}</font>', sty("dc",fontName="Helvetica-Bold",fontSize=8,textColor=dir_col,leading=11)),
-                            Paragraph(name[:22], s_body),
-                            Paragraph(tstr, sty("tc",fontName="Helvetica-Bold",fontSize=9,textColor=C_ACC,leading=11)),
-                        ])
-                else:
-                    rows.append([Paragraph("No movements in window", s_small),"",""])
-                t2 = Table(rows, colWidths=[8*mm, None, 12*mm])
-                t2.setStyle(TableStyle([("SPAN",(0,0),(2,0)),
-                    ("BACKGROUND",(0,0),(-1,-1), C_SURF),
-                    ("TOPPADDING",(0,0),(-1,-1),2),("BOTTOMPADDING",(0,0),(-1,-1),2),
-                    ("LEFTPADDING",(0,0),(-1,-1),5),("RIGHTPADDING",(0,0),(-1,-1),5),
-                    ("LINEBELOW",(0,0),(-1,0),0.5,C_ACC),
-                    ("ROWBACKGROUNDS",(0,0),(-1,-1),[C_SURF, C_HDR]),
-                ]))
-                return t2
-
-            snap = Table([[wx_cell(), stats_cell(), movs_cell()]], colWidths=[W*0.31, W*0.31, W*0.38])
-            snap.setStyle(TableStyle([
-                ("VALIGN",(0,0),(-1,-1),"TOP"),
-                ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
-                ("INNERGRID",(0,0),(-1,-1),0,white),
-                ("LEFTPADDING",(1,0),(1,-1),3),("LEFTPADDING",(2,0),(2,-1),3),
-            ]))
-            story.append(snap)
-            story.append(Spacer(1, 4*mm))
-
-            # ── Active Conflicts ──────────────────────────────────────────────
-            dec_conflicts = [c for c in conflicts if c.get("signal_type")=="CONFLICT" and c.get("decision_support")]
-            story.append(Paragraph("ACTIVE CONFLICTS & DECISIONS", s_sec))
-            story.append(HRFlowable(width=W, thickness=0.5, color=C_ACC, spaceAfter=3))
-            if dec_conflicts:
-                tdata = [[
-                    Paragraph("VESSEL", s_label),
-                    Paragraph("CONFLICT", s_label),
-                    Paragraph("SEVERITY", s_label),
-                    Paragraph("RECOMMENDED ACTION", s_label),
-                    Paragraph("COST", s_label),
-                ]]
-                sev_map = {"critical": C_RED, "high": C_AMBER, "medium": HexColor("#eab308")}
-                for c in sorted(dec_conflicts, key=lambda x: {"critical":0,"high":1,"medium":2}.get(x.get("severity",""),3)):
-                    sev  = c.get("severity","medium")
-                    sc   = sev_map.get(sev, C_DIM)
-                    vn   = (c.get("vessel_names") or ["–"])[0]
-                    desc = c.get("description","")[:60]
-                    opts = (c.get("decision_support") or {}).get("options",[])
-                    rec  = next((o for o in opts if o.get("recommended")), opts[0] if opts else None)
-                    rec_lbl  = (rec.get("label","–"))[:50] if rec else "–"
-                    cost_lbl = rec.get("cost_label","–") if rec else "–"
-                    tdata.append([
-                        Paragraph(vn[:20], s_bold),
-                        Paragraph(desc, s_small),
-                        Paragraph(f'<font color="#{sc.hexval()[2:]}">{sev.upper()}</font>',
-                                  sty("sev",fontName="Helvetica-Bold",fontSize=8,textColor=sc,leading=11)),
-                        Paragraph(rec_lbl, s_small),
-                        Paragraph(cost_lbl, sty("cost",fontName="Helvetica-Bold",fontSize=8,textColor=C_AMBER,leading=11)),
+        def movs_cell():
+            rows = [[Paragraph("NEXT MOVEMENTS", s_label), "", ""]]
+            if movs:
+                for d, name, t, berth in movs[:5]:
+                    tstr = t.strftime("%H:%M")
+                    dir_col = C_ACC if d == "ARR" else C_GREEN
+                    rows.append([
+                        Paragraph(f'<font color="#{dir_col.hexval()[2:]}">{d}</font>', sty("dc",fontName="Helvetica-Bold",fontSize=8,textColor=dir_col,leading=11)),
+                        Paragraph(name[:22], s_body),
+                        Paragraph(tstr, sty("tc",fontName="Helvetica-Bold",fontSize=9,textColor=C_ACC,leading=11)),
                     ])
-                cf_tbl = Table(tdata, colWidths=[W*0.15, W*0.26, W*0.1, W*0.36, W*0.13])
-                cf_tbl.setStyle(TableStyle([
-                    ("BACKGROUND",(0,0),(-1,0), C_HDR),
-                    ("ROWBACKGROUNDS",(0,1),(-1,-1),[C_SURF, C_BG]),
+            else:
+                rows.append([Paragraph("No movements in window", s_small),"",""])
+            t2 = Table(rows, colWidths=[8*mm, None, 12*mm])
+            t2.setStyle(TableStyle([("SPAN",(0,0),(2,0)),
+                ("BACKGROUND",(0,0),(-1,-1), C_SURF),
+                ("TOPPADDING",(0,0),(-1,-1),2),("BOTTOMPADDING",(0,0),(-1,-1),2),
+                ("LEFTPADDING",(0,0),(-1,-1),5),("RIGHTPADDING",(0,0),(-1,-1),5),
+                ("LINEBELOW",(0,0),(-1,0),0.5,C_ACC),
+                ("ROWBACKGROUNDS",(0,0),(-1,-1),[C_SURF, C_HDR]),
+            ]))
+            return t2
+
+        snap = Table([[wx_cell(), stats_cell(), movs_cell()]], colWidths=[W*0.31, W*0.31, W*0.38])
+        snap.setStyle(TableStyle([
+            ("VALIGN",(0,0),(-1,-1),"TOP"),
+            ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
+            ("INNERGRID",(0,0),(-1,-1),0,white),
+            ("LEFTPADDING",(1,0),(1,-1),3),("LEFTPADDING",(2,0),(2,-1),3),
+        ]))
+        story.append(snap)
+        story.append(Spacer(1, 4*mm))
+
+        # ── Active Conflicts ──────────────────────────────────────────────
+        dec_conflicts = [c for c in conflicts if c.get("signal_type")=="CONFLICT" and c.get("decision_support")]
+        story.append(Paragraph("ACTIVE CONFLICTS & DECISIONS", s_sec))
+        story.append(HRFlowable(width=W, thickness=0.5, color=C_ACC, spaceAfter=3))
+        if dec_conflicts:
+            tdata = [[
+                Paragraph("VESSEL", s_label),
+                Paragraph("CONFLICT", s_label),
+                Paragraph("SEVERITY", s_label),
+                Paragraph("RECOMMENDED ACTION", s_label),
+                Paragraph("COST", s_label),
+            ]]
+            sev_map = {"critical": C_RED, "high": C_AMBER, "medium": HexColor("#eab308")}
+            for c in sorted(dec_conflicts, key=lambda x: {"critical":0,"high":1,"medium":2}.get(x.get("severity",""),3)):
+                sev  = c.get("severity","medium")
+                sc   = sev_map.get(sev, C_DIM)
+                vn   = (c.get("vessel_names") or ["–"])[0]
+                desc = c.get("description","")[:60]
+                opts = (c.get("decision_support") or {}).get("options",[])
+                rec  = next((o for o in opts if o.get("recommended")), opts[0] if opts else None)
+                rec_lbl  = (rec.get("label","–"))[:50] if rec else "–"
+                cost_lbl = rec.get("cost_label","–") if rec else "–"
+                tdata.append([
+                    Paragraph(vn[:20], s_bold),
+                    Paragraph(desc, s_small),
+                    Paragraph(f'<font color="#{sc.hexval()[2:]}">{sev.upper()}</font>',
+                              sty("sev",fontName="Helvetica-Bold",fontSize=8,textColor=sc,leading=11)),
+                    Paragraph(rec_lbl, s_small),
+                    Paragraph(cost_lbl, sty("cost",fontName="Helvetica-Bold",fontSize=8,textColor=C_AMBER,leading=11)),
+                ])
+            cf_tbl = Table(tdata, colWidths=[W*0.15, W*0.26, W*0.1, W*0.36, W*0.13])
+            cf_tbl.setStyle(TableStyle([
+                ("BACKGROUND",(0,0),(-1,0), C_HDR),
+                ("ROWBACKGROUNDS",(0,1),(-1,-1),[C_SURF, C_BG]),
+                ("TOPPADDING",(0,0),(-1,-1),4),("BOTTOMPADDING",(0,0),(-1,-1),4),
+                ("LEFTPADDING",(0,0),(-1,-1),5),("RIGHTPADDING",(0,0),(-1,-1),5),
+                ("VALIGN",(0,0),(-1,-1),"TOP"),
+                ("LINEBELOW",(0,-1),(-1,-1),0.5,C_ACC),
+            ]))
+            story.append(cf_tbl)
+        else:
+            story.append(Paragraph("No active conflicts requiring decisions.", s_body))
+        story.append(Spacer(1, 4*mm))
+
+        # ── For Your Attention ────────────────────────────────────────────
+        attn = [g for g in guidance if g.get("action_required")][:5]
+        story.append(Paragraph("FOR YOUR ATTENTION", s_sec))
+        story.append(HRFlowable(width=W, thickness=0.5, color=C_ACC, spaceAfter=3))
+        if attn:
+            for g in attn:
+                pri  = g.get("priority","medium")
+                pc   = {"critical":C_RED,"high":C_AMBER}.get(pri, C_DIM)
+                msg  = g.get("message","")
+                det  = g.get("detail","")[:120]
+                dl   = g.get("deadline")
+                dl_str = ""
+                if dl:
+                    try: dl_str = f"  Act by {datetime.fromisoformat(dl.replace('Z','+00:00')).strftime('%H:%M UTC')}"
+                    except: pass
+                row_data = [[
+                    Paragraph(f'<font color="#{pc.hexval()[2:]}">{pri.upper()}</font>',
+                              sty("at_pri",fontName="Helvetica-Bold",fontSize=7,textColor=pc,leading=10)),
+                    Paragraph(f"<b>{msg}</b>{' — ' + det if det else ''}{dl_str}",
+                              sty("at_msg",fontName="Helvetica",fontSize=8.5,textColor=C_TEXT,leading=12)),
+                ]]
+                at_tbl = Table(row_data, colWidths=[14*mm, W-14*mm])
+                at_tbl.setStyle(TableStyle([
+                    ("BACKGROUND",(0,0),(-1,-1),C_SURF),
                     ("TOPPADDING",(0,0),(-1,-1),4),("BOTTOMPADDING",(0,0),(-1,-1),4),
                     ("LEFTPADDING",(0,0),(-1,-1),5),("RIGHTPADDING",(0,0),(-1,-1),5),
                     ("VALIGN",(0,0),(-1,-1),"TOP"),
-                    ("LINEBELOW",(0,-1),(-1,-1),0.5,C_ACC),
+                    ("LINEBELOW",(0,0),(-1,-1),0.3,C_HDR),
+                    ("LINEBEFORE",(0,0),(0,-1),2,pc),
                 ]))
-                story.append(cf_tbl)
-            else:
-                story.append(Paragraph("No active conflicts requiring decisions.", s_body))
-            story.append(Spacer(1, 4*mm))
+                story.append(at_tbl)
+        else:
+            story.append(Paragraph("No items requiring immediate attention.", s_body))
 
-            # ── For Your Attention ────────────────────────────────────────────
-            attn = [g for g in guidance if g.get("action_required")][:5]
-            story.append(Paragraph("FOR YOUR ATTENTION", s_sec))
-            story.append(HRFlowable(width=W, thickness=0.5, color=C_ACC, spaceAfter=3))
-            if attn:
-                for g in attn:
-                    pri  = g.get("priority","medium")
-                    pc   = {"critical":C_RED,"high":C_AMBER}.get(pri, C_DIM)
-                    msg  = g.get("message","")
-                    det  = g.get("detail","")[:120]
-                    dl   = g.get("deadline")
-                    dl_str = ""
-                    if dl:
-                        try: dl_str = f"  Act by {datetime.fromisoformat(dl.replace('Z','+00:00')).strftime('%H:%M UTC')}"
-                        except: pass
-                    row_data = [[
-                        Paragraph(f'<font color="#{pc.hexval()[2:]}">{pri.upper()}</font>',
-                                  sty("at_pri",fontName="Helvetica-Bold",fontSize=7,textColor=pc,leading=10)),
-                        Paragraph(f"<b>{msg}</b>{' — ' + det if det else ''}{dl_str}",
-                                  sty("at_msg",fontName="Helvetica",fontSize=8.5,textColor=C_TEXT,leading=12)),
-                    ]]
-                    at_tbl = Table(row_data, colWidths=[14*mm, W-14*mm])
-                    at_tbl.setStyle(TableStyle([
-                        ("BACKGROUND",(0,0),(-1,-1),C_SURF),
-                        ("TOPPADDING",(0,0),(-1,-1),4),("BOTTOMPADDING",(0,0),(-1,-1),4),
-                        ("LEFTPADDING",(0,0),(-1,-1),5),("RIGHTPADDING",(0,0),(-1,-1),5),
-                        ("VALIGN",(0,0),(-1,-1),"TOP"),
-                        ("LINEBELOW",(0,0),(-1,-1),0.3,C_HDR),
-                        ("LINEBEFORE",(0,0),(0,-1),2,pc),
-                    ]))
-                    story.append(at_tbl)
-            else:
-                story.append(Paragraph("No items requiring immediate attention.", s_body))
+        # ── Footer ────────────────────────────────────────────────────────
+        story.append(Spacer(1, 5*mm))
+        story.append(HRFlowable(width=W, thickness=0.5, color=C_HDR))
+        story.append(Spacer(1, 2*mm))
+        story.append(Paragraph(
+            f"Horizon – Port Intelligence  ·  {port_name}  ·  Generated {date_str}  ·  Simulation Data",
+            s_footer
+        ))
 
-            # ── Footer ────────────────────────────────────────────────────────
-            story.append(Spacer(1, 5*mm))
-            story.append(HRFlowable(width=W, thickness=0.5, color=C_HDR))
-            story.append(Spacer(1, 2*mm))
-            story.append(Paragraph(
-                f"Horizon – Port Intelligence  ·  {port_name}  ·  Generated {date_str}  ·  Simulation Data",
-                s_footer
-            ))
+        doc.build(story)
+        pdf_bytes = buf.getvalue()
+        fname = f"port-brief-{port_name.lower().replace(' ','-')}-{now_utc.strftime('%Y%m%d-%H%M')}.pdf"
+        return pdf_bytes, fname, port_name, date_str
 
-            doc.build(story)
-            pdf_bytes = buf.getvalue()
-            fname = f"port-brief-{port_name.lower().replace(' ','-')}-{now_utc.strftime('%Y%m%d-%H%M')}.pdf"
+    def _port_brief_pdf(self):
+        """Stream the Port Brief PDF as a download."""
+        try:
+            pdf_bytes, fname, _, _ = self._build_brief_pdf()
             self.send_response(200)
             self.send_header("Content-Type", "application/pdf")
             self.send_header("Content-Length", str(len(pdf_bytes)))
@@ -3161,10 +3184,53 @@ doRefresh();setInterval(doRefresh,30000);
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(pdf_bytes)
-
         except Exception as exc:
             log.error("port-brief PDF generation failed: %s", exc, exc_info=True)
             self.send_error(500, f"PDF generation failed: {exc}")
+
+    def _send_brief(self):
+        """POST /api/send-brief — email the Port Brief PDF to a list of recipients."""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body   = json.loads(self.rfile.read(length)) if length else {}
+            recipients = body.get("recipients") or []
+            # Fall back to configured defaults if none provided
+            if not recipients:
+                recipients = list(_BRIEF_RECIPIENTS)
+            if not recipients:
+                self._json({"success": False, "error": "No recipients specified and BRIEF_RECIPIENTS not configured."})
+                return
+            if not _SMTP_HOST:
+                self._json({"success": False, "error": "SMTP not configured. Set SMTP_HOST, SMTP_USER, SMTP_PASS on the server."})
+                return
+
+            pdf_bytes, fname, port_name, date_str = self._build_brief_pdf()
+
+            import smtplib
+            from email.message import EmailMessage
+            msg = EmailMessage()
+            msg["Subject"] = f"Port Brief — {port_name} — {date_str}"
+            msg["From"]    = _SMTP_FROM or _SMTP_USER
+            msg["To"]      = ", ".join(recipients)
+            msg.set_content(
+                f"Please find attached the Port Brief for {port_name}, generated {date_str}.\n\n"
+                f"— Horizon Port Intelligence"
+            )
+            msg.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename=fname)
+
+            with smtplib.SMTP(_SMTP_HOST, _SMTP_PORT) as smtp:
+                smtp.ehlo()
+                smtp.starttls()
+                if _SMTP_USER and _SMTP_PASS:
+                    smtp.login(_SMTP_USER, _SMTP_PASS)
+                smtp.send_message(msg)
+
+            log.info("Port Brief emailed to: %s", ", ".join(recipients))
+            self._json({"success": True, "recipients": recipients, "port": port_name})
+
+        except Exception as exc:
+            log.error("send-brief failed: %s", exc, exc_info=True)
+            self._json({"success": False, "error": str(exc)})
 
     def _logo(self):
         # Prefer logo.png/jpg over logo.svg if present
