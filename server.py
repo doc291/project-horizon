@@ -32,6 +32,7 @@ from port_profiles import PORT_PROFILES, get_profile, list_profiles
 from bom_tides import fetch_bom_tides, predict_height_at
 from vessel_scraper import fetch_vessel_movements
 from weather import fetch_weather
+import mst_scraper
 
 _ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
@@ -65,6 +66,14 @@ _SMTP_USER       = os.environ.get("SMTP_USER", "")
 _SMTP_PASS       = os.environ.get("SMTP_PASS", "")
 _SMTP_FROM       = os.environ.get("SMTP_FROM", "") or _SMTP_USER
 _BRIEF_RECIPIENTS = [r.strip() for r in os.environ.get("BRIEF_RECIPIENTS", "").split(",") if r.strip()]
+
+# ── MyShipTracking AIS connector ──────────────────────────────────────────────
+_MST_API_KEY = os.environ.get("MST_API_KEY", "")
+if _MST_API_KEY:
+    mst_scraper.configure(_MST_API_KEY)
+    log.info("MyShipTracking AIS connector enabled")
+else:
+    log.info("MST_API_KEY not set — using simulation for vessel data")
 
 # ── What If overlay state ─────────────────────────────────────────────────────
 _WHATIF_OVERLAY  = {}   # {"active": bool, "adjustments": [...], "label": str}
@@ -2089,6 +2098,23 @@ def build_summary():
                 log.error("QShips vessel build failed (%s) — falling back to simulation", exc)
                 vessels = None
 
+    # MST AIS connector — real vessel identities, simulated operational detail
+    if not using_live_vessel and not is_live and mst_scraper.is_configured():
+        unloco = profile.get("unloco")
+        if unloco:
+            try:
+                berths = make_berths(now)
+                mst_vessels = mst_scraper.build_horizon_vessels(unloco, berths, now)
+                if mst_vessels:
+                    vessels   = mst_vessels
+                    port_name = profile["display_name"]
+                    is_live   = True
+                    using_live_vessel = True
+                    log.info("MST AIS: %d vessels loaded for %s", len(vessels), unloco)
+            except Exception as exc:
+                log.error("MST vessel build failed (%s) — falling back to simulation", exc)
+                vessels = None
+
     if not using_live_vessel and (not is_live or not vessels):
         berths    = make_berths(now)
         vessels   = make_vessels(now)
@@ -2168,7 +2194,9 @@ def build_summary():
     critical   = sum(1 for c in conflicts if c["severity"] == "critical")
 
     # Build a port-aware data source label
-    if using_live_vessel:
+    if using_live_vessel and any(v.get("source") == "mst" for v in vessels):
+        _ds_label = f"AIS Live — {profile['display_name']}"
+    elif using_live_vessel:
         _ds_label = f"Live — {profile['display_name']}"
     elif is_live and ds["source"] == "qships":
         _ds_label = ds["label"]

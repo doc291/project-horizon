@@ -11,6 +11,8 @@ PORT_PROFILES = {
         "display_name":                 "Port of Brisbane",
         "short_name":                   "Brisbane",
         "timezone":                     "Australia/Brisbane",
+        "unloco":                       "AUBNE",
+        "mst_port_id":                  108,
         "lat":                          -27.3818,
         "lon":                          153.1653,
         "bom_station_id":               "IDO71004",   # Brisbane Bar tidal gauge
@@ -82,6 +84,8 @@ PORT_PROFILES = {
         "display_name":                 "Port of Melbourne",
         "short_name":                   "Melbourne",
         "timezone":                     "Australia/Melbourne",
+        "unloco":                       "AUMEL",
+        "mst_port_id":                  293,
         "lat":                          -37.8224,
         "lon":                          144.9231,
         "bom_station_id":               "IDO71001",   # Williamstown tidal gauge
@@ -207,6 +211,8 @@ PORT_PROFILES = {
         "display_name":                 "Port of Darwin",
         "short_name":                   "Darwin",
         "timezone":                     "Australia/Darwin",
+        "unloco":                       "AUDRW",
+        "mst_port_id":                  3870,
         "lat":                          -12.4700,
         "lon":                          130.8450,
         "bom_station_id":               "IDO71013",   # Darwin tidal gauge
