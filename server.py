@@ -2373,12 +2373,22 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
 .hdr-title{font-size:13px;font-weight:700;color:var(--acc);letter-spacing:.5px;flex:1}
 .hdr-time{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
 .sig-badge{font-size:11px;font-weight:700;background:var(--red);color:#fff;border-radius:10px;padding:3px 8px;min-width:26px;text-align:center}
-.port-row{display:flex;align-items:center;gap:8px}
+.sig-badge.zero{background:rgba(34,197,94,.25);color:var(--green)}
+.port-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .port-sel{background:#132238;border:1px solid rgba(0,180,200,.3);border-radius:8px;color:var(--bright);font-size:13px;font-weight:600;padding:6px 10px;flex:1;-webkit-appearance:none}
-.cond{font-size:10px;font-weight:700;letter-spacing:.8px;padding:4px 8px;border-radius:6px;background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.cond{font-size:10px;font-weight:700;letter-spacing:.8px;padding:4px 8px;border-radius:6px;background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3);white-space:nowrap}
 .cond.poor{background:rgba(239,68,68,.15);color:var(--red);border-color:rgba(239,68,68,.3)}
+.cond.moderate{background:rgba(245,158,11,.15);color:var(--amber);border-color:rgba(245,158,11,.3)}
+.wx-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.wx-chip{font-size:10px;color:var(--dim);display:flex;align-items:center;gap:3px}
+.wx-chip b{color:var(--txt);font-weight:600}
+.wx-sep{color:rgba(107,130,168,.3);font-size:10px}
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:2px}
+.stat{background:rgba(19,34,56,.8);border:1px solid rgba(0,180,200,.1);border-radius:8px;padding:6px 8px;text-align:center}
+.stat-val{font-size:14px;font-weight:700;color:var(--acc)}
+.stat-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-top:1px}
 .content{padding:12px 16px;padding-bottom:calc(60px + env(safe-area-inset-bottom))}
-.card{background:var(--card);border:1px solid rgba(0,180,200,.12);border-radius:14px;padding:16px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid rgba(0,180,200,.12);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;transition:border-color .15s}
 .card.crit{border-color:rgba(239,68,68,.45);background:linear-gradient(135deg,#0f1f35,#180f1a)}
 .card.high{border-color:rgba(245,158,11,.4)}
 .badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
@@ -2399,15 +2409,33 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
 .met-val{font-size:14px;font-weight:700;color:var(--amber)}
 .met-val.g{color:var(--green)}
 .met-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-.timer-row{display:flex;align-items:center;justify-content:space-between;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px 12px}
+.timer-row{display:flex;align-items:center;justify-content:space-between;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px 12px;margin-bottom:10px}
 .timer-lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px}
 .timer{font-size:16px;font-weight:700;color:var(--red);font-variant-numeric:tabular-nums}
 .timer.warn{color:var(--amber)}
+.expand-btn{width:100%;background:none;border:1px solid rgba(0,180,200,.15);border-radius:8px;padding:7px;color:var(--dim);font-size:11px;cursor:pointer;text-align:center;letter-spacing:.3px}
+.expand-btn:active{background:rgba(0,180,200,.08)}
+.alts{display:none;margin-top:10px;border-top:1px solid rgba(0,180,200,.1);padding-top:10px}
+.alts.open{display:block}
+.alt{background:var(--card2);border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid rgba(107,130,168,.15)}
+.alt.recommended{border-color:rgba(0,180,200,.3);background:rgba(0,180,200,.06)}
+.alt-lbl{font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.alt-title{font-size:12px;font-weight:600;color:var(--bright);margin-bottom:3px}
+.alt-desc{font-size:11px;color:var(--dim);line-height:1.4;margin-bottom:6px}
+.alt-meta{display:flex;gap:12px}
+.alt-m{font-size:10px;color:var(--dim)}
+.alt-m b{color:var(--txt)}
 .open-btn{display:block;width:100%;background:rgba(0,180,200,.1);border:1px solid rgba(0,180,200,.25);border-radius:10px;padding:12px;text-align:center;color:var(--acc);font-size:13px;font-weight:600;text-decoration:none;margin-top:4px}
-.empty{text-align:center;padding:60px 20px;color:var(--dim)}
-.empty-icon{font-size:52px;margin-bottom:14px}
+.empty{text-align:center;padding:40px 20px 20px;color:var(--dim)}
+.empty-icon{font-size:48px;margin-bottom:12px}
 .empty-title{font-size:17px;font-weight:600;color:var(--txt);margin-bottom:6px}
-.empty-sub{font-size:13px;line-height:1.6}
+.empty-sub{font-size:13px;line-height:1.6;margin-bottom:20px}
+.empty-wx{background:var(--card);border:1px solid rgba(0,180,200,.1);border-radius:12px;padding:14px 16px;text-align:left;margin:0 auto;max-width:340px}
+.empty-wx-title{font-size:10px;font-weight:700;color:var(--acc);letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px}
+.empty-wx-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(0,180,200,.06);font-size:12px}
+.empty-wx-row:last-child{border-bottom:none}
+.empty-wx-lbl{color:var(--dim)}
+.empty-wx-val{color:var(--bright);font-weight:600}
 .pill{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));right:16px;background:var(--card);border:1px solid rgba(0,180,200,.2);border-radius:20px;padding:8px 14px;font-size:11px;color:var(--dim);display:flex;align-items:center;gap:6px;box-shadow:0 4px 20px rgba(0,0,0,.5);cursor:pointer;z-index:200}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--acc);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -2428,25 +2456,76 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
     </select>
     <span class="cond" id="hc">–</span>
   </div>
+  <div class="wx-row" id="wx-row">
+    <span class="wx-chip"><b id="wx-wind">–</b></span>
+    <span class="wx-sep">·</span>
+    <span class="wx-chip"><b id="wx-swell">–</b></span>
+    <span class="wx-sep">·</span>
+    <span class="wx-chip"><b id="wx-tide">–</b></span>
+    <span class="wx-sep">·</span>
+    <span class="wx-chip"><b id="wx-vis">–</b></span>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-val" id="st-vessels">–</div><div class="stat-lbl">In Port</div></div>
+    <div class="stat"><div class="stat-val" id="st-berths">–</div><div class="stat-lbl">Berths</div></div>
+    <div class="stat"><div class="stat-val" id="st-arr">–</div><div class="stat-lbl">Arriving 24h</div></div>
+  </div>
 </div>
 <div class="content" id="ct"><p style="text-align:center;padding:40px;color:var(--dim)">Loading…</p></div>
 <div class="pill" onclick="doRefresh()"><div class="dot"></div><span id="rl">Live</span></div>
 <script>
 let _d=null,_cd=null,_dl={};
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function fmt(secs){if(secs<=0)return'00:00:00';const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
+function fmtTimer(secs){if(secs<=0)return'00:00:00';const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
+function toggleAlts(id){const el=document.getElementById('alts-'+id);const btn=document.getElementById('altbtn-'+id);if(!el)return;const open=el.classList.toggle('open');btn.textContent=open?'▲ Hide options':'▼ View all options';}
 function render(d){
-  // Match desktop Decisions panel: only CONFLICT signals that have decision support
   const cs=(d.conflicts||[]).filter(c=>c.signal_type==='CONFLICT'&&c.decision_support);
   const now=new Date();
   document.getElementById('ht').textContent=now.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
-  document.getElementById('hs').textContent=cs.length;
+  const sb=document.getElementById('hs');sb.textContent=cs.length;sb.className='sig-badge'+(cs.length===0?' zero':'');
+  // Weather context
   const wx=d.weather||{};
   const cond=(wx.conditions||'').toUpperCase()||'–';
-  const ce=document.getElementById('hc');ce.textContent=cond;ce.className='cond'+(cond==='POOR'||cond==='ROUGH'?' poor':'');
+  const ce=document.getElementById('hc');
+  ce.textContent=cond;
+  ce.className='cond'+(cond==='POOR'||cond==='ROUGH'?' poor':cond==='MODERATE'?' moderate':'');
+  const windKts=wx.wind_speed_kts!=null?Math.round(wx.wind_speed_kts):null;
+  const windDir=wx.wind_direction_label||'';
+  document.getElementById('wx-wind').textContent=windKts!=null?`WIND ${windKts}kt${windDir?' '+windDir:''}`:' WIND –';
+  const swellM=wx.swell_height_m!=null?wx.swell_height_m.toFixed(1):null;
+  const swellDir=wx.swell_direction_label||'';
+  document.getElementById('wx-swell').textContent=swellM!=null?`SWELL ${swellM}m${swellDir?' '+swellDir:''}`:' SWELL –';
+  const tide=d.tides||{};
+  const tideArrow=tide.state==='rising'?'↑':tide.state==='falling'?'↓':'→';
+  const tideH=tide.current_height_m!=null?tide.current_height_m.toFixed(2):null;
+  document.getElementById('wx-tide').textContent=tideH!=null?`TIDE ${tideArrow} ${tideH}m`:'TIDE –';
+  const visNm=wx.visibility_nm!=null?Math.round(wx.visibility_nm):null;
+  document.getElementById('wx-vis').textContent=visNm!=null?`VIS ${visNm}nm`:'VIS –';
+  // Port stats
+  const ps=d.port_status||{};
+  document.getElementById('st-vessels').textContent=ps.vessels_in_port??'–';
+  document.getElementById('st-berths').textContent=ps.berths_occupied!=null?`${ps.berths_occupied}/${ps.berths_total}`:'–';
+  document.getElementById('st-arr').textContent=ps.vessels_expected_24h??'–';
   document.getElementById('ps').value=(d.port_profile&&d.port_profile.id)||'BRISBANE';
   const ct=document.getElementById('ct');
-  if(!cs.length){ct.innerHTML='<div class="empty"><div class="empty-icon">✓</div><div class="empty-title">All Clear</div><div class="empty-sub">No active decisions required.<br>Port operations running normally.</div></div>';return;}
+  if(!cs.length){
+    ct.innerHTML=`<div class="empty">
+<div class="empty-icon">✓</div>
+<div class="empty-title">All Clear</div>
+<div class="empty-sub">No active decisions required.<br>Port operations running normally.</div>
+<div class="empty-wx">
+<div class="empty-wx-title">Port Conditions</div>
+<div class="empty-wx-row"><span class="empty-wx-lbl">Wind</span><span class="empty-wx-val">${windKts!=null?windKts+'kt '+(windDir||''):'–'}</span></div>
+<div class="empty-wx-row"><span class="empty-wx-lbl">Swell</span><span class="empty-wx-val">${swellM!=null?swellM+'m '+(swellDir||''):'–'}</span></div>
+<div class="empty-wx-row"><span class="empty-wx-lbl">Tide</span><span class="empty-wx-val">${tideH!=null?tideArrow+' '+tideH+'m ('+(tide.state||'–')+')':'–'}</span></div>
+<div class="empty-wx-row"><span class="empty-wx-lbl">Visibility</span><span class="empty-wx-val">${visNm!=null?visNm+' nm':'–'}</span></div>
+<div class="empty-wx-row"><span class="empty-wx-lbl">Vessels in port</span><span class="empty-wx-val">${ps.vessels_in_port??'–'}</span></div>
+<div class="empty-wx-row"><span class="empty-wx-lbl">Berths occupied</span><span class="empty-wx-val">${ps.berths_occupied!=null?ps.berths_occupied+'/'+ps.berths_total:'–'}</span></div>
+</div>
+<br><a href="/?full=1" class="open-btn">Open Full Platform →</a>
+</div>`;
+    return;
+  }
   _dl={};
   const ro={'critical':0,'high':1,'medium':2,'low':3};
   const sorted=[...cs].sort((a,b)=>(ro[a.severity]||9)-(ro[b.severity]||9));
@@ -2458,7 +2537,6 @@ function render(d){
     const sev=c.severity||'medium';
     const ic=sev==='critical',ih=sev==='high';
     const rb=ic?'<span class="b b-crit">CRITICAL</span>':ih?'<span class="b b-high">HIGH RISK</span>':'<span class="b b-med">MED RISK</span>';
-    const cb=c.signal_type==='CONFLICT'?'<span class="b b-conf">CONFLICT</span>':'';
     const vname=(c.vessel_names||[])[0]||'Unknown';
     const ds=c.decision_support||{};
     const opts=ds.options||[];
@@ -2467,8 +2545,20 @@ function render(d){
     const cost=rec.cost_label||'~$3,800';
     const delay=rec.delay_mins!=null?(rec.delay_mins>0?rec.delay_mins+' min':'0 min'):'90 min';
     const casc=rec.cascade_count!=null?(rec.cascade_count+' vessel'+(rec.cascade_count!==1?'s':'')):'1 vessel';
+    // All alternatives (tap to expand)
+    const altsHtml=opts.length>1?opts.map(o=>`
+<div class="alt${o.recommended?' recommended':''}">
+${o.recommended?'<div class="alt-lbl">★ Recommended</div>':''}
+<div class="alt-title">${esc(o.label||'')}</div>
+<div class="alt-desc">${esc((o.description||'').slice(0,160))}${(o.description||'').length>160?'…':''}</div>
+<div class="alt-meta">
+<span class="alt-m"><b>${esc(o.cost_label||'–')}</b></span>
+<span class="alt-m">Delay: <b>${o.delay_mins!=null?(o.delay_mins>0?o.delay_mins+' min':'None'):'–'}</b></span>
+<span class="alt-m">Cascade: <b>${o.cascade_count!=null?o.cascade_count:'–'}</b></span>
+</div></div>`).join(''):'';
+    const expandBtn=opts.length>1?`<button class="expand-btn" id="altbtn-${esc(c.id)}" onclick="toggleAlts('${esc(c.id)}')">▼ View all options</button><div class="alts" id="alts-${esc(c.id)}">${altsHtml}</div>`:'';
     return`<div class="card${ic?' crit':ih?' high':''}" id="card-${esc(c.id)}">
-<div class="badges">${rb}${cb}<span class="b b-sim">SIMULATION</span></div>
+<div class="badges">${rb}<span class="b b-conf">CONFLICT</span><span class="b b-sim">SIMULATION</span></div>
 <div class="vname">${esc(vname)}</div>
 <div class="cdesc">${esc(c.description||c.conflict_type||'')}</div>
 ${rh}
@@ -2478,6 +2568,7 @@ ${rh}
 <div class="met"><div class="met-val g">${esc(casc)}</div><div class="met-lbl">Cascade</div></div>
 </div>
 <div class="timer-row"><span class="timer-lbl">⏱ Decide within</span><span class="timer" id="t-${esc(c.id)}">–:––:––</span></div>
+${expandBtn}
 </div>`;
   }).join('')+`<a href="/?full=1" class="open-btn">Open Full Platform →</a>`;
   startCd();
@@ -2489,7 +2580,7 @@ function startCd(){
     Object.entries(_dl).forEach(([id,dl])=>{
       const el=document.getElementById(`t-${id}`);if(!el)return;
       const s=Math.max(0,Math.round((dl-now)/1000));
-      el.textContent=fmt(s);el.className='timer'+(s<3600?' warn':'');
+      el.textContent=fmtTimer(s);el.className='timer'+(s<3600?' warn':'');
     });
   },1000);
 }
