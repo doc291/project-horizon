@@ -2480,11 +2480,12 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
 .empty-wx-val{color:var(--bright);font-weight:600}
 .pill{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));right:16px;background:var(--card);border:1px solid rgba(0,180,200,.2);border-radius:20px;padding:8px 14px;font-size:11px;color:var(--dim);display:flex;align-items:center;gap:6px;box-shadow:0 4px 20px rgba(0,0,0,.5);cursor:pointer;z-index:200}
 .brief-btn{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;background:rgba(0,180,200,.1);border:1px solid rgba(0,180,200,.25);color:var(--acc);text-decoration:none;letter-spacing:.3px}
-/* Pull-to-refresh */
-.ptr{position:fixed;top:0;left:0;right:0;height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(10,22,40,.95);z-index:500;transition:height .2s ease}
-.ptr.active{height:52px}
-.ptr-inner{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--acc)}
-.ptr-spin{width:16px;height:16px;border:2px solid rgba(0,180,200,.3);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite}
+/* Pull-to-refresh rubber band */
+#ptr-zone{height:0;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;background:var(--bg)}
+#ptr-inner{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--acc);padding-bottom:12px}
+#ptr-icon{font-size:15px;line-height:1;display:inline-block;transition:transform .2s ease}
+#ptr-icon.ready{transform:rotate(180deg)}
+#ptr-icon.spinning{font-size:0;width:16px;height:16px;border:2px solid rgba(0,180,200,.3);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* Swipe transition */
 .content-wrap{transition:transform .25s ease,opacity .25s ease}
@@ -2494,7 +2495,6 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 </style></head>
 <body>
-<div class="ptr" id="ptr"><div class="ptr-inner"><div class="ptr-spin"></div><span id="ptr-lbl">Refreshing…</span></div></div>
 <div class="hdr">
   <div class="hdr-top">
     <img src="/logo" class="hdr-logo" alt="Horizon">
@@ -2532,6 +2532,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
   </div>
   <div id="restrict-row"></div>
 </div>
+<div id="ptr-zone"><div id="ptr-inner"><span id="ptr-icon">↓</span><span id="ptr-lbl">Pull to refresh</span></div></div>
 <div class="content-wrap" id="cwrap"><div class="content" id="ct"><p style="text-align:center;padding:40px;color:var(--dim)">Loading…</p></div></div>
 <div class="pill" onclick="doRefresh()"><div class="dot"></div><span id="rl">Live</span></div>
 <script>
@@ -2728,28 +2729,66 @@ async function switchPort(p){
 }
 doRefresh();setInterval(doRefresh,30000);
 
-// ── Pull-to-refresh ───────────────────────────────────────────────────────────
+// ── Pull-to-refresh rubber band ───────────────────────────────────────────────
 (function(){
-  const THRESHOLD=70;
-  let startY=0,pulling=false,triggered=false;
-  const ptr=document.getElementById('ptr');
+  const THRESHOLD=60, MAX_H=90, HOLD_H=52;
+  let startY=0,pulling=false,triggered=false,active=false;
+  const zone=document.getElementById('ptr-zone');
+  const icon=document.getElementById('ptr-icon');
+  const lbl=document.getElementById('ptr-lbl');
+  const cwrap=document.getElementById('cwrap');
+
+  // Rubber-band damping: full 1:1 up to 20px, then sqrt taper
+  function dampen(dy){return dy<=20?dy:20+Math.sqrt(dy-20)*5.5;}
+
+  function setH(h,animate){
+    const easing='cubic-bezier(0.25,0.46,0.45,0.94)';
+    zone.style.transition=animate?`height 0.3s ${easing}`:'none';
+    cwrap.style.transition=animate?`transform 0.3s ${easing}`:'none';
+    zone.style.height=h+'px';
+    cwrap.style.transform=h?`translateY(${h}px)`:'';
+  }
+
+  function reset(animate){
+    setH(0,animate);
+    setTimeout(()=>{icon.className='';icon.textContent='↓';lbl.textContent='Pull to refresh';},animate?310:0);
+    pulling=false;triggered=false;active=false;
+  }
+
   document.addEventListener('touchstart',e=>{
-    if(window.scrollY===0)startY=e.touches[0].clientY;
-    pulling=window.scrollY===0;triggered=false;
+    if(window.scrollY>2)return;
+    startY=e.touches[0].clientY;pulling=true;triggered=false;active=false;
   },{passive:true});
+
   document.addEventListener('touchmove',e=>{
     if(!pulling)return;
     const dy=e.touches[0].clientY-startY;
-    if(dy>10&&!triggered){ptr.classList.add('active');}
-    if(dy>THRESHOLD&&!triggered){triggered=true;document.getElementById('ptr-lbl').textContent='Release to refresh…';}
+    if(dy<=0){if(active)reset(true);else pulling=false;return;}
+    active=true;
+    const h=Math.min(dampen(dy),MAX_H);
+    setH(h,false);
+    if(h>=THRESHOLD&&!triggered){
+      triggered=true;
+      icon.className='ready';
+      lbl.textContent='Release to refresh';
+    }else if(h<THRESHOLD&&triggered){
+      triggered=false;
+      icon.className='';
+      icon.textContent='↓';
+      lbl.textContent='Pull to refresh';
+    }
   },{passive:true});
+
   document.addEventListener('touchend',()=>{
-    if(!pulling)return;pulling=false;
+    if(!pulling)return;
     if(triggered){
-      document.getElementById('ptr-lbl').textContent='Refreshing…';
-      doRefresh().finally(()=>setTimeout(()=>ptr.classList.remove('active'),400));
-    }else{ptr.classList.remove('active');}
-    triggered=false;
+      icon.className='spinning';
+      lbl.textContent='Refreshing…';
+      setH(HOLD_H,true);
+      doRefresh().finally(()=>setTimeout(()=>reset(true),400));
+    }else{
+      reset(active);
+    }
   });
 })();
 
