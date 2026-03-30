@@ -43,8 +43,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [horizon] %(levelnam
 
 PORT = int(os.environ.get("PORT", 8000))
 INDEX_HTML    = Path(__file__).parent / "index.html"
-LOGO_FILE     = Path(__file__).parent / "logo.svg"
-AMSG_LOGO_FILE = Path(__file__).parent / "amsg-logo.png"
+LOGO_FILE        = Path(__file__).parent / "logo.svg"
+MOBILE_ICON_FILE = Path(__file__).parent / "mobile-icon.png"
+AMSG_LOGO_FILE   = Path(__file__).parent / "amsg-logo.png"
 QSHIPS_FILE   = Path(__file__).parent / "qships_data.json"
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -2251,6 +2252,8 @@ class HorizonHandler(BaseHTTPRequestHandler):
             self._html()
         elif path == "/mobile":
             self._serve_mobile()
+        elif path == "/mobile-icon":
+            self._mobile_icon()
         elif path == "/logo":
             self._logo()
         elif path == "/amsg-logo":
@@ -2337,7 +2340,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Horizon">
 <meta name="theme-color" content="#0a1628">
-<link rel="apple-touch-icon" href="/logo">
+<link rel="apple-touch-icon" href="/mobile-icon">
 <title>Horizon — Decisions</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -2499,6 +2502,27 @@ doRefresh();setInterval(doRefresh,30000);
                 self.wfile.write(body)
                 return
         self.send_error(404, "logo not found")
+
+    def _mobile_icon(self):
+        """Serve the PWA home-screen icon. Place mobile-icon.png in the project directory.
+        Falls back to the main logo if mobile-icon.png is not present."""
+        candidates = [
+            (MOBILE_ICON_FILE,                          "image/png"),
+            (LOGO_FILE.with_suffix(".png"),             "image/png"),
+            (LOGO_FILE.with_suffix(".jpg"),             "image/jpeg"),
+            (LOGO_FILE,                                 "image/svg+xml"),
+        ]
+        for path, mime in candidates:
+            if path.exists():
+                body = path.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", mime)
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "max-age=3600")
+                self.end_headers()
+                self.wfile.write(body)
+                return
+        self.send_error(404, "mobile icon not found")
 
     def _amsg_logo(self):
         """Serve AMS Group logo. Place amsg-logo.png in the project directory."""
