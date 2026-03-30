@@ -204,7 +204,7 @@ def _fetch_live(profile: dict, now: datetime) -> list:
     return _interpolate_from_turning_points(turning_points, now, profile)
 
 
-def fetch_bom_tides(profile: dict, now: datetime = None) -> dict:
+def fetch_bom_tides(profile: dict, now: datetime = None, cache_only: bool = False) -> dict:
     """
     Public API — returns a dict with:
         {
@@ -238,6 +238,11 @@ def fetch_bom_tides(profile: dict, now: datetime = None) -> dict:
             log.debug("BOM cache hit for %s", station_id)
             series = cached["series"]
             return _build_result(series, "bom", station_id, now)
+
+    # ── Cache-only mode: return cosine immediately rather than blocking ──────────
+    if cache_only:
+        log.debug("BOM cache miss for %s (cache_only) — cosine fallback", station_id)
+        return _build_result(_cosine_fallback(now, profile), "cosine", station_id, now)
 
     # ── Cooldown check — don't hammer BOM after a failure ─────────────────────
     with _cache_lock:

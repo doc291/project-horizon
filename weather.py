@@ -76,7 +76,7 @@ def _sim_weather(profile: dict, now: datetime) -> dict:
     }
 
 
-def fetch_weather(profile: dict, now: datetime = None) -> dict:
+def fetch_weather(profile: dict, now: datetime = None, cache_only: bool = False) -> dict:
     """
     Public API — returns weather dict with all fields plus 'source' key.
 
@@ -102,6 +102,11 @@ def fetch_weather(profile: dict, now: datetime = None) -> dict:
             return cached["data"]
 
     if not lat or not lon:
+        return _sim_weather(profile, now)
+
+    # ── Cache-only mode: return sim immediately rather than blocking ────────────
+    if cache_only:
+        log.debug("Weather cache miss for %s (cache_only) — sim fallback", port_id)
         return _sim_weather(profile, now)
 
     # ── Live fetch ─────────────────────────────────────────────────────────────

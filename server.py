@@ -1165,10 +1165,10 @@ def build_guidance(conflicts, vessels, berths, pilotage, towage, now):
 
 _COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"]
 
-def make_weather(profile: dict = None):
+def make_weather(profile: dict = None, cache_only: bool = False):
     """Delegate to weather module — live Open-Meteo with port-specific sim fallback."""
     p = profile or _PORT_PROFILE
-    return fetch_weather(p, utcnow())
+    return fetch_weather(p, utcnow(), cache_only=cache_only)
 
 
 # ── Beta 4: Port Rules & Weather Alert Detection ───────────────────────────────
@@ -2203,9 +2203,10 @@ def build_summary():
         port_name = profile["display_name"]
         is_live   = False
 
-    # BOM tidal data
+    # BOM tidal data — cache_only=True: never block in request path.
+    # Background thread (_schedule_bom_weather_warmup) populates the cache.
     try:
-        bom_result = fetch_bom_tides(profile, now)
+        bom_result = fetch_bom_tides(profile, now, cache_only=True)
         using_live_tidal = bom_result["source"] == "bom"
     except Exception as exc:
         log.error("BOM tides fetch failed: %s — using cosine", exc)
@@ -2224,7 +2225,7 @@ def build_summary():
         log.error("make_towage failed: %s — using empty list", exc)
         towage = []
 
-    weather  = make_weather(profile)
+    weather  = make_weather(profile, cache_only=True)
     tides    = make_tides(bom_result)
 
     # ── Apply What If overlay (if a scenario is active) ────────────────────
