@@ -2523,8 +2523,8 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
   <div class="port-row">
     <select class="port-sel" id="ps" onchange="switchPort(this.value)">
       <option value="BRISBANE">Brisbane</option>
-      <option value="MELBOURNE">Melbourne</option>
       <option value="DARWIN">Darwin</option>
+      <option value="MELBOURNE">Melbourne</option>
     </select>
   </div>
   <div class="status-line" id="status-line">
