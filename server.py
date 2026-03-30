@@ -811,8 +811,9 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                     elif berth_id == "B03":
                         seq_alts = b03_alternatives(a["name"], b["name"])
                     ds = _build_decision_support(seq_alts, b_start, now) if seq_alts else None
+                    _cid = hashlib.md5(f"berth_overlap-{berth_id}-{a['id']}-{b['id']}".encode()).hexdigest()[:8]
                     conflicts.append(_conflict(
-                        str(uuid.uuid4())[:8], "berth_overlap", "CONFLICT", sev,
+                        _cid, "berth_overlap", "CONFLICT", sev,
                         [a["id"], b["id"]], [a["name"], b["name"]],
                         berth_id, berth_name, b_start,
                         (f"{b['name']} is scheduled to arrive at {berth_name} "
@@ -836,8 +837,9 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                 if ready > eta:
                     gap = int((ready - eta).total_seconds() / 60)
                     sev = "high" if gap > 60 else "medium"
+                    _cid = hashlib.md5(f"berth_not_ready-{v['id']}-{brt['id']}".encode()).hexdigest()[:8]
                     conflicts.append(_conflict(
-                        str(uuid.uuid4())[:8], "berth_not_ready", "WARNING", sev,
+                        _cid, "berth_not_ready", "WARNING", sev,
                         [v["id"]], [v["name"]], brt["id"], brt["name"], v["eta"],
                         (f"{v['name']} ETA is {eta.strftime('%H:%M')} UTC but "
                          f"{brt['name']} will not be ready until "
@@ -857,8 +859,9 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                 sched = isoparse(pil["scheduled_time"])
                 hrs = (sched - now).total_seconds() / 3600
                 if 0 < hrs < 2:
+                    _cid = hashlib.md5(f"pilotage_window-{v['id']}-{pil['scheduled_time']}".encode()).hexdigest()[:8]
                     conflicts.append(_conflict(
-                        str(uuid.uuid4())[:8], "pilotage_window", "WARNING", "high",
+                        _cid, "pilotage_window", "WARNING", "high",
                         [v["id"]], [v["name"]], None, None, pil["scheduled_time"],
                         (f"Pilotage for {v['name']} is in {hrs:.1f}h — "
                          f"below the 2h minimum notice. Pilot: {pil['pilot_name']}."),
@@ -889,8 +892,9 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                 if a_s < b_s + op_dur and b_s < a_s + op_dur:
                     seen.add(key)
                     tname = next((t["tug_name"] for t in a["tugs"] if t["tug_id"] == tug_id), tug_id)
+                    _cid = hashlib.md5(f"towage_resource-{tug_id}-{'-'.join(sorted([a['vessel_id'], b['vessel_id']]))}".encode()).hexdigest()[:8]
                     conflicts.append(_conflict(
-                        str(uuid.uuid4())[:8], "towage_resource", "WARNING", "medium",
+                        _cid, "towage_resource", "WARNING", "medium",
                         [a["vessel_id"], b["vessel_id"]], [a["vessel_name"], b["vessel_name"]],
                         None, None, b["scheduled_time"],
                         (f"{tname} is assigned to {a['vessel_name']} ({a['direction']}) "
@@ -905,8 +909,9 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
     # ── 5. ETA variance ───────────────────────────────────────────────────────
     for v in vessels:
         if v["status"] == "at_risk":
+            _cid = hashlib.md5(f"eta_variance-{v['id']}".encode()).hexdigest()[:8]
             conflicts.append(_conflict(
-                str(uuid.uuid4())[:8], "eta_variance", "ADVISORY", "medium",
+                _cid, "eta_variance", "ADVISORY", "medium",
                 [v["id"]], [v["name"]], v["berth_id"], v["berth_id"], v["eta"],
                 (f"{v['name']} has reported significant ETA variance. "
                  f"Scheduled ETA {isoparse(v['eta']).strftime('%d %b %H:%M')} UTC "
@@ -939,8 +944,9 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                 limit_m     = br["max_air_draught_m"]
                 if est_air > limit_m:
                     sev = "critical" if br.get("absolute_limit") else "high"
+                    _cid = hashlib.md5(f"bridge_restriction-{v['id']}-{bridge_name}".encode()).hexdigest()[:8]
                     conflicts.append(_conflict(
-                        str(uuid.uuid4())[:8], "bridge_restriction", "WARNING", sev,
+                        _cid, "bridge_restriction", "WARNING", sev,
                         [v["id"]], [v["name"]], None, bridge_name, fmt(now),
                         (f"{v['name']} estimated air draught {est_air}m exceeds "
                          f"{bridge_name} limit of {limit_m}m. "
@@ -981,7 +987,7 @@ def build_guidance(conflicts, vessels, berths, pilotage, towage, now):
             ct = isoparse(c["conflict_time"])
             deadline = fmt(ct - timedelta(hours=1))
         items.append({
-            "id": str(uuid.uuid4())[:8],
+            "id": hashlib.md5(f"guidance-{c['id']}".encode()).hexdigest()[:8],
             "priority": _gpri(c["severity"]),
             "message": _short(c),
             "detail": c["description"],
@@ -1000,7 +1006,7 @@ def build_guidance(conflicts, vessels, berths, pilotage, towage, now):
             if 0 < hrs < 4:
                 pri = "high" if hrs < 2 else "medium"
                 items.append({
-                    "id": str(uuid.uuid4())[:8],
+                    "id": hashlib.md5(f"arrival-{v['id']}".encode()).hexdigest()[:8],
                     "priority": pri,
                     "message": f"{v['name']} arriving in {hrs:.1f}h",
                     "detail": (
@@ -1022,7 +1028,7 @@ def build_guidance(conflicts, vessels, berths, pilotage, towage, now):
             hrs = (etd - now).total_seconds() / 3600
             if 0 < hrs < 4:
                 items.append({
-                    "id": str(uuid.uuid4())[:8],
+                    "id": hashlib.md5(f"departure-{v['id']}".encode()).hexdigest()[:8],
                     "priority": "medium",
                     "message": f"{v['name']} departing in {hrs:.1f}h",
                     "detail": (
@@ -1042,7 +1048,7 @@ def build_guidance(conflicts, vessels, berths, pilotage, towage, now):
             hrs = (ready - now).total_seconds() / 3600
             if 0 < hrs < 12:
                 items.append({
-                    "id": str(uuid.uuid4())[:8],
+                    "id": hashlib.md5(f"maintenance-{b['id']}".encode()).hexdigest()[:8],
                     "priority": "info",
                     "message": f"{b['name']} back from maintenance at {ready.strftime('%H:%M')} UTC",
                     "detail": (
@@ -2594,6 +2600,10 @@ async function switchPort(p){
   doRefresh();
 }
 doRefresh();setInterval(doRefresh,30000);
+setInterval(()=>{
+  const el=document.getElementById('ht');
+  if(el) el.textContent=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
+},1000);
 </script>
 </body></html>"""
         body = html.encode()
