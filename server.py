@@ -1969,6 +1969,22 @@ def _whatif_shadow(conflict_id, adjustments, base_vessels, base_conflicts):
             rec_opt = next((o for o in opts if o.get("recommended")), opts[0])
             cost_delta -= int(rec_opt.get("cost_usd") or 0)
 
+    # Add cost of the adjustments being applied — these are real expenses,
+    # so they offset the "avoided conflict" savings above.
+    for adj in adjustments:
+        atype = adj.get("type", "")
+        if atype == "hold_anchorage":
+            hours = int(adj.get("hours") or 2)
+            cost_delta += hours * 900          # ~$900/hr anchorage + delay fees
+        elif atype == "eta_push":
+            mins = int(adj.get("minutes") or 60)
+            if adj.get("direction") == "advance":
+                cost_delta += 300              # coordination / overtime
+            else:
+                cost_delta += 500 + mins * 8  # delay fees: base + per-minute
+        elif atype == "berth_change":
+            cost_delta += 600                  # operational cost of berth reassignment
+
     # Detect potential new berth overlap from reassigned vessels
     berth_map: dict = {}
     for v in modified_vessels:
@@ -2001,8 +2017,14 @@ def _whatif_shadow(conflict_id, adjustments, base_vessels, base_conflicts):
     # Generate revised recommendation
     if resolved and not new_conflicts:
         new_rec = "Proceed with adjusted schedule"
+        if cost_delta < -500:
+            cost_note = f"Net saving: ~${abs(cost_delta):,}."
+        elif cost_delta > 500:
+            cost_note = f"Net additional cost: ~${cost_delta:,}."
+        else:
+            cost_note = "Cost-neutral vs current trajectory."
         new_why = (f"This scenario resolves {len(resolved)} conflict(s) with no new issues. "
-                   f"Estimated saving: ${abs(cost_delta):,}.")
+                   f"{cost_note}")
     elif new_conflicts and not resolved:
         new_rec = "Reconsider — scenario creates new conflicts"
         new_why = (f"{len(new_conflicts)} new conflict(s) introduced with no existing conflicts resolved. "

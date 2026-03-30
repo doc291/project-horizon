@@ -2626,8 +2626,8 @@ function _wiShowResults(res){
   }
   // Cost
   const cd=res.cost_delta||0;
-  const cdCls=cd<0?'save':cd>0?'add':'zero';
-  const cdTxt=cd<0?`Save $${Math.abs(cd).toLocaleString()}`:cd>0?`+$${cd.toLocaleString()} additional cost`:'No cost change';
+  const cdCls=cd<-500?'save':cd>500?'add':'zero';
+  const cdTxt=cd<-500?`Save ~$${Math.abs(cd).toLocaleString()}`:cd>500?`~$${cd.toLocaleString()} additional cost`:'Cost-neutral';
   html+=`<div class="wi-band neu" style="margin-bottom:16px;"><div class="wi-band-icon">💰</div><div class="wi-band-body">
     <div class="wi-band-lbl">Cost Impact</div>
     <div class="wi-cost-num ${cdCls}">${cdTxt}</div>
