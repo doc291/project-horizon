@@ -2668,7 +2668,7 @@ async function wiApply(){
       closeWhatIf();
       document.getElementById('wi-banner-desc').textContent=label;
       document.getElementById('wi-banner').classList.add('show');
-      await doRefresh();
+      await refresh();
     }
   }catch(e){ showToast('Apply failed: '+e.message); }
 }
@@ -2676,7 +2676,7 @@ async function wiApply(){
 async function wiClearScenario(){
   try{ await fetch('/api/clear-whatif',{method:'POST'}); }catch(e){}
   document.getElementById('wi-banner').classList.remove('show');
-  await doRefresh();
+  await refresh();
 }
 
 /* ── Vessel table ── */

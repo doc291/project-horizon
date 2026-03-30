@@ -1927,6 +1927,10 @@ def _whatif_shadow(conflict_id, adjustments, base_vessels, base_conflicts):
     modified_vessels = _apply_whatif_to_vessels(base_vessels, adjustments)
     affected_names   = {a.get("vessel", "") for a in adjustments}
 
+    # Conflict types that can be resolved by timing/berth adjustments
+    TIMING_RESOLVABLE = {"berth_conflict", "tug_double_booking", "pilot_conflict",
+                         "departure_conflict", "arrival_conflict", "sequence_conflict"}
+
     resolved = []
     for c in base_conflicts:
         c_vessels = set((c.get("vessel_names") or []) +
@@ -1934,27 +1938,36 @@ def _whatif_shadow(conflict_id, adjustments, base_vessels, base_conflicts):
         if not c_vessels & affected_names:
             continue
         adj_for_c = [a for a in adjustments if a.get("vessel") in c_vessels]
-        # ETA/hold shifts resolve timing-based (berth) conflicts if >= 30 min
+        ctype     = (c.get("conflict_type") or "").lower()
+        signal    = (c.get("signal_type") or "").upper()
+
+        # Weather/UKC conflicts are not resolved by scheduling changes
+        if signal == "WEATHER":
+            continue
+
+        # ETA/hold shifts resolve timing/berth conflicts if shift >= 30 min
+        timing_adjs = [a for a in adj_for_c if a["type"] in ("eta_push", "hold_anchorage")]
         total_shift = sum(
-            a.get("minutes", a.get("hours", 0) * 60)
-            for a in adj_for_c if a["type"] in ("eta_push", "hold_anchorage")
+            a.get("minutes", a.get("hours", 0) * 60) for a in timing_adjs
         )
-        if total_shift >= 30:
+        if total_shift >= 30 and (not ctype or any(k in ctype for k in ("berth", "tug", "pilot", "conflict", "sequence"))):
             resolved.append(c)
             continue
-        # Berth change always resolves the original berth conflict
-        if any(a["type"] == "berth_change" for a in adj_for_c):
+
+        # Berth change resolves berth conflicts for the moved vessel
+        if any(a["type"] == "berth_change" for a in adj_for_c) and "berth" in ctype:
             resolved.append(c)
 
     new_conflicts = []
     cost_delta    = 0
 
-    # Estimate cost savings from resolved conflicts
+    # Estimate cost savings from resolved conflicts using cost_usd
     for c in resolved:
         opts = (c.get("decision_support") or {}).get("options") or []
         if opts:
-            cv = opts[0].get("cost_value") or 0
-            cost_delta -= int(cv)
+            # Use the recommended option's cost, fall back to first option
+            rec_opt = next((o for o in opts if o.get("recommended")), opts[0])
+            cost_delta -= int(rec_opt.get("cost_usd") or 0)
 
     # Detect potential new berth overlap from reassigned vessels
     berth_map: dict = {}
