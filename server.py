@@ -66,6 +66,10 @@ _SMTP_PASS       = os.environ.get("SMTP_PASS", "")
 _SMTP_FROM       = os.environ.get("SMTP_FROM", "") or _SMTP_USER
 _BRIEF_RECIPIENTS = [r.strip() for r in os.environ.get("BRIEF_RECIPIENTS", "").split(",") if r.strip()]
 
+# ── What If overlay state ─────────────────────────────────────────────────────
+_WHATIF_OVERLAY  = {}   # {"active": bool, "adjustments": [...], "label": str}
+_whatif_lock     = threading.Lock()
+
 def _make_token() -> str:
     """Return an HMAC-signed session token."""
     payload = f"{_AUTH_USER}:{int(time.time())}"
@@ -1862,6 +1866,151 @@ def make_esg_data(vessels: list, now: datetime) -> dict:
     }
 
 
+# ── What If helpers ────────────────────────────────────────────────────────────
+
+def _apply_whatif_to_vessels(vessels, adjustments):
+    """Return a modified copy of vessels with what-if adjustments applied."""
+    import copy, datetime as _dt
+    vs = copy.deepcopy(vessels)
+    offline_resources = set()
+
+    for adj in adjustments:
+        atype      = adj.get("type", "")
+        vname      = adj.get("vessel", "")
+        delta_mins = 0
+
+        if atype == "eta_push":
+            delta_mins = adj.get("minutes", 60)
+            if adj.get("direction") == "advance":
+                delta_mins = -delta_mins
+        elif atype == "hold_anchorage":
+            delta_mins = adj.get("hours", 2) * 60
+
+        for v in vs:
+            name = v.get("name") or v.get("vessel_name", "")
+            if name != vname:
+                continue
+            if atype in ("eta_push", "hold_anchorage"):
+                for fld in ("eta", "etd", "scheduled_arrival", "scheduled_departure"):
+                    raw = v.get(fld)
+                    if not raw:
+                        continue
+                    try:
+                        t  = _dt.datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+                        v[fld] = (t + _dt.timedelta(minutes=delta_mins)).isoformat()
+                    except Exception:
+                        pass
+                if atype == "hold_anchorage":
+                    v["status"] = "at_anchorage"
+            elif atype == "berth_change":
+                new_b = adj.get("new_berth", "")
+                v["berth"] = "" if new_b == "__anch__" else new_b
+                if new_b == "__anch__":
+                    v["status"] = "at_anchorage"
+            elif atype == "resource_offline":
+                offline_resources.add(adj.get("resource", ""))
+
+    # Mark offline resources in towage/pilotage assignments (best-effort)
+    for v in vs:
+        tug_assign = v.get("tug_assignment") or []
+        v["tug_assignment"] = [t for t in tug_assign
+                               if ("tug:" + str(t)) not in offline_resources]
+    return vs
+
+
+def _whatif_shadow(conflict_id, adjustments, base_vessels, base_conflicts):
+    """
+    Run a shadow simulation: apply adjustments, re-evaluate, return diff.
+    Does NOT mutate any globals.
+    """
+    import copy
+    modified_vessels = _apply_whatif_to_vessels(base_vessels, adjustments)
+    affected_names   = {a.get("vessel", "") for a in adjustments}
+
+    resolved = []
+    for c in base_conflicts:
+        c_vessels = set((c.get("vessel_names") or []) +
+                        ([c.get("vessel_name")] if c.get("vessel_name") else []))
+        if not c_vessels & affected_names:
+            continue
+        adj_for_c = [a for a in adjustments if a.get("vessel") in c_vessels]
+        # ETA/hold shifts resolve timing-based (berth) conflicts if >= 30 min
+        total_shift = sum(
+            a.get("minutes", a.get("hours", 0) * 60)
+            for a in adj_for_c if a["type"] in ("eta_push", "hold_anchorage")
+        )
+        if total_shift >= 30:
+            resolved.append(c)
+            continue
+        # Berth change always resolves the original berth conflict
+        if any(a["type"] == "berth_change" for a in adj_for_c):
+            resolved.append(c)
+
+    new_conflicts = []
+    cost_delta    = 0
+
+    # Estimate cost savings from resolved conflicts
+    for c in resolved:
+        opts = (c.get("decision_support") or {}).get("options") or []
+        if opts:
+            cv = opts[0].get("cost_value") or 0
+            cost_delta -= int(cv)
+
+    # Detect potential new berth overlap from reassigned vessels
+    berth_map: dict = {}
+    for v in modified_vessels:
+        b = v.get("berth")
+        if not b:
+            continue
+        vn = v.get("name") or v.get("vessel_name", "")
+        berth_map.setdefault(b, []).append(vn)
+    for berth, occupants in berth_map.items():
+        moved_here = [n for n in occupants if n in affected_names]
+        others     = [n for n in occupants if n not in affected_names]
+        if moved_here and others:
+            new_conflicts.append({
+                "id":          f"wi-berth-{berth}",
+                "description": f"New berth overlap at {berth} — {', '.join(moved_here)} conflicts with {', '.join(others)}",
+                "severity":    "critical",
+            })
+            cost_delta += 2500
+
+    # Resource-offline new conflicts
+    for adj in adjustments:
+        if adj["type"] == "resource_offline":
+            rname = adj.get("resource", "").split(":")[-1]
+            new_conflicts.append({
+                "id":          f"wi-res-{rname}",
+                "description": f"{rname} unavailable — dependent assignments require reassignment",
+                "severity":    "high",
+            })
+
+    # Generate revised recommendation
+    if resolved and not new_conflicts:
+        new_rec = "Proceed with adjusted schedule"
+        new_why = (f"This scenario resolves {len(resolved)} conflict(s) with no new issues. "
+                   f"Estimated saving: ${abs(cost_delta):,}.")
+    elif new_conflicts and not resolved:
+        new_rec = "Reconsider — scenario creates new conflicts"
+        new_why = (f"{len(new_conflicts)} new conflict(s) introduced with no existing conflicts resolved. "
+                   "Net outcome is worse than current plan.")
+    elif resolved and new_conflicts:
+        new_rec = "Mixed outcome — evaluate trade-offs carefully"
+        new_why = (f"Resolves {len(resolved)} conflict(s) but introduces {len(new_conflicts)} new one(s). "
+                   "Weigh cost delta against operational disruption.")
+    else:
+        new_rec = "No material conflict impact"
+        new_why = "Adjustments do not significantly change the conflict landscape."
+
+    return {
+        "resolved":          [{"id": c["id"], "description": c.get("description", ""), "severity": c.get("severity", "")} for c in resolved],
+        "new_conflicts":     new_conflicts,
+        "cost_delta":        cost_delta,
+        "new_recommendation": new_rec,
+        "new_reasoning":     new_why,
+    }
+
+
 # ── Summary builder ────────────────────────────────────────────────────────────
 
 def build_summary():
@@ -1934,6 +2083,12 @@ def build_summary():
 
     weather  = make_weather(profile)
     tides    = make_tides(bom_result)
+
+    # ── Apply What If overlay (if a scenario is active) ────────────────────
+    with _whatif_lock:
+        wi_overlay = dict(_WHATIF_OVERLAY)
+    if wi_overlay.get("active"):
+        vessels = _apply_whatif_to_vessels(vessels, wi_overlay.get("adjustments", []))
 
     # Operational conflicts + Beta 4 weather alerts merged and re-sorted
     try:
@@ -2072,6 +2227,12 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 self.send_error(401)
                 return
             self._send_brief()
+        elif path == "/api/whatif":
+            self._whatif()
+        elif path == "/api/apply-whatif":
+            self._apply_whatif()
+        elif path == "/api/clear-whatif":
+            self._clear_whatif()
         else:
             self.send_error(405)
 
@@ -3190,6 +3351,76 @@ doRefresh();setInterval(doRefresh,30000);
         except Exception as exc:
             log.error("port-brief PDF generation failed: %s", exc, exc_info=True)
             self.send_error(500, f"PDF generation failed: {exc}")
+
+    def _whatif(self):
+        """POST /api/whatif — run a shadow scenario simulation, returns conflict diff."""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body   = json.loads(self.rfile.read(length)) if length else {}
+            adjustments = body.get("adjustments", [])
+            conflict_id = body.get("conflict_id", "")
+            if not adjustments:
+                self._json({"error": "No adjustments provided"})
+                return
+
+            # Snapshot current state (no globals mutated)
+            with _profile_lock:
+                profile        = dict(_PORT_PROFILE)
+                active_port_id = _ACTIVE_PORT_ID
+
+            now = utcnow()
+            ds  = get_data_source()
+            scrape_result = fetch_vessel_movements(profile, now)
+            if scrape_result["using_live_data"] and scrape_result["vessels"]:
+                base_vessels = build_vessels_from_qships({"vessels": scrape_result["vessels"], "berths": []})
+            else:
+                base_vessels = make_vessels(now)
+
+            base_conflicts = []
+            try:
+                berths = make_berths(now)
+                try:
+                    pilotage = make_pilotage(base_vessels, now, profile)
+                except Exception:
+                    pilotage = []
+                try:
+                    towage = make_towage(base_vessels, now, profile)
+                except Exception:
+                    towage = []
+                base_conflicts = detect_conflicts(base_vessels, berths, pilotage, towage, now, is_live=False)
+            except Exception as exc:
+                log.warning("whatif base conflict detection failed: %s", exc)
+
+            result = _whatif_shadow(conflict_id, adjustments, base_vessels, base_conflicts)
+            self._json(result)
+
+        except Exception as exc:
+            log.error("whatif failed: %s", exc, exc_info=True)
+            self.send_error(500, str(exc))
+
+    def _apply_whatif(self):
+        """POST /api/apply-whatif — store scenario as active overlay on live state."""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body   = json.loads(self.rfile.read(length)) if length else {}
+            with _whatif_lock:
+                _WHATIF_OVERLAY.clear()
+                _WHATIF_OVERLAY.update({
+                    "active":      True,
+                    "adjustments": body.get("adjustments", []),
+                    "label":       body.get("label", "Custom scenario"),
+                    "conflict_id": body.get("conflict_id", ""),
+                })
+            self._json({"success": True})
+        except Exception as exc:
+            log.error("apply-whatif failed: %s", exc, exc_info=True)
+            self.send_error(500, str(exc))
+
+    def _clear_whatif(self):
+        """POST /api/clear-whatif — remove the active scenario overlay."""
+        with _whatif_lock:
+            _WHATIF_OVERLAY.clear()
+        self._json({"success": True})
 
     def _send_brief(self):
         """POST /api/send-brief — email the Port Brief PDF to a list of recipients."""

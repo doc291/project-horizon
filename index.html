@@ -607,6 +607,101 @@
     }
     .dsw-cancel-btn:hover { border-color: var(--text-dim); color: var(--text); }
 
+    /* ── What If Drawer ── */
+    #wi-overlay {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(2px);
+    }
+    #wi-overlay.open { display: block; }
+    #wi-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 500px;
+      background: var(--surface); border-left: 1px solid var(--border);
+      box-shadow: -8px 0 40px rgba(0,0,0,.6);
+      display: flex; flex-direction: column; z-index: 1100;
+      transform: translateX(100%); transition: transform .25s ease;
+    }
+    #wi-overlay.open #wi-drawer { transform: translateX(0); }
+    .wi-hdr {
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; gap: 10px; flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(56,189,248,.06) 0%, transparent 60%);
+    }
+    .wi-hdr-icon { font-size: 22px; flex-shrink: 0; padding-top: 2px; }
+    .wi-hdr-text { flex: 1; }
+    .wi-hdr-badge { font-size: 9px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: rgba(56,189,248,.15); color: var(--accent); border: 1px solid rgba(56,189,248,.3); }
+    .wi-title { font-size: 14px; font-weight: 700; color: var(--text-bright); margin: 4px 0 3px; line-height: 1.3; }
+    .wi-subtitle { font-size: 10px; color: var(--text-dim); line-height: 1.4; }
+    .wi-close { background: none; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; padding: 0 4px; line-height: 1; flex-shrink: 0; }
+    .wi-close:hover { color: var(--text-bright); }
+    .wi-body { flex: 1; overflow-y: auto; padding: 16px 18px; }
+    .wi-body::-webkit-scrollbar { width: 4px; }
+    .wi-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .wi-section-lbl { font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+    /* Adjustment list */
+    .wi-adj-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .wi-adj-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+    .wi-adj-row { display: flex; align-items: center; gap: 8px; }
+    .wi-adj-type-lbl { font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .4px; flex: 1; }
+    .wi-adj-rm { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0; line-height: 1; }
+    .wi-adj-rm:hover { color: var(--critical); }
+    .wi-adj-detail { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+    /* Add form */
+    .wi-add-panel { background: rgba(0,0,0,.2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+    .wi-add-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px; }
+    .wi-add-row:last-child { margin-bottom: 0; }
+    .wi-field { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+    .wi-field label { font-size: 9px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .4px; }
+    .wi-sel, .wi-inp {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text-bright); font-size: 11px; padding: 5px 8px; width: 100%;
+    }
+    .wi-sel:focus, .wi-inp:focus { outline: none; border-color: var(--accent); }
+    .wi-add-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--accent); background: rgba(56,189,248,.1); color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0; align-self: flex-end; }
+    .wi-add-btn:hover { background: rgba(56,189,248,.2); }
+    .wi-run-btn { width: 100%; padding: 11px 0; border-radius: 8px; border: none; background: var(--accent); color: #000; font-size: 13px; font-weight: 800; cursor: pointer; letter-spacing: .3px; transition: opacity .15s, transform .1s; margin-bottom: 16px; }
+    .wi-run-btn:hover:not(:disabled) { opacity: .88; transform: translateY(-1px); }
+    .wi-run-btn:disabled { opacity: .4; cursor: not-allowed; }
+    /* Results */
+    .wi-results { display: none; }
+    .wi-results.show { display: block; }
+    .wi-band { border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; }
+    .wi-band.ok   { background: rgba(34,197,94,.08);  border: 1px solid rgba(34,197,94,.25); }
+    .wi-band.bad  { background: rgba(239,68,68,.08);  border: 1px solid rgba(239,68,68,.25); }
+    .wi-band.neu  { background: rgba(0,0,0,.15);       border: 1px solid var(--border); }
+    .wi-band-icon { font-size: 16px; flex-shrink: 0; line-height: 1.4; }
+    .wi-band-body { flex: 1; }
+    .wi-band-lbl  { font-size: 11px; font-weight: 700; color: var(--text-bright); margin-bottom: 2px; }
+    .wi-band-detail { font-size: 10px; color: var(--text-dim); line-height: 1.4; }
+    .wi-cost-num { font-size: 20px; font-weight: 800; margin-top: 3px; }
+    .wi-cost-num.save { color: #4ade80; }
+    .wi-cost-num.add  { color: #f87171; }
+    .wi-cost-num.zero { color: var(--text-dim); }
+    .wi-new-rec { background: rgba(56,189,248,.07); border: 1px solid rgba(56,189,248,.25); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; }
+    .wi-new-rec-lbl { font-size: 9px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .wi-new-rec-val { font-size: 12px; font-weight: 700; color: var(--text-bright); margin-bottom: 3px; }
+    .wi-new-rec-why { font-size: 10px; color: var(--text-dim); line-height: 1.4; }
+    .wi-action-row { display: flex; gap: 8px; margin-top: 8px; }
+    .wi-apply-btn { flex: 1; padding: 10px 0; border-radius: 7px; border: none; background: #4ade80; color: #000; font-size: 12px; font-weight: 800; cursor: pointer; transition: opacity .15s; }
+    .wi-apply-btn:hover { opacity: .85; }
+    .wi-discard-btn { padding: 10px 16px; border-radius: 7px; border: 1px solid var(--border); background: none; color: var(--text-dim); font-size: 12px; font-weight: 700; cursor: pointer; }
+    .wi-discard-btn:hover { color: var(--text-bright); border-color: var(--text-dim); }
+    /* What If trigger button on dec-card */
+    .dec-wi-btn { width: calc(100% - 24px); margin: 0 12px 10px; padding: 7px 0; border-radius: 6px; border: 1px solid rgba(56,189,248,.35); background: rgba(56,189,248,.07); color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer; letter-spacing: .3px; transition: background .15s; }
+    .dec-wi-btn:hover { background: rgba(56,189,248,.15); }
+    /* Scenario active banner */
+    #wi-banner {
+      display: none; flex-shrink: 0; align-items: center; gap: 10px;
+      padding: 7px 16px; background: linear-gradient(90deg, rgba(56,189,248,.12), rgba(56,189,248,.05));
+      border-bottom: 1px solid rgba(56,189,248,.3);
+    }
+    #wi-banner.show { display: flex; }
+    .wi-banner-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; animation: wi-pulse 1.5s infinite; }
+    @keyframes wi-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .wi-banner-lbl { font-size: 11px; font-weight: 700; color: var(--accent); }
+    .wi-banner-desc { font-size: 10px; color: var(--text-dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wi-return-btn { padding: 4px 12px; border-radius: 5px; border: 1px solid rgba(56,189,248,.4); background: rgba(56,189,248,.1); color: var(--accent); font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+    .wi-return-btn:hover { background: rgba(56,189,248,.2); }
+
     /* ── Beta 8: Tab signal badges ── */
     .tab-badge {
       display: inline-flex; align-items: center; justify-content: center;
@@ -853,6 +948,14 @@
   <div id="port-status-banner" class="psb-ok">
     <div class="psb-dot"></div>
     <span class="psb-port">Loading…</span>
+  </div>
+
+  <!-- ── Scenario Active Banner ── -->
+  <div id="wi-banner">
+    <div class="wi-banner-dot"></div>
+    <span class="wi-banner-lbl">Scenario Active</span>
+    <span class="wi-banner-desc" id="wi-banner-desc"></span>
+    <button class="wi-return-btn" onclick="wiClearScenario()">↩ Return to Live</button>
   </div>
 
   <!-- ── Main ── -->
@@ -1194,6 +1297,65 @@
       </table>
     </div>
   </div>
+
+<!-- ── What If Drawer ── -->
+<div id="wi-overlay" onclick="if(event.target===this)closeWhatIf()">
+  <div id="wi-drawer">
+    <div class="wi-hdr">
+      <div class="wi-hdr-icon">🔀</div>
+      <div class="wi-hdr-text">
+        <div><span class="wi-hdr-badge">SCENARIO BUILDER</span></div>
+        <div class="wi-title" id="wi-title">What If Scenario</div>
+        <div class="wi-subtitle" id="wi-subtitle"></div>
+      </div>
+      <button class="wi-close" onclick="closeWhatIf()">✕</button>
+    </div>
+    <div class="wi-body">
+
+      <!-- Step 1: Build adjustments -->
+      <div id="wi-step1">
+        <div class="wi-section-lbl">Adjustments</div>
+        <div class="wi-adj-list" id="wi-adj-list">
+          <div style="font-size:11px;color:var(--text-dim);padding:4px 0;">No adjustments yet — add one below.</div>
+        </div>
+        <div class="wi-add-panel">
+          <div class="wi-add-row">
+            <div class="wi-field">
+              <label>Type</label>
+              <select class="wi-sel" id="wi-adj-type" onchange="wiUpdateForm()">
+                <option value="eta_push">ETA / ETD Push</option>
+                <option value="berth_change">Berth Reassignment</option>
+                <option value="hold_anchorage">Hold at Anchorage</option>
+                <option value="resource_offline">Resource Unavailable</option>
+              </select>
+            </div>
+            <div class="wi-field" id="wif-vessel-wrap">
+              <label>Vessel</label>
+              <select class="wi-sel" id="wi-adj-vessel"></select>
+            </div>
+          </div>
+          <div class="wi-add-row" id="wif-extra"></div>
+          <div class="wi-add-row" style="justify-content:flex-end;">
+            <button class="wi-add-btn" onclick="wiAddAdj()">+ Add</button>
+          </div>
+        </div>
+        <button class="wi-run-btn" id="wi-run-btn" disabled onclick="wiRun()">Run Scenario →</button>
+      </div>
+
+      <!-- Step 2: Results -->
+      <div class="wi-results" id="wi-results">
+        <div class="wi-section-lbl" style="margin-bottom:12px;">Scenario Results</div>
+        <div id="wi-bands"></div>
+        <div id="wi-rec-block"></div>
+        <div class="wi-action-row">
+          <button class="wi-apply-btn" onclick="wiApply()">✓ Apply as Plan</button>
+          <button class="wi-discard-btn" onclick="wiDiscard()">Discard</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 <!-- ── Decision Support Window ── -->
 <div id="dsw-overlay" onclick="closeDSW(event)">
@@ -1687,6 +1849,7 @@ function renderDecisions(conflicts){
           </div>
         </div>
         ${hasDeadline ? `<div class="dec-timer" id="dec-timer-${c.id}"><span class="dec-timer-lbl">⏱ Decide within</span><span class="dec-timer-box" id="dec-tbox-${c.id}"><span class="dec-timer-val" id="dec-tval-${c.id}">--:--:--</span></span></div>` : ''}
+        <button class="dec-wi-btn" onclick="openWhatIf('${c.id}')">🔀 What If →</button>
         <button class="dec-open-btn" onclick="openDSW('${c.id}')">⚡ Open Decision Support →</button>
       </div>`;
   }).join('');
@@ -2318,6 +2481,195 @@ async function sendBrief(){
     status.className = 'brief-status err';
     btn.disabled = false;
   }
+}
+
+/* ── What If ──────────────────────────────────────────────────────────────── */
+let _wiConflict = null, _wiAdjs = [], _wiResult = null;
+
+function openWhatIf(conflictId){
+  if(!_data) return;
+  const c = (_data.conflicts||[]).find(x=>x.id===conflictId);
+  if(!c) return;
+  _wiConflict = c; _wiAdjs = []; _wiResult = null;
+
+  // reset UI
+  document.getElementById('wi-results').classList.remove('show');
+  document.getElementById('wi-step1').style.display = '';
+  const runBtn = document.getElementById('wi-run-btn');
+  runBtn.disabled = true; runBtn.textContent = 'Run Scenario →';
+
+  // header
+  document.getElementById('wi-title').textContent = (c.vessel_names||[])[0] || c.vessel_name || 'Scenario';
+  document.getElementById('wi-subtitle').textContent = (c.description||'').slice(0,90);
+
+  // vessel dropdown
+  const vessels = [...new Set((_data.vessels||[]).map(v=>v.name||v.vessel_name).filter(Boolean))];
+  const primary = (c.vessel_names||[])[0] || c.vessel_name || '';
+  const vSel = document.getElementById('wi-adj-vessel');
+  vSel.innerHTML = vessels.map(v=>`<option value="${esc(v)}"${v===primary?' selected':''}>${esc(v)}</option>`).join('');
+
+  _wiRenderAdjs(); wiUpdateForm();
+  document.getElementById('wi-overlay').classList.add('open');
+}
+
+function closeWhatIf(){
+  document.getElementById('wi-overlay').classList.remove('open');
+}
+
+function wiUpdateForm(){
+  const type = document.getElementById('wi-adj-type').value;
+  const extra = document.getElementById('wif-extra');
+  if(type==='eta_push'){
+    extra.innerHTML = `
+      <div class="wi-field"><label>Direction</label>
+        <select class="wi-sel" id="wi-dir"><option value="delay">Delay (push later)</option><option value="advance">Advance (pull earlier)</option></select>
+      </div>
+      <div class="wi-field" style="max-width:90px;"><label>Minutes</label>
+        <input class="wi-inp" id="wi-mins" type="number" min="15" max="720" step="15" value="60">
+      </div>`;
+  } else if(type==='berth_change'){
+    const berths = [...new Set((_data&&_data.vessels||[]).map(v=>v.berth).filter(Boolean))];
+    extra.innerHTML = `<div class="wi-field"><label>New Berth</label>
+      <select class="wi-sel" id="wi-berth">
+        ${berths.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('')}
+        <option value="__anch__">Anchorage</option>
+      </select></div>`;
+  } else if(type==='hold_anchorage'){
+    extra.innerHTML = `<div class="wi-field" style="max-width:130px;"><label>Hold Duration</label>
+      <select class="wi-sel" id="wi-hold">
+        <option value="1">1 hour</option><option value="2" selected>2 hours</option>
+        <option value="3">3 hours</option><option value="4">4 hours</option>
+        <option value="6">6 hours</option><option value="12">12 hours</option>
+      </select></div>`;
+  } else if(type==='resource_offline'){
+    const tugs = (_data&&_data.towage&&_data.towage.tug_fleet||[]).map(t=>({key:'tug:'+t.name,lbl:'🚢 '+t.name}));
+    const pilots = (_data&&_data.pilotage&&_data.pilotage.pilot_roster||[]).map(p=>({key:'pilot:'+(p.name||p.id),lbl:'⚓ '+(p.name||p.id)}));
+    const opts = [...tugs,...pilots];
+    extra.innerHTML = `<div class="wi-field"><label>Resource</label>
+      <select class="wi-sel" id="wi-res">${opts.map(o=>`<option value="${esc(o.key)}">${esc(o.lbl)}</option>`).join('')}</select></div>`;
+  }
+}
+
+function wiAddAdj(){
+  const type = document.getElementById('wi-adj-type').value;
+  const vessel = document.getElementById('wi-adj-vessel').value;
+  let adj = {type, vessel}, label='';
+  if(type==='eta_push'){
+    const dir=document.getElementById('wi-dir').value;
+    const mins=parseInt(document.getElementById('wi-mins').value)||60;
+    adj.direction=dir; adj.minutes=mins;
+    label=`${dir==='delay'?'⏩ Delay':'⏪ Advance'} ${vessel} by ${mins} min`;
+  } else if(type==='berth_change'){
+    const b=document.getElementById('wi-berth').value;
+    adj.new_berth=b; label=`🔀 Move ${vessel} → ${b==='__anch__'?'Anchorage':b}`;
+  } else if(type==='hold_anchorage'){
+    const h=parseInt(document.getElementById('wi-hold').value)||2;
+    adj.hours=h; label=`⚓ Hold ${vessel} at anchorage for ${h}h`;
+  } else if(type==='resource_offline'){
+    const r=document.getElementById('wi-res').value;
+    adj.resource=r; const[,rn]=r.split(':'); label=`⛔ ${rn} offline`;
+  }
+  adj._label=label; _wiAdjs.push(adj); _wiRenderAdjs();
+}
+
+function wiRemoveAdj(i){ _wiAdjs.splice(i,1); _wiRenderAdjs(); }
+
+function _wiRenderAdjs(){
+  const el=document.getElementById('wi-adj-list');
+  const typeNames={eta_push:'ETA/ETD Push',berth_change:'Berth Change',hold_anchorage:'Hold Anchorage',resource_offline:'Resource Offline'};
+  el.innerHTML = _wiAdjs.length
+    ? _wiAdjs.map((a,i)=>`<div class="wi-adj-item">
+        <div class="wi-adj-row"><span class="wi-adj-type-lbl">${typeNames[a.type]||a.type}</span>
+          <button class="wi-adj-rm" onclick="wiRemoveAdj(${i})">✕</button></div>
+        <div class="wi-adj-detail">${esc(a._label||'')}</div>
+      </div>`).join('')
+    : '<div style="font-size:11px;color:var(--text-dim);padding:4px 0;">No adjustments yet — add one below.</div>';
+  document.getElementById('wi-run-btn').disabled = !_wiAdjs.length;
+}
+
+async function wiRun(){
+  if(!_wiAdjs.length) return;
+  const btn=document.getElementById('wi-run-btn');
+  btn.disabled=true; btn.textContent='Running…';
+  try{
+    const r=await fetch('/api/whatif',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({conflict_id:_wiConflict.id, adjustments:_wiAdjs})});
+    _wiResult=await r.json();
+    _wiShowResults(_wiResult);
+  }catch(e){
+    btn.disabled=false; btn.textContent='Run Scenario →';
+    showToast('Scenario error: '+e.message);
+  }
+}
+
+function _wiShowResults(res){
+  document.getElementById('wi-step1').style.display='none';
+  document.getElementById('wi-results').classList.add('show');
+  let html='';
+  // Resolved
+  if(res.resolved&&res.resolved.length){
+    html+=`<div class="wi-band ok"><div class="wi-band-icon">✅</div><div class="wi-band-body">
+      <div class="wi-band-lbl">${res.resolved.length} Conflict${res.resolved.length>1?'s':''} Resolved</div>
+      <div class="wi-band-detail">${res.resolved.map(c=>esc(c.description||c.id)).join('<br>')}</div>
+    </div></div>`;
+  } else {
+    html+=`<div class="wi-band neu"><div class="wi-band-icon">↔️</div><div class="wi-band-body"><div class="wi-band-lbl">No Existing Conflicts Resolved</div></div></div>`;
+  }
+  // New conflicts
+  if(res.new_conflicts&&res.new_conflicts.length){
+    html+=`<div class="wi-band bad"><div class="wi-band-icon">⚠️</div><div class="wi-band-body">
+      <div class="wi-band-lbl">${res.new_conflicts.length} New Conflict${res.new_conflicts.length>1?'s':''} Created</div>
+      <div class="wi-band-detail">${res.new_conflicts.map(c=>esc(c.description||c)).join('<br>')}</div>
+    </div></div>`;
+  } else {
+    html+=`<div class="wi-band ok"><div class="wi-band-icon">✅</div><div class="wi-band-body"><div class="wi-band-lbl">No New Conflicts Introduced</div></div></div>`;
+  }
+  // Cost
+  const cd=res.cost_delta||0;
+  const cdCls=cd<0?'save':cd>0?'add':'zero';
+  const cdTxt=cd<0?`Save $${Math.abs(cd).toLocaleString()}`:cd>0?`+$${cd.toLocaleString()} additional cost`:'No cost change';
+  html+=`<div class="wi-band neu" style="margin-bottom:16px;"><div class="wi-band-icon">💰</div><div class="wi-band-body">
+    <div class="wi-band-lbl">Cost Impact</div>
+    <div class="wi-cost-num ${cdCls}">${cdTxt}</div>
+  </div></div>`;
+  document.getElementById('wi-bands').innerHTML=html;
+  // Revised recommendation
+  const rb=document.getElementById('wi-rec-block');
+  rb.innerHTML=res.new_recommendation?`<div class="wi-new-rec">
+    <div class="wi-new-rec-lbl">★ Revised Recommendation</div>
+    <div class="wi-new-rec-val">${esc(res.new_recommendation)}</div>
+    ${res.new_reasoning?`<div class="wi-new-rec-why">${esc(res.new_reasoning)}</div>`:''}
+  </div>`:'';
+}
+
+function wiDiscard(){
+  _wiResult=null;
+  document.getElementById('wi-results').classList.remove('show');
+  document.getElementById('wi-step1').style.display='';
+  const btn=document.getElementById('wi-run-btn');
+  btn.disabled=!_wiAdjs.length; btn.textContent='Run Scenario →';
+}
+
+async function wiApply(){
+  if(!_wiResult) return;
+  const label=_wiAdjs.map(a=>a._label).join(' · ');
+  try{
+    const r=await fetch('/api/apply-whatif',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({conflict_id:_wiConflict.id, adjustments:_wiAdjs, label})});
+    const res=await r.json();
+    if(res.success){
+      closeWhatIf();
+      document.getElementById('wi-banner-desc').textContent=label;
+      document.getElementById('wi-banner').classList.add('show');
+      await doRefresh();
+    }
+  }catch(e){ showToast('Apply failed: '+e.message); }
+}
+
+async function wiClearScenario(){
+  try{ await fetch('/api/clear-whatif',{method:'POST'}); }catch(e){}
+  document.getElementById('wi-banner').classList.remove('show');
+  await doRefresh();
 }
 
 /* ── Vessel table ── */
