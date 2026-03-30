@@ -116,6 +116,44 @@ _qships_data  = None       # Loaded qships_data.json content (dict or None)
 _scrape_lock  = threading.Lock()
 _scraping     = False      # Flag: scrape in progress
 
+# ── MST AIS cache ─────────────────────────────────────────────────────────────
+# Keyed by unloco → list of vessel dicts from mst_scraper.get_vessels_in_port()
+# Populated by background thread; build_summary() reads from cache only.
+_mst_cache      = {}          # {"AUBNE": [...], "AUMEL": [...], ...}
+_mst_cache_lock = threading.Lock()
+_MST_REFRESH_HOURS = 12       # refresh twice daily
+
+
+def _refresh_mst_cache():
+    """Fetch MST port/calls for all configured ports and update cache."""
+    if not mst_scraper.is_configured():
+        return
+    for port_id, profile in PORT_PROFILES.items():
+        unloco = profile.get("unloco")
+        if not unloco:
+            continue
+        try:
+            vessels = mst_scraper.get_vessels_in_port(unloco)
+            with _mst_cache_lock:
+                _mst_cache[unloco] = vessels
+            log.info("MST cache updated: %d vessels at %s", len(vessels), unloco)
+        except Exception as exc:
+            log.error("MST cache refresh failed for %s: %s", unloco, exc)
+
+
+def _schedule_mst_refresh():
+    """Background thread: refresh MST cache on startup then every 12 hours."""
+    def _loop():
+        # Initial fetch at startup (short delay to let server bind first)
+        time.sleep(5)
+        _refresh_mst_cache()
+        while True:
+            time.sleep(_MST_REFRESH_HOURS * 3600)
+            _refresh_mst_cache()
+
+    t = threading.Thread(target=_loop, daemon=True, name="mst-refresh")
+    t.start()
+
 MAX_LIVE_VESSELS = 80   # Safety cap — conflict engine is O(n²); reject bad scrapes
 
 def load_qships_data():
@@ -2098,22 +2136,26 @@ def build_summary():
                 log.error("QShips vessel build failed (%s) — falling back to simulation", exc)
                 vessels = None
 
-    # MST AIS connector — real vessel identities, simulated operational detail
+    # MST AIS connector — reads from background cache (never blocks on HTTP)
     if not using_live_vessel and not is_live and mst_scraper.is_configured():
         unloco = profile.get("unloco")
         if unloco:
-            try:
-                berths = make_berths(now)
-                mst_vessels = mst_scraper.build_horizon_vessels(unloco, berths, now)
-                if mst_vessels:
-                    vessels   = mst_vessels
-                    port_name = profile["display_name"]
-                    is_live   = True
-                    using_live_vessel = True
-                    log.info("MST AIS: %d vessels loaded for %s", len(vessels), unloco)
-            except Exception as exc:
-                log.error("MST vessel build failed (%s) — falling back to simulation", exc)
-                vessels = None
+            with _mst_cache_lock:
+                cached = list(_mst_cache.get(unloco, []))
+            if cached:
+                try:
+                    berths = make_berths(now)
+                    mst_vessels = mst_scraper.build_horizon_vessels(
+                        unloco, berths, now, cached_vessels=cached)
+                    if mst_vessels:
+                        vessels   = mst_vessels
+                        port_name = profile["display_name"]
+                        is_live   = True
+                        using_live_vessel = True
+                        log.info("MST cache: %d vessels for %s", len(vessels), unloco)
+                except Exception as exc:
+                    log.error("MST vessel build failed (%s) — falling back", exc)
+                    vessels = None
 
     if not using_live_vessel and (not is_live or not vessels):
         berths    = make_berths(now)
@@ -3609,6 +3651,7 @@ if __name__ == "__main__":
     log.info("Starting — active port: %s", _ACTIVE_PORT_ID)
     _schedule_scrapes()
     load_qships_data()
+    _schedule_mst_refresh()
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()

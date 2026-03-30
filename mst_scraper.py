@@ -179,18 +179,22 @@ def _sim_vessel_props(mmsi: str, now: datetime) -> dict:
     }
 
 
-def build_horizon_vessels(unloco: str, berths: list, now: datetime) -> list | None:
+def build_horizon_vessels(unloco: str, berths: list, now: datetime,
+                          cached_vessels: list | None = None) -> list | None:
     """
     Build a Horizon-compatible vessel list using real vessel identities from
     MST combined with simulated operational detail.
 
-    Returns None if MST is not configured or returns no data (caller should
-    fall back to pure simulation).
+    cached_vessels: pre-fetched list from the background cache. If provided,
+    no API call is made. If None, falls back to a live fetch (use only for
+    the /api/mst-status diagnostic endpoint).
+
+    Returns None if no data available (caller falls back to pure simulation).
     """
     if not is_configured():
         return None
 
-    real_vessels = get_vessels_in_port(unloco)
+    real_vessels = cached_vessels if cached_vessels is not None else get_vessels_in_port(unloco)
     if not real_vessels:
         return None
 
