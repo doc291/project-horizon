@@ -2505,6 +2505,21 @@ class HorizonHandler(BaseHTTPRequestHandler):
             ds = get_data_source()
             self._json({"status": "ok", "time": fmt(utcnow()),
                         "data_source": ds["source"], "scraped_at": ds["scraped_at"]})
+        elif path == "/api/mst-status":
+            with _profile_lock:
+                unloco = _PORT_PROFILE.get("unloco", "")
+            result = {
+                "mst_configured": mst_scraper.is_configured(),
+                "unloco": unloco,
+                "vessels": [],
+                "error": None,
+            }
+            if mst_scraper.is_configured() and unloco:
+                try:
+                    result["vessels"] = mst_scraper.get_vessels_in_port(unloco)
+                except Exception as exc:
+                    result["error"] = str(exc)
+            self._json(result)
         elif path in ("/", "/index.html"):
             # Auto-redirect mobile browsers to the PWA companion, unless ?full=1
             from urllib.parse import urlparse, parse_qs as _pqs
