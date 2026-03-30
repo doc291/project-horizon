@@ -913,8 +913,10 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                         [a["id"], b["id"]], [a["name"], b["name"]],
                         berth_id, berth_name, b_start,
                         (f"{b['name']} is scheduled to arrive at {berth_name} "
-                         f"only {gap}min after {a['name']} departs. "
-                         f"Minimum clearance required: {CLEARANCE_MINS}min."),
+                         + (f"only {gap}min after {a['name']} departs. "
+                            if gap >= 0
+                            else f"while {a['name']} is still berthed (overlap: {abs(gap)}min). ")
+                         + f"Minimum clearance required: {CLEARANCE_MINS}min."),
                         [f"Delay {b['name']} arrival by {max(CLEARANCE_MINS - gap + 15, 30)}min",
                          f"Bring forward {a['name']} departure",
                          f"Reassign {b['name']} to an alternative berth"],
