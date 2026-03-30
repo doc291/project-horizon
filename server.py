@@ -2455,7 +2455,8 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
 .attn-icon{font-size:14px;flex-shrink:0;margin-top:1px}
 .attn-body{flex:1;min-width:0}
 .attn-msg{font-size:12px;font-weight:700;color:var(--bright);line-height:1.4;margin-bottom:3px}
-.attn-detail{font-size:11px;color:var(--dim);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.attn-detail{font-size:11px;color:var(--dim);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.attn-detail.expanded{display:block;-webkit-line-clamp:unset}
 .attn-deadline{font-size:10px;font-weight:700;color:var(--amber);margin-top:4px;font-variant-numeric:tabular-nums}
 .empty{text-align:center;padding:40px 20px 20px;color:var(--dim)}
 .empty-icon{font-size:48px;margin-bottom:12px}
@@ -2510,6 +2511,7 @@ let _d=null,_cd=null,_dl={};
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtTimer(secs){if(secs<=0)return'00:00:00';const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
 function toggleAlts(id){const el=document.getElementById('alts-'+id);const btn=document.getElementById('altbtn-'+id);if(!el)return;const open=el.classList.toggle('open');btn.textContent=open?'▲ Hide options':'▼ View all options';}
+function toggleAttn(id){const card=document.getElementById('attn-'+id);if(!card)return;const det=card.querySelector('.attn-detail');const arr=card.querySelector('.attn-arr');if(!det)return;const exp=det.classList.toggle('expanded');if(arr)arr.textContent=exp?'▲':'▼';}
 function render(d){
   const cs=(d.conflicts||[]).filter(c=>c.signal_type==='CONFLICT'&&c.decision_support);
   const sb=document.getElementById('hs');sb.textContent=cs.length;sb.className='sig-badge'+(cs.length===0?' zero':'');
@@ -2572,11 +2574,14 @@ function render(d){
     const isCrit=g.priority==='critical';
     const dl=g.deadline?new Date(g.deadline):null;
     const dlStr=dl?dl.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false}):null;
-    return`<div class="attn${isCrit?' crit':''}">
+    return`<div class="attn${isCrit?' crit':''}" id="attn-${esc(g.id)}" onclick="toggleAttn('${esc(g.id)}')">
 <span class="attn-icon">${isCrit?'🔴':'⚡'}</span>
 <div class="attn-body">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
 <div class="attn-msg">${esc(g.message)}</div>
-<div class="attn-detail">${esc((g.detail||'').slice(0,100))}</div>
+<span class="attn-arr" style="font-size:9px;color:var(--dim);flex-shrink:0;margin-top:2px">▼</span>
+</div>
+<div class="attn-detail">${esc(g.detail||'')}</div>
 ${dlStr?`<div class="attn-deadline">Act by ${dlStr}</div>`:''}
 </div></div>`;
   }).join('')}</div>`:'';
