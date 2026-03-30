@@ -2170,6 +2170,7 @@ def build_summary():
                     vessels = None
 
     # ── Vessel scraper fallback (only runs when MST has no cached data) ────────
+    scrape_result = {}
     if not using_live_vessel:
         scrape_result = fetch_vessel_movements(profile, now)
         if scrape_result["using_live_data"] and scrape_result["vessels"]:
