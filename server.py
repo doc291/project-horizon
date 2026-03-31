@@ -793,6 +793,46 @@ def b04_alternatives(a_name, b_name):
             delay_mins=30, cascade_count=0, risk="low", recommended=False),
     ]
 
+def _generic_berth_alternatives(a_name, b_name, berth_name, berth_id, gap_mins):
+    """Generate dynamic sequencing alternatives for any berth overlap not covered by a hardcoded pair."""
+    hold_mins  = max(abs(gap_mins) + CLEARANCE_MINS + 15, 45)
+    accel_hrs  = max(round((hold_mins / 60) + 0.5), 1)
+    anchor_cost = round(hold_mins * 14, -2)         # ~$14/min anchorage
+    overtime    = round(accel_hrs * 3500, -2)        # ~$3,500/hr overtime
+    sid         = berth_id.replace(" ", "")           # safe id fragment
+    return [
+        _seq_alt(f"SEQ-{sid}-1", "delay_arrival",
+            f"Hold {b_name} at anchorage (+{hold_mins}min)",
+            (f"Delay {b_name} ETA by {hold_mins}min. {berth_name} clears after {a_name} departs "
+             f"with full {CLEARANCE_MINS}min clearance buffer. Pilot and tug times adjust accordingly."),
+            [b_name],
+            f"Anchorage allocation required for {b_name}. Pilot/tug reschedule notified.",
+            "high", 0,
+            cost_usd=anchor_cost,
+            cost_label=f"~${anchor_cost:,} anchorage fees",
+            delay_mins=hold_mins, cascade_count=1, risk="low", recommended=True),
+        _seq_alt(f"SEQ-{sid}-2", "advance_departure",
+            f"Accelerate {a_name} departure (−{accel_hrs}h)",
+            (f"Advance {a_name} ETD by {accel_hrs}h by accelerating cargo operations. "
+             f"{berth_name} clears before {b_name} arrives with full clearance window."),
+            [a_name],
+            "Terminal crane gang must accelerate immediately. Shipping line notified of early ETD.",
+            "medium", accel_hrs,
+            cost_usd=overtime,
+            cost_label=f"~${overtime:,} overtime + ops",
+            delay_mins=0, cascade_count=1, risk="medium", recommended=False),
+        _seq_alt(f"SEQ-{sid}-3", "reassign_berth",
+            f"Reassign {b_name} to alternative berth",
+            (f"Identify next available berth compatible with {b_name}'s vessel class and LOA. "
+             f"Eliminates conflict without affecting {a_name}'s schedule."),
+            [b_name],
+            "Terminal equipment and line handlers must relocate. Requires berth availability check with port planner.",
+            "medium", 0,
+            cost_usd=2800, cost_label="~$2,800 repositioning",
+            delay_mins=30, cascade_count=1, risk="medium", recommended=False),
+    ]
+
+
 def b03_alternatives(a_name, b_name):
     """Alternatives for B03 berth conflict (V004 vs V010)."""
     return [
@@ -858,7 +898,7 @@ def _build_decision_support(seq_alts, conflict_time_dt, now):
     reasoning_map = {
         "delay_arrival":    "Lowest cost option with minimal cascade impact. Anchorage capacity is available and pilot can be rescheduled with adequate notice.",
         "advance_departure":"Restores full clearance window but requires immediate terminal action and incurs overtime.",
-        "reassign_berth":   "Eliminates the conflict entirely. Vessel dimensions confirm berth compatibility.",
+        "reassign_berth":   "Eliminates the conflict entirely. Confirm vessel dimensions against target berth limits before committing.",
     }
     return {
         "recommended_option_id":  rec["id"] if rec else None,
@@ -900,13 +940,16 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                 if a_start < b_end and b_start < a_end_buf:
                     gap = int((b_start - a_end).total_seconds() / 60)
                     sev = "critical" if gap < 0 else "high"
-                    # Build sequencing alternatives for known conflict pairs
-                    seq_alts = []
+                    # Build sequencing alternatives — hardcoded for known pairs, generic otherwise
                     if berth_id == "B04":
                         seq_alts = b04_alternatives(a["name"], b["name"])
                     elif berth_id == "B03":
                         seq_alts = b03_alternatives(a["name"], b["name"])
-                    ds = _build_decision_support(seq_alts, b_start, now) if seq_alts else None
+                    else:
+                        seq_alts = _generic_berth_alternatives(
+                            a["name"], b["name"], berth_name, berth_id, gap)
+                    # Every berth_overlap CONFLICT always gets a Decision Card
+                    ds = _build_decision_support(seq_alts, b_start, now)
                     _cid = hashlib.md5(f"berth_overlap-{berth_id}-{a['id']}-{b['id']}".encode()).hexdigest()[:8]
                     conflicts.append(_conflict(
                         _cid, "berth_overlap", "CONFLICT", sev,
