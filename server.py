@@ -58,7 +58,7 @@ _COOKIE_NAME = "hz_sess"
 _COOKIE_TTL  = 60 * 60 * 12                   # 12 hours
 
 # Paths that bypass auth entirely (assets needed by the login page itself)
-_PUBLIC_PATHS = {"/login", "/logo", "/amsg-logo", "/health"}
+_PUBLIC_PATHS = {"/login", "/logo", "/amsg-logo", "/health", "/api/health-data"}
 
 # ── Port Brief email config ───────────────────────────────────────────────────
 _SMTP_HOST       = os.environ.get("SMTP_HOST", "")
@@ -2757,9 +2757,9 @@ class HorizonHandler(BaseHTTPRequestHandler):
         elif path == "/api/debug":
             self._scrape_debug()
         elif path == "/health":
-            ds = get_data_source()
-            self._json({"status": "ok", "time": fmt(utcnow()),
-                        "data_source": ds["source"], "scraped_at": ds["scraped_at"]})
+            self._serve_health_page()
+        elif path == "/api/health-data":
+            self._serve_health_data()
         elif path == "/api/aisstream-status":
             self._json(aisstream_scraper.get_status())
         elif path == "/api/mst-status":
@@ -2853,6 +2853,233 @@ class HorizonHandler(BaseHTTPRequestHandler):
         else:
             out["note"] = "No debug file — API call likely failed before writing (network/HTTP error)"
         self._json(out)
+
+    # ── /api/health-data ──────────────────────────────────────────────────────
+    def _serve_health_data(self):
+        now = utcnow()
+        ais = aisstream_scraper.get_status()
+        ports_out = {}
+        for unloco, prof in PORT_PROFILES.items():
+            wx   = fetch_weather(prof, now, cache_only=True) or {}
+            tide = fetch_bom_tides(prof, now, cache_only=True) or {}
+            ais_count = ais.get("in_port", {}).get(unloco, 0)
+            with _mst_cache_lock:
+                mst_count = len(_mst_cache.get(unloco, []))
+            if ais.get("connected") and not ais.get("stale"):
+                vessel_source = "aisstream"
+            elif mst_scraper.is_configured() and mst_count:
+                vessel_source = "mst"
+            else:
+                vessel_source = "simulated"
+            # AIS Type 5 coverage: static_data / vessels_tracked
+            tracked   = ais.get("vessels_tracked", 0)
+            static    = ais.get("static_data", 0)
+            type5_pct = round(100 * static / tracked) if tracked else 0
+            ports_out[unloco] = {
+                "name":           prof.get("display_name", unloco),
+                "short_name":     prof.get("short_name", unloco),
+                "vessel_source":  vessel_source,
+                "vessel_count":   ais_count if vessel_source == "aisstream" else mst_count,
+                "type5_pct":      type5_pct,
+                "weather_source": wx.get("source", "unknown"),
+                "tide_source":    tide.get("source", "unknown"),
+                "tide_station":   tide.get("station_id", ""),
+            }
+        # Issues list
+        issues = []
+        if not ais.get("configured"):
+            issues.append({"sev": "critical", "msg": "AISStream not configured — vessel tracking unavailable"})
+        elif not ais.get("connected"):
+            issues.append({"sev": "critical", "msg": "AISStream WebSocket disconnected"})
+        elif ais.get("stale"):
+            issues.append({"sev": "high", "msg": f"AISStream data stale ({ais.get('last_message_age_s')}s since last message)"})
+        if not mst_scraper.is_configured():
+            issues.append({"sev": "medium", "msg": "MST API not configured — AIS fallback unavailable"})
+        for unloco, p in ports_out.items():
+            if p["weather_source"] != "live":
+                issues.append({"sev": "medium", "msg": f"{p['short_name']}: weather using simulation (Open-Meteo unavailable)"})
+            if p["tide_source"] == "cosine":
+                issues.append({"sev": "low", "msg": f"{p['short_name']}: tides using cosine approximation (BOM unavailable)"})
+            if p["vessel_source"] == "aisstream" and p["vessel_count"] == 0:
+                issues.append({"sev": "low", "msg": f"{p['short_name']}: AISStream connected but 0 vessels detected (possible coverage gap)"})
+        # Overall readiness
+        sevs = [i["sev"] for i in issues]
+        if "critical" in sevs:
+            overall = "issues"
+        elif "high" in sevs or "medium" in sevs:
+            overall = "warning"
+        else:
+            overall = "ready"
+        self._json({
+            "time":        fmt(now),
+            "overall":     overall,
+            "aisstream":   ais,
+            "mst_configured": mst_scraper.is_configured(),
+            "ports":       ports_out,
+            "issues":      issues,
+        })
+
+    # ── /health HTML page ─────────────────────────────────────────────────────
+    def _serve_health_page(self):
+        html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Horizon — System Status</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0d1117;color:#cdd9e5;font-family:'Segoe UI',Arial,sans-serif;font-size:14px;min-height:100vh}
+  a{color:#58a6ff;text-decoration:none}
+  .top{background:#161b22;border-bottom:1px solid #30363d;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+  .top h1{font-size:15px;font-weight:600;color:#e6edf3;letter-spacing:.03em}
+  .top h1 span{color:#4493f8;margin-right:8px}
+  .updated{font-size:12px;color:#7d8590}
+  .overall{display:flex;align-items:center;gap:10px;padding:16px 24px 0}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;letter-spacing:.04em}
+  .badge.ready{background:#0d3321;color:#3fb950;border:1px solid #238636}
+  .badge.warning{background:#2d1f00;color:#d29922;border:1px solid #9e6a03}
+  .badge.issues{background:#3d1c1c;color:#f85149;border:1px solid #da3633}
+  .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:16px 24px}
+  .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px}
+  .card h2{font-size:12px;font-weight:600;color:#7d8590;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+  .card h3{font-size:14px;font-weight:600;color:#e6edf3;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #21262d}
+  .row:last-child{border-bottom:none}
+  .label{color:#8b949e;font-size:12px}
+  .val{font-size:12px;font-weight:500;color:#e6edf3}
+  .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+  .live{background:#0d3321;color:#3fb950;border:1px solid #238636}
+  .sim{background:#1c2128;color:#8b949e;border:1px solid #30363d}
+  .warn{background:#2d1f00;color:#d29922;border:1px solid #9e6a03}
+  .err{background:#3d1c1c;color:#f85149;border:1px solid #da3633}
+  .issues-panel{margin:0 24px 16px;background:#161b22;border:1px solid #30363d;border-radius:8px;overflow:hidden}
+  .issues-panel h2{font-size:12px;font-weight:600;color:#7d8590;text-transform:uppercase;letter-spacing:.08em;padding:12px 16px;border-bottom:1px solid #30363d}
+  .issue{display:flex;align-items:flex-start;gap:10px;padding:9px 16px;border-bottom:1px solid #21262d;font-size:12px}
+  .issue:last-child{border-bottom:none}
+  .issue-dot{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0}
+  .ic{color:#3fb950}.iw{color:#d29922}.ie{color:#f85149}.im{color:#58a6ff}
+  .no-issues{padding:12px 16px;font-size:12px;color:#3fb950}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .stat{background:#0d1117;border-radius:6px;padding:10px 12px}
+  .stat .n{font-size:20px;font-weight:700;color:#e6edf3}
+  .stat .l{font-size:11px;color:#7d8590;margin-top:2px}
+  .port-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .refresh{font-size:11px;color:#7d8590;padding:10px 24px 16px}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1><span>⬡</span> Horizon — System Status</h1>
+  <div class="updated" id="updated">Loading…</div>
+</div>
+
+<div class="overall">
+  <div class="badge" id="overall-badge"><span class="dot"></span> <span id="overall-text">Checking…</span></div>
+  <a href="/" style="font-size:12px;color:#58a6ff">← Back to dashboard</a>
+</div>
+
+<div class="grid" id="grid">
+  <div class="card"><div style="color:#7d8590;font-size:12px">Loading status…</div></div>
+</div>
+
+<div id="issues-wrap"></div>
+<div class="refresh" id="refresh-note"></div>
+
+<script>
+const SEV_CLASS = {critical:'ie',high:'iw',medium:'im',low:'ic'};
+const SEV_LABEL = {critical:'CRITICAL',high:'HIGH',medium:'MEDIUM',low:'INFO'};
+
+function pill(text, cls){ return `<span class="pill ${cls}">${text}</span>`; }
+
+function sourcePill(src){
+  if(src==='aisstream') return pill('LIVE — AISStream','live');
+  if(src==='mst')       return pill('LIVE — MST API','live');
+  if(src==='live')      return pill('LIVE','live');
+  if(src==='bom')       return pill('LIVE — BOM','live');
+  if(src==='cosine')    return pill('APPROX','warn');
+  if(src==='simulated'||src==='simulation') return pill('SIMULATED','sim');
+  return pill(src||'UNKNOWN','sim');
+}
+
+async function refresh(){
+  const d = await fetch('/api/health-data').then(r=>r.json()).catch(()=>null);
+  if(!d){ document.getElementById('updated').textContent='Error fetching data'; return; }
+
+  // Timestamp + overall
+  document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  const ob = document.getElementById('overall-badge');
+  const ot = document.getElementById('overall-text');
+  ob.className = 'badge ' + d.overall;
+  ot.textContent = {ready:'All systems ready',warning:'Some data may be simulated',issues:'Issues detected'}[d.overall]||d.overall;
+
+  // Build cards
+  const ais = d.aisstream;
+  let cards = '';
+
+  // AISStream card
+  const aisConnected = ais.connected && !ais.stale;
+  const aisAge = ais.last_message_age_s != null ? ais.last_message_age_s.toFixed(1)+'s ago' : '—';
+  const type5 = ais.vessels_tracked ? Math.round(100*ais.static_data/ais.vessels_tracked)+'%' : '—';
+  cards += `<div class="card">
+    <h2>AIS Data Stream</h2>
+    <h3>${aisConnected ? pill('CONNECTED','live') : pill(ais.configured ? 'DISCONNECTED' : 'NOT CONFIGURED','err')}</h3>
+    <div class="stat-grid">
+      <div class="stat"><div class="n">${ais.vessels_tracked||0}</div><div class="l">Vessels tracked</div></div>
+      <div class="stat"><div class="n">${type5}</div><div class="l">Real dimensions (Type 5)</div></div>
+    </div>
+    <div style="margin-top:10px">
+    <div class="row"><span class="label">Last message</span><span class="val">${aisAge}</span></div>
+    <div class="row"><span class="label">Stale</span><span class="val">${ais.stale?'<span style=color:#f85149>Yes</span>':'No'}</span></div>
+    <div class="row"><span class="label">MST fallback</span><span class="val">${d.mst_configured ? pill('CONFIGURED','live') : pill('NOT CONFIGURED','sim')}</span></div>
+    </div>
+  </div>`;
+
+  // Per-port cards
+  for(const [unloco, p] of Object.entries(d.ports)){
+    cards += `<div class="card">
+      <div class="port-header">
+        <h2>${p.name}</h2>
+        <span style="font-size:11px;color:#7d8590">${unloco}</span>
+      </div>
+      <div class="row"><span class="label">Vessels</span><span class="val">${p.vessel_count} ${sourcePill(p.vessel_source)}</span></div>
+      <div class="row"><span class="label">Real dimensions</span><span class="val">${p.type5_pct}% from AIS Type 5</span></div>
+      <div class="row"><span class="label">Weather</span><span class="val">${sourcePill(p.weather_source)}</span></div>
+      <div class="row"><span class="label">Tides</span><span class="val">${sourcePill(p.tide_source)}${p.tide_station ? ' <span style=color:#7d8590;font-size:11px>('+p.tide_station+')</span>' : ''}</span></div>
+    </div>`;
+  }
+
+  document.getElementById('grid').innerHTML = cards;
+
+  // Issues panel
+  let ihtml = '<div class="issues-panel"><h2>Issues</h2>';
+  if(!d.issues.length){
+    ihtml += '<div class="no-issues">✓ No issues detected — system ready for demo</div>';
+  } else {
+    d.issues.forEach(i=>{
+      ihtml += `<div class="issue">
+        <div class="issue-dot ${SEV_CLASS[i.sev]}"></div>
+        <div><strong style="font-size:11px;color:#8b949e">${SEV_LABEL[i.sev]}</strong> — ${i.msg}</div>
+      </div>`;
+    });
+  }
+  ihtml += '</div>';
+  document.getElementById('issues-wrap').innerHTML = ihtml;
+  document.getElementById('refresh-note').textContent = 'Auto-refreshes every 30 seconds';
+}
+
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>"""
+        body = html.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def _json(self, data, status=200):
         body = json.dumps(data, default=str).encode()
