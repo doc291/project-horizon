@@ -33,6 +33,7 @@ from bom_tides import fetch_bom_tides, predict_height_at
 from vessel_scraper import fetch_vessel_movements
 from weather import fetch_weather
 import mst_scraper
+import aisstream_scraper
 
 _ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
@@ -67,13 +68,21 @@ _SMTP_PASS       = os.environ.get("SMTP_PASS", "")
 _SMTP_FROM       = os.environ.get("SMTP_FROM", "") or _SMTP_USER
 _BRIEF_RECIPIENTS = [r.strip() for r in os.environ.get("BRIEF_RECIPIENTS", "").split(",") if r.strip()]
 
-# ── MyShipTracking AIS connector ──────────────────────────────────────────────
+# ── AISStream.io connector (preferred) ───────────────────────────────────────
+_AISSTREAM_API_KEY = os.environ.get("AISSTREAM_API_KEY", "")
+if _AISSTREAM_API_KEY:
+    aisstream_scraper.configure(_AISSTREAM_API_KEY)
+    log.info("AISStream connector configured — WebSocket will start at server boot")
+else:
+    log.info("AISSTREAM_API_KEY not set — AISStream disabled")
+
+# ── MyShipTracking AIS connector (fallback) ───────────────────────────────────
 _MST_API_KEY = os.environ.get("MST_API_KEY", "")
 if _MST_API_KEY:
     mst_scraper.configure(_MST_API_KEY)
-    log.info("MyShipTracking AIS connector enabled")
+    log.info("MyShipTracking AIS connector enabled (fallback)")
 else:
-    log.info("MST_API_KEY not set — using simulation for vessel data")
+    log.info("MST_API_KEY not set — MST fallback disabled")
 
 # ── What If overlay state ─────────────────────────────────────────────────────
 _WHATIF_OVERLAY  = {}   # {"active": bool, "adjustments": [...], "label": str}
@@ -2266,10 +2275,27 @@ def build_summary():
     using_live_vessel = False
     using_live_tidal  = False
 
-    # ── MST AIS connector — check FIRST (non-blocking, reads background cache) ─
-    # MST takes priority over the HTML scraper to avoid blocking HTTP calls in the
-    # request path (Melbourne's ports.vic.gov.au scrape hangs 15 s on every hit).
-    if mst_scraper.is_configured():
+    # ── AISStream connector — preferred live source (WebSocket, real dimensions) ─
+    if aisstream_scraper.is_configured() and not aisstream_scraper.is_stale():
+        unloco = profile.get("unloco")
+        if unloco:
+            try:
+                ais_raw = aisstream_scraper.get_vessels_in_port(unloco)
+                if ais_raw:
+                    berths = make_berths(now)
+                    ais_vessels = mst_scraper.build_horizon_vessels(
+                        unloco, berths, now, cached_vessels=ais_raw)
+                    if ais_vessels:
+                        vessels   = ais_vessels
+                        port_name = profile["display_name"]
+                        is_live   = True
+                        using_live_vessel = True
+                        log.info("AISStream: %d vessels for %s", len(vessels), unloco)
+            except Exception as exc:
+                log.error("AISStream vessel build failed (%s) — trying MST", exc)
+
+    # ── MST AIS connector — fallback if AISStream stale/unavailable ──────────
+    if not using_live_vessel and mst_scraper.is_configured():
         unloco = profile.get("unloco")
         if unloco:
             with _mst_cache_lock:
@@ -2284,7 +2310,8 @@ def build_summary():
                         port_name = profile["display_name"]
                         is_live   = True
                         using_live_vessel = True
-                        log.info("MST cache: %d vessels for %s", len(vessels), unloco)
+                        log.info("MST cache: %d vessels for %s (AISStream fallback)",
+                                 len(vessels), unloco)
                 except Exception as exc:
                     log.error("MST vessel build failed (%s) — falling back", exc)
                     vessels = None
@@ -2729,6 +2756,8 @@ class HorizonHandler(BaseHTTPRequestHandler):
             ds = get_data_source()
             self._json({"status": "ok", "time": fmt(utcnow()),
                         "data_source": ds["source"], "scraped_at": ds["scraped_at"]})
+        elif path == "/api/aisstream-status":
+            self._json(aisstream_scraper.get_status())
         elif path == "/api/mst-status":
             with _profile_lock:
                 unloco = _PORT_PROFILE.get("unloco", "")
@@ -3834,12 +3863,13 @@ if __name__ == "__main__":
     log.info("Starting — active port: %s", _ACTIVE_PORT_ID)
     _schedule_scrapes()
     load_qships_data()
-    _schedule_mst_refresh()
+    aisstream_scraper.start()       # WebSocket — preferred live AIS source
+    _schedule_mst_refresh()         # REST poll — fallback if AISStream stale
     _schedule_bom_weather_warmup()
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()
-    print(f"╔══ HORIZON BETA 9 ═══════════════════════════╗")
+    print(f"╔══ HORIZON BETA 10 ══════════════════════════╗")
     print(f"║  Active Port: {_PORT_PROFILE['display_name']:<28} ║")
     print(f"║  Data Source: {_PORT_PROFILE['vessel_data_source']:<28} ║")
     print(f"║  BOM Station: {str(_PORT_PROFILE.get('bom_station_id','N/A')):<28} ║")
