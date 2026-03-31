@@ -34,10 +34,25 @@ def _bft(kts: float) -> int:
     return 6
 
 
-def _conditions(wind_kts: float, swell_m: float) -> str:
-    if wind_kts < 10 and swell_m < 1.0: return "Excellent"
-    if wind_kts < 16 and swell_m < 1.5: return "Good"
-    if wind_kts < 22 and swell_m < 2.0: return "Moderate"
+def _conditions(wind_kts: float, swell_m: float,
+                precip_mm: float = 0.0, weather_code: int = 0) -> str:
+    """
+    Operational conditions rating.
+    WMO weather_code >= 51 = precipitation (rain/drizzle/showers/thunderstorm).
+    WMO weather_code >= 95 = thunderstorm.  precip_mm >= 5 = heavy rain.
+    Any significant precipitation prevents 'Excellent'; heavy precip → 'Poor'.
+    """
+    heavy_precip = precip_mm >= 5.0 or weather_code >= 95   # heavy rain / TS
+    any_precip   = precip_mm >= 0.5 or (51 <= weather_code <= 99)
+
+    if heavy_precip:
+        return "Poor"
+    if wind_kts < 10 and swell_m < 1.0 and not any_precip:
+        return "Excellent"
+    if wind_kts < 16 and swell_m < 1.5:
+        return "Good"
+    if wind_kts < 22 and swell_m < 2.0:
+        return "Moderate"
     return "Poor"
 
 
@@ -116,17 +131,20 @@ def fetch_weather(profile: dict, now: datetime = None, cache_only: bool = False)
             f"https://api.open-meteo.com/v1/forecast"
             f"?latitude={lat}&longitude={lon}"
             f"&current=wind_speed_10m,wind_direction_10m,surface_pressure,visibility"
+            f",precipitation,weather_code"
             f"&wind_speed_unit=kn&timezone=UTC"
         )
         req = urllib.request.Request(wx_url, headers=_HEADERS)
         with urllib.request.urlopen(req, timeout=8) as r:
             wx = json.loads(r.read())["current"]
 
-        wind_kts  = round(float(wx.get("wind_speed_10m",    10)))
-        wind_deg  = int(  float(wx.get("wind_direction_10m", 0)))
-        pressure  = round(float(wx.get("surface_pressure",  1013)))
-        vis_raw   = float(wx.get("visibility", 27780))          # metres
-        vis_nm    = round(vis_raw / 1852.0, 1)
+        wind_kts     = round(float(wx.get("wind_speed_10m",    10)))
+        wind_deg     = int(  float(wx.get("wind_direction_10m", 0)))
+        pressure     = round(float(wx.get("surface_pressure",  1013)))
+        vis_raw      = float(wx.get("visibility", 27780))          # metres
+        vis_nm       = round(vis_raw / 1852.0, 1)
+        precip_mm    = round(float(wx.get("precipitation",     0.0)), 1)
+        weather_code = int(  float(wx.get("weather_code",      0)))
 
         # 2. Marine / swell (separate API — best-effort)
         swell_m, swell_per, swell_dir = 0.5, 8, wind_deg
@@ -158,14 +176,17 @@ def fetch_weather(profile: dict, now: datetime = None, cache_only: bool = False)
             "swell_direction_label": swell_lbl,
             "visibility_nm":         vis_nm,
             "pressure_hpa":          pressure,
-            "conditions":            _conditions(wind_kts, swell_m),
+            "conditions":            _conditions(wind_kts, swell_m, precip_mm, weather_code),
+            "precipitation_mm":      precip_mm,
+            "weather_code":          weather_code,
             "source":                "live",
         }
 
         with _cache_lock:
             _cache[port_id] = {"data": result, "fetched_at": time.time()}
 
-        log.info("Live weather for %s: %d kts %s, swell %.1fm", port_id, wind_kts, wind_lbl, swell_m)
+        log.info("Live weather for %s: %d kts %s, swell %.1fm, precip %.1fmm, WMO %d → %s",
+                 port_id, wind_kts, wind_lbl, swell_m, precip_mm, weather_code, result["conditions"])
         return result
 
     except Exception as e:
