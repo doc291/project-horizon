@@ -959,9 +959,13 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
     vessel_data_source = "live" if is_live else "simulated"
 
     # ── 1. Berth overlaps ──────────────────────────────────────────────────────
+    # Only include commercial-sized vessels (LOA ≥ 100 m) in berth conflict
+    # checks.  Tugs, workboats and small vessels (which AISStream detects
+    # inside the port bounding box) do not occupy commercial cargo berths and
+    # should not generate berth conflict decisions.
     by_berth = {}
     for v in vessels:
-        if v["status"] != "departed" and v["berth_id"]:
+        if v["status"] != "departed" and v["berth_id"] and v.get("loa", 0) >= 100:
             by_berth.setdefault(v["berth_id"], []).append(v)
 
     for berth_id, bv in by_berth.items():

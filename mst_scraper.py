@@ -201,8 +201,12 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
     if not real_vessels:
         return None
 
-    # Assign berths deterministically — only use available/occupied berths
+    # Assign berths deterministically — only use available/occupied berths.
+    # Each berth is claimed by at most one vessel; overflow vessels are left
+    # without a berth assignment (at anchorage) which is operationally correct
+    # — a port cannot have more vessels berthed than it has berths.
     assignable = [b for b in berths if b.get("status") in ("available", "occupied")]
+    claimed_berths: set = set()
     vessels_out = []
 
     for i, rv in enumerate(real_vessels):
@@ -218,8 +222,15 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
         dest    = rv.get("destination") or None
         source  = "ais" if rv.get("loa_m") else "mst"
 
-        # Berth assignment — round-robin across assignable berths
-        berth = assignable[i % len(assignable)] if assignable else None
+        # Berth assignment — one vessel per berth, MMSI-hash ordered to keep
+        # assignments stable across refreshes.  Vessels that cannot be assigned
+        # a berth remain in port (at anchorage) with berth_id=None.
+        berth = None
+        for b in assignable:
+            if b["id"] not in claimed_berths:
+                berth = b
+                claimed_berths.add(b["id"])
+                break
         berth_id   = berth["id"]   if berth else None
         berth_name = berth["name"] if berth else None
 
@@ -275,7 +286,14 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
         eta_dt = now + timedelta(hours=rng.uniform(2, 36))
         eta_str = eta_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
         etd_dt  = eta_dt + timedelta(hours=rng.uniform(8, 48))
-        berth = assignable[j % len(assignable)] if assignable else None
+        # Assign an unclaimed berth so inbound vessels don't double-up with
+        # already-berthed vessels, generating realistic handover conflicts only.
+        berth = None
+        for b in assignable:
+            if b["id"] not in claimed_berths:
+                berth = b
+                claimed_berths.add(b["id"])
+                break
         inbound_name = name_pool[j]
         vessels_out.append({
             "id":              fake_mmsi,
