@@ -286,14 +286,12 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
         eta_dt = now + timedelta(hours=rng.uniform(2, 36))
         eta_str = eta_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
         etd_dt  = eta_dt + timedelta(hours=rng.uniform(8, 48))
-        # Assign an unclaimed berth so inbound vessels don't double-up with
-        # already-berthed vessels, generating realistic handover conflicts only.
-        berth = None
-        for b in assignable:
-            if b["id"] not in claimed_berths:
-                berth = b
-                claimed_berths.add(b["id"])
-                break
+        # Deliberately assign inbound vessels to an ALREADY OCCUPIED berth so
+        # they create realistic berth-handover conflict decisions (arriving
+        # vessel vs departing incumbent).  Use the j-th claimed berth so each
+        # inbound gets a different berth and conflicts are spread across the port.
+        claimed_list = [b for b in assignable if b["id"] in claimed_berths]
+        berth = claimed_list[j % len(claimed_list)] if claimed_list else None
         inbound_name = name_pool[j]
         vessels_out.append({
             "id":              fake_mmsi,
