@@ -1386,11 +1386,55 @@ PORT_RULES_DARWIN = {
     },
 }
 
+PORT_RULES_GEELONG = {
+    "wind_advisory": {
+        "threshold_kts": 18, "applies_to": "high-windage vessels at Corio Quay",
+        "rule_ref": "Ports Victoria Port Information Guide — Geelong §3",
+        "action": "Monitor closely. Advise masters of high-windage vessels to review manoeuvring plan.",
+    },
+    "wind_no_berthing": {
+        "threshold_kts": 22, "applies_to": "all vessels",
+        "rule_ref": "Ports Victoria Port Information Guide — Geelong §3",
+        "action": "No new berthing operations to commence. Vessels already alongside may remain.",
+    },
+    "wind_movements_suspended": {
+        "threshold_kts": 28, "applies_to": "all vessels",
+        "rule_ref": "Ports Victoria Port Information Guide — Geelong §3, Marine Safety Act 2010 (Vic)",
+        "action": "All vessel movements suspended. Masters to maintain engine readiness. Notify Melbourne VTS on VHF 12.",
+    },
+    "wind_engines_standby": {
+        "threshold_kts": 32, "applies_to": "all berthed vessels",
+        "rule_ref": "Ports Victoria Port Information Guide — Geelong §3",
+        "action": "All berthed vessels must have main engines on standby. Increased mooring watch required.",
+    },
+    "swell_pilot_caution": {
+        "threshold_m": 1.5, "applies_to": "pilot transfer operations at Port Phillip Heads",
+        "rule_ref": "SOLAS V/23, IMPA Pilot Ladder Guidelines 2022",
+        "action": "Enhanced pilot ladder inspection at Heads boarding ground. Masters to assess transfer conditions.",
+    },
+    "swell_transfer_suspended": {
+        "threshold_m": 2.0, "applies_to": "pilot ladder transfers at Port Phillip Heads",
+        "rule_ref": "SOLAS V/23, IMO Res. A.1045(27), IMPA 2022 §4.2",
+        "action": "Pilot ladder transfers suspended at Heads. Hold inbound vessels at outer anchorage.",
+    },
+    "vis_reduced_procedures": {
+        "threshold_nm": 3.0, "applies_to": "all vessels in Corio Bay and Geelong Channel",
+        "rule_ref": "COLREGS Rule 19, Ports Victoria Port Information Guide — Geelong §3",
+        "action": "Reduced visibility procedures in force. Proceed at safe speed, enhanced radar watch. Notify Melbourne VTS.",
+    },
+    "vis_vts_restrictions": {
+        "threshold_nm": 1.0, "applies_to": "all movements in Corio Bay",
+        "rule_ref": "Ports Victoria Port Information Guide — Geelong §3, COLREGS Rule 19",
+        "action": "Melbourne VTS movement restrictions apply. No movements without explicit VTS approval on VHF 12.",
+    },
+}
+
 # Active rule set resolved at alert-generation time
 PORT_RULES_BY_PORT = {
     "BRISBANE":  PORT_RULES_BRISBANE,
     "MELBOURNE": PORT_RULES_MELBOURNE,
     "DARWIN":    PORT_RULES_DARWIN,
+    "GEELONG":   PORT_RULES_GEELONG,
 }
 
 
@@ -2943,6 +2987,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Segoe U
     <select class="port-sel" id="ps" onchange="switchPort(this.value)">
       <option value="BRISBANE">Brisbane</option>
       <option value="DARWIN">Darwin</option>
+      <option value="GEELONG">Geelong</option>
       <option value="MELBOURNE">Melbourne</option>
     </select>
   </div>
@@ -3234,7 +3279,7 @@ doRefresh();setInterval(doRefresh,30000);
 
 // ── Swipe between ports ───────────────────────────────────────────────────────
 (function(){
-  const PORTS=['BRISBANE','MELBOURNE','DARWIN'];
+  const PORTS=['BRISBANE','GEELONG','MELBOURNE','DARWIN'];
   let sx=0,sy=0;
   const cwrap=document.getElementById('cwrap');
   document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
