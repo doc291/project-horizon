@@ -305,6 +305,103 @@ PORT_PROFILES = {
         },
     },
 
+    # ── Port of Geelong ───────────────────────────────────────────────────────
+    # Values sourced from GeelongPort Berth Specifications, Ports Victoria
+    # Port Information Guide 2020 (Geelong), and BOM/AHS tidal data.
+    "GEELONG": {
+        "display_name":                 "Port of Geelong",
+        "short_name":                   "Geelong",
+        "timezone":                     "Australia/Melbourne",
+        "unloco":                       "AUGEX",
+        "mst_port_id":                  180,
+        "lat":                          -38.128,
+        "lon":                          144.352,
+        "bom_station_id":               "IDO71001",   # Williamstown — nearest Port Phillip gauge
+        "bom_tide_url":                 "https://www.bom.gov.au/fwo/IDO71001/IDO71001.xml",
+        "tidal_mean_m":                 0.42,         # Port Phillip Bay small range
+        "tidal_amp_m":                  0.22,         # HW ~0.65m, LW ~0.20m
+        "vessel_data_url":              None,
+        "vessel_data_source":           "mst",
+        "vessel_ingest_window_hours":   72,
+        "max_vessels":                  20,
+        "channel_depth_m":              12.3,         # Geelong Channel (4 channels, 120m wide)
+        "ukc_minimum_m":                0.5,
+        "ukc_dukc_threshold_draught_m": 10.0,         # DUKC applies above 10m draught
+        "max_vessel_loa_m":             250,          # Geelong channel/berth LOA constraint
+        "hat_m":                        0.80,
+        "mhhw_m":                       0.65,
+        "tidal_surge_positive_m":       0.3,
+        "tidal_surge_negative_m":       0.2,
+        "pilot_boarding_point":         "5 NM SW Point Lonsdale",
+        "compulsory_pilotage_loa_m":    35,           # Victorian Ports — same threshold
+        "pilots": ["Capt. Morrison", "Capt. Webb", "Capt. Nguyen", "Capt. Russell"],
+        "pilot_stations": ["Point Lonsdale Pilot Station"],
+        "tugs": [
+            {"name": "SVR Hawk",    "bollard_pull_t": 65},
+            {"name": "SVR Condor",  "bollard_pull_t": 58},
+            {"name": "SVR Falcon",  "bollard_pull_t": 72},
+        ],
+        "mooring_gangs": [
+            {"name": "Gang 1", "linesmen": 4},
+            {"name": "Gang 2", "linesmen": 4},
+            {"name": "Gang 3", "linesmen": 3},
+        ],
+        "wind_limit_berthing_knots":    22,
+        "wind_limit_critical_knots":    32,
+        "sim_vessel_count": 7,
+        "sim_berth_slots": [
+            # (id, max_loa, max_draught, status, cranes, ready_offset_h)
+            ("B01", 200, 11.0, "occupied",   2,  6),
+            ("B02", 200, 11.0, "available",  2,  None),
+            ("B03", 170, 11.0, "occupied",   2,  10),
+            ("B04", 190, 11.0, "reserved",   1,  3),
+            ("B05", 190, 12.3, "occupied",   0,  8),
+            ("B06", 190, 12.3, "available",  0,  None),
+        ],
+        "dukc_submission_arrival_hours":  (12, 24),
+        "dukc_submission_departure_hours": 6,
+        "harbour_master":               "Ports Victoria — Harbour Master Geelong",
+        "vts_callsign":                 "Melbourne VTS",
+        "vts_channel":                  "VHF 12",
+        "pocc_address":                 "Corio Quay Road, North Shore VIC 3214",
+        "emergency_vts_tel":            "+61 3 9644 9777",
+        "currency":                     "AUD",
+        "cost_per_hour_delay":          3200,
+        "dukc_submission_arrival_hours":  (12, 24),
+        "dukc_submission_departure_hours": 6,
+        "port_geo": {
+            "center": {"lat": -38.11, "lon": 144.35},
+            "zoom": 11,
+            "berths": {
+                "B01": {"lat": -38.139, "lon": 144.350, "terminal": "Corio Quay North 1",  "heading": 270, "depth_m": 11.0},
+                "B02": {"lat": -38.142, "lon": 144.352, "terminal": "Corio Quay North 2",  "heading": 270, "depth_m": 11.0},
+                "B03": {"lat": -38.144, "lon": 144.354, "terminal": "Corio Quay North 3",  "heading": 270, "depth_m": 11.0},
+                "B04": {"lat": -38.148, "lon": 144.358, "terminal": "Corio Quay South 1",  "heading": 90,  "depth_m": 11.0},
+                "B05": {"lat": -38.127, "lon": 144.344, "terminal": "Lascelles Wharf 1",   "heading": 180, "depth_m": 12.3},
+                "B06": {"lat": -38.124, "lon": 144.341, "terminal": "Lascelles Wharf 2",   "heading": 180, "depth_m": 12.3},
+            },
+            "anchorage": {
+                "lat": -38.05, "lon": 144.42,
+                "radius_km": 4.0,
+                "label": "Corio Bay Anchorage",
+            },
+            "pilot_boarding_ground": {
+                "lat": -38.305, "lon": 144.545,
+                "label": "Pilot Boarding Ground (5 NM SW Point Lonsdale)",
+            },
+            "channel_waypoints": [
+                {"lat": -38.295, "lon": 144.615},   # The Rip entry
+                {"lat": -38.240, "lon": 144.630},
+                {"lat": -38.175, "lon": 144.580},
+                {"lat": -38.140, "lon": 144.520},   # Branch from South Channel
+                {"lat": -38.095, "lon": 144.450},   # Geelong Channel
+                {"lat": -38.068, "lon": 144.395},
+                {"lat": -38.060, "lon": 144.365},   # Corio Bay approach
+                {"lat": -38.128, "lon": 144.352},   # Corio Quay
+            ],
+        },
+    },
+
 }
 
 

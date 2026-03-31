@@ -30,6 +30,7 @@ _PORT_IDS = {
     "AUBNE": 108,
     "AUMEL": 293,
     "AUDRW": 3870,
+    "AUGEX": 180,    # Port of Geelong
 }
 
 # Vessel types that are almost certainly not commercial port calls
