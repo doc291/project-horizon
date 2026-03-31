@@ -192,7 +192,9 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
 
     Returns None if no data available (caller falls back to pure simulation).
     """
-    if not is_configured():
+    # Allow call with pre-fetched vessels (e.g. from AISStream) even when
+    # MST itself is not configured — no API call is made in that path.
+    if not is_configured() and cached_vessels is None:
         return None
 
     real_vessels = cached_vessels if cached_vessels is not None else get_vessels_in_port(unloco)
@@ -206,6 +208,15 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
     for i, rv in enumerate(real_vessels):
         mmsi = rv["mmsi"]
         props = _sim_vessel_props(mmsi, now)
+
+        # Prefer real dimensions from AISStream (rv) over simulated fallback.
+        # AISStream provides loa_m, beam_m, draught_m when available.
+        loa     = rv.get("loa_m")     or props["loa"]
+        beam    = rv.get("beam_m")    or props["beam"]
+        draught = rv.get("draught_m") or props["draught"]
+        vtype   = rv.get("vessel_type") or props["vessel_type"]
+        dest    = rv.get("destination") or None
+        source  = "ais" if rv.get("loa_m") else "mst"
 
         # Berth assignment — round-robin across assignable berths
         berth = assignable[i % len(assignable)] if assignable else None
@@ -232,15 +243,15 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
             "ata":             eta_str,   # berthed = already arrived; ata = arrival time
             "atd":             None,
             "etd":             props["etd"],
-            "loa":             props["loa"],
-            "beam":            props["beam"],
-            "draught":         props["draught"],
-            "vessel_type":     props["vessel_type"],
+            "loa":             loa,
+            "beam":            beam,
+            "draught":         draught,
+            "vessel_type":     vtype,
             "flag":            props["flag"],
-            "towage_required": props["towage_required"],
-            "destination":     None,
+            "towage_required": loa > 200,
+            "destination":     dest,
             "at_anchorage":    False,
-            "source":          "mst",
+            "source":          source,
         })
 
     # Add 2–3 simulated inbound vessels so the conflict engine has something
