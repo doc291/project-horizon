@@ -2114,18 +2114,33 @@ function renderTowage(d){
   }).join('') || '<tr><td colspan="6" class="empty">No towage assignments</td></tr>';
 
   // Fleet status — use port-specific tug fleet from API
+  // Status is time-aware: On Job (started <3h ago), Assigned (within 4h), Available (otherwise)
   const portTugs=d.port_tugs||[];
-  const assignedTugIds=new Set(towage.flatMap(op=>(op.tugs||[]).map(t=>t.tug_id)));
+  const nowMs=Date.now();
+  let nAvail=0, nOnJob=0, nStandby=0;
   const fleetTbody=document.getElementById('tug-fleet-tbody');
   fleetTbody.innerHTML=portTugs.map(tug=>{
     const tid=tug.name.replace(/ /g,'-').toUpperCase();
     const bp=tug.bollard_pull_t||60;
-    const assigned=assignedTugIds.has(tid);
-    const statusLbl=assigned?'Assigned':'Available';
-    const statusCls=assigned?'standby':'available';
-    const op=towage.find(o=>(o.tugs||[]).some(t=>t.tug_id===tid));
-    const assignment=op?`${op.vessel_name} (${op.direction})`:'–';
-    const nextAvail=op?fmtShort(op.scheduled_time):'Now';
+    // Find all ops for this tug; sort by scheduled time ascending
+    const tugOps=towage
+      .filter(o=>(o.tugs||[]).some(t=>t.tug_id===tid))
+      .map(o=>({...o, _ms:new Date(o.scheduled_time).getTime()}))
+      .sort((a,b)=>a._ms-b._ms);
+    // Prefer an ongoing op (started within past 3h), then the next upcoming op
+    const ongoingOp=tugOps.find(o=>o._ms<=nowMs && nowMs-o._ms < 180*60000);
+    const nextOp=tugOps.find(o=>o._ms > nowMs);
+    const activeOp=ongoingOp||nextOp;
+    let statusLbl, statusCls;
+    if(ongoingOp){
+      statusLbl='On Job';   statusCls='active';    nOnJob++;
+    } else if(nextOp && (nextOp._ms - nowMs) < 4*60*60000){
+      statusLbl='Assigned'; statusCls='standby';   nStandby++;  // committed within 4h
+    } else {
+      statusLbl='Available'; statusCls='available'; nAvail++;   // free / booking >4h away
+    }
+    const assignment=activeOp?`${activeOp.vessel_name} (${activeOp.direction})`:'–';
+    const nextAvail=activeOp?fmtShort(activeOp.scheduled_time):'Now';
     return`<tr>
       <td><strong style="color:var(--text-bright)">${esc(tug.name)}</strong></td>
       <td>${bp}t</td>
@@ -2134,6 +2149,10 @@ function renderTowage(d){
       <td style="color:var(--text-dim)">${nextAvail}</td>
     </tr>`;
   }).join('');
+  // Update KPI tiles to match computed fleet state
+  document.getElementById('tug-avail').textContent=nAvail;
+  document.getElementById('tug-onjob').textContent=nOnJob;
+  document.getElementById('tug-standby').textContent=nStandby;
 }
 
 /* ── Lines tab ── */
@@ -2238,10 +2257,14 @@ function renderDUKC(dukc){
     <path d="${uPath}" fill="none" stroke="#38bdf8" stroke-width="2"/>
     ${xLabels}`;
 
-  // Vessel table
+  // Vessel table — sort: tide-restricted first, then worst UKC (lowest) at top
   const tbody = document.getElementById('dukc-vessel-tbody');
   if(!vessels.length){tbody.innerHTML='<tr><td colspan="7" class="empty">No active vessels</td></tr>';return;}
-  tbody.innerHTML = vessels.map(v=>{
+  const sortedVessels=[...vessels].sort((a,b)=>{
+    if(a.tide_restricted!==b.tide_restricted) return b.tide_restricted?1:-1;
+    return a.min_ukc_m - b.min_ukc_m;
+  });
+  tbody.innerHTML = sortedVessels.map(v=>{
     const ukCls = v.min_ukc_m < 0.5 ? 'color:#ef4444;font-weight:700' : v.min_ukc_m < 1.0 ? 'color:#f97316' : 'color:#6ee7b7';
     const restr = v.tide_restricted
       ? '<span style="color:#ef4444;font-weight:700">⚠ Yes</span>'
@@ -2323,12 +2346,13 @@ function renderPerformance(d){
   dayLabels.push('Today');
 
   // Deterministic 7-day history using LCG seeded from portId + metric name
-  function _hist(metric, currentVal, cap, swing){
+  // isInt=true rounds all history values to whole numbers (for count metrics like conflicts, vessels)
+  function _hist(metric, currentVal, cap, swing, isInt){
     let s = Math.abs((portId+metric).split('').reduce((h,c)=>((h<<5)-h+c.charCodeAt(0))|0, 0));
     const rng = () => { s=(s*1664525+1013904223)&0xffffffff; return (s>>>0)/0xffffffff; };
     const vals=[], rawSwing = swing || cap*0.12;
     let v = currentVal;
-    for(let i=6; i>=1; i--){ v=Math.max(0, Math.min(cap, v+(rng()-.48)*rawSwing)); vals.push(Math.round(v*10)/10); }
+    for(let i=6; i>=1; i--){ v=Math.max(0, Math.min(cap, v+(rng()-.48)*rawSwing)); vals.push(isInt?Math.round(v):Math.round(v*10)/10); }
     vals.reverse(); vals.push(currentVal);
     return vals;
   }
@@ -2375,7 +2399,7 @@ function renderPerformance(d){
 
   const cards = [
     _card('Active Conflicts',
-      _hist('conflicts', activeConflicts, 12, 2.5),
+      _hist('conflicts', activeConflicts, 12, 2.5, true),
       '', v => v===0 ? '#4ade80' : v<=2 ? '#fbbf24' : '#f87171',
       false),
     _card('Berth Utilisation',
@@ -2387,15 +2411,15 @@ function renderPerformance(d){
       '%', v => v>=85 ? '#4ade80' : v>=70 ? '#fbbf24' : '#f87171',
       true),
     _card('Vessels in Port',
-      _hist('vessels', dash.vessels_in_port||0, 16, 2),
+      _hist('vessels', dash.vessels_in_port||0, 16, 2, true),
       '', v => '#38bdf8',
       true),
     _card('Pilot Ops (12h)',
-      _hist('pilots', dash.pilot_ops_12h||0, 12, 2),
+      _hist('pilots', dash.pilot_ops_12h||0, 12, 2, true),
       '', v => '#a78bfa',
       true),
     _card('Tug Ops (12h)',
-      _hist('tugs', dash.tug_ops_12h||0, 10, 2),
+      _hist('tugs', dash.tug_ops_12h||0, 10, 2, true),
       '', v => '#a78bfa',
       true),
   ];
