@@ -2933,7 +2933,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
   a{color:#58a6ff;text-decoration:none}
   .top{background:#161b22;border-bottom:1px solid #30363d;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
   .top h1{font-size:15px;font-weight:600;color:#e6edf3;letter-spacing:.03em}
-  .top h1 span{color:#4493f8;margin-right:8px}
+  .top-logo{height:28px;width:auto;margin-right:10px;vertical-align:middle}
   .updated{font-size:12px;color:#7d8590}
   .overall{display:flex;align-items:center;gap:10px;padding:16px 24px 0}
   .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;letter-spacing:.04em}
@@ -2971,7 +2971,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
 </head>
 <body>
 <div class="top">
-  <h1><span>⬡</span> Horizon — System Status</h1>
+  <h1><img src="/logo" class="top-logo" alt="Horizon"> System Status</h1>
   <div class="updated" id="updated">Loading…</div>
 </div>
 
