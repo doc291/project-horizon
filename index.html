@@ -1849,7 +1849,7 @@ function renderDecisions(conflicts){
         </div>
         ${hasDeadline ? `<div class="dec-timer" id="dec-timer-${c.id}"><span class="dec-timer-lbl">⏱ Decide within</span><span class="dec-timer-box" id="dec-tbox-${c.id}"><span class="dec-timer-val" id="dec-tval-${c.id}">--:--:--</span></span></div>` : ''}
         <button class="dec-open-btn" onclick="openDSW('${c.id}')">⚡ Open Decision Support →</button>
-        <button class="dec-wi-btn" onclick="openWhatIf('${c.id}')">? What If →</button>
+        <button class="dec-wi-btn" onclick="openWhatIf('${c.id}')">⊕ Scenario Builder →</button>
       </div>`;
   }).join('');
 
