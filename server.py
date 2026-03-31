@@ -794,27 +794,53 @@ def b04_alternatives(a_name, b_name):
     ]
 
 def _generic_berth_alternatives(a_name, b_name, berth_name, berth_id, gap_mins):
-    """Generate dynamic sequencing alternatives for any berth overlap not covered by a hardcoded pair."""
-    hold_mins  = max(abs(gap_mins) + CLEARANCE_MINS + 15, 45)
-    accel_hrs  = max(round((hold_mins / 60) + 0.5), 1)
-    anchor_cost = round(hold_mins * 14, -2)         # ~$14/min anchorage
-    overtime    = round(accel_hrs * 3500, -2)        # ~$3,500/hr overtime
-    sid         = berth_id.replace(" ", "")           # safe id fragment
+    """Generate dynamic sequencing alternatives for any berth overlap not covered by a hardcoded pair.
+
+    gap_mins < 0 means vessels already overlap (b arrived before a departs).
+    Hold-at-anchorage is only practical up to MAX_HOLD minutes; beyond that we
+    recommend berth reassignment instead so costs and delay shown stay realistic.
+    """
+    MAX_HOLD   = 240          # 4h — beyond this, anchorage hold is not operationally practical
+    sid        = berth_id.replace(" ", "")
+
+    raw_hold       = abs(gap_mins) + CLEARANCE_MINS + 15  # how long b_name needs to wait
+    hold_feasible  = raw_hold <= MAX_HOLD
+    hold_mins      = min(max(raw_hold, 45), MAX_HOLD)     # capped display value
+    anchor_cost    = round(hold_mins * 14, -2)             # ~$14/min anchorage
+    recommend_hold = hold_feasible                         # prefer hold only when practical
+
+    # Acceleration: hours needed to clear berth ahead of b_name's arrival
+    accel_hrs  = max(round(min(abs(gap_mins), MAX_HOLD) / 60 + 0.5), 1)
+    overtime   = round(accel_hrs * 3500, -2)               # ~$3,500/hr overtime
+
+    if hold_feasible:
+        hold_label = f"Hold {b_name} at anchorage (+{hold_mins}min)"
+        hold_desc  = (f"Delay {b_name} ETA by {hold_mins}min. {berth_name} clears after "
+                      f"{a_name} departs with full {CLEARANCE_MINS}min clearance buffer. "
+                      f"Pilot and tug times adjust accordingly.")
+        hold_risk  = "low"
+        hold_feas  = "high"
+    else:
+        hold_label = f"Hold {b_name} at anchorage (not practical — overlap >{MAX_HOLD}min)"
+        hold_desc  = (f"Overlap of {abs(gap_mins)}min exceeds practical anchorage limit. "
+                      f"A short hold will not resolve this conflict — berth reassignment "
+                      f"or accelerated departure is required.")
+        hold_risk  = "high"
+        hold_feas  = "low"
+
     return [
         _seq_alt(f"SEQ-{sid}-1", "delay_arrival",
-            f"Hold {b_name} at anchorage (+{hold_mins}min)",
-            (f"Delay {b_name} ETA by {hold_mins}min. {berth_name} clears after {a_name} departs "
-             f"with full {CLEARANCE_MINS}min clearance buffer. Pilot and tug times adjust accordingly."),
-            [b_name],
+            hold_label, hold_desc, [b_name],
             f"Anchorage allocation required for {b_name}. Pilot/tug reschedule notified.",
-            "high", 0,
+            hold_feas, 0,
             cost_usd=anchor_cost,
             cost_label=f"~${anchor_cost:,} anchorage fees",
-            delay_mins=hold_mins, cascade_count=1, risk="low", recommended=True),
+            delay_mins=hold_mins, cascade_count=1, risk=hold_risk,
+            recommended=recommend_hold),
         _seq_alt(f"SEQ-{sid}-2", "advance_departure",
             f"Accelerate {a_name} departure (−{accel_hrs}h)",
             (f"Advance {a_name} ETD by {accel_hrs}h by accelerating cargo operations. "
-             f"{berth_name} clears before {b_name} arrives with full clearance window."),
+             f"{berth_name} clears before {b_name} with full clearance window."),
             [a_name],
             "Terminal crane gang must accelerate immediately. Shipping line notified of early ETD.",
             "medium", accel_hrs,
@@ -829,7 +855,8 @@ def _generic_berth_alternatives(a_name, b_name, berth_name, berth_id, gap_mins):
             "Terminal equipment and line handlers must relocate. Requires berth availability check with port planner.",
             "medium", 0,
             cost_usd=2800, cost_label="~$2,800 repositioning",
-            delay_mins=30, cascade_count=1, risk="medium", recommended=False),
+            delay_mins=30, cascade_count=1, risk="medium",
+            recommended=not recommend_hold),
     ]
 
 
@@ -892,9 +919,13 @@ def _conflict(cid, ctype, signal_type, severity, vessel_ids, vessel_names,
 def _build_decision_support(seq_alts, conflict_time_dt, now):
     """Build decision support block from sequencing alternatives."""
     rec   = next((a for a in seq_alts if a.get("recommended")), seq_alts[0] if seq_alts else None)
-    # Deadline: 2h before conflict, but at least 20 min from now
-    raw_deadline = conflict_time_dt - timedelta(hours=2)
-    deadline     = max(raw_deadline, now + timedelta(minutes=20))
+    # Deadline: 2h before conflict, but at least 20min from now.
+    # If conflict is already ongoing (conflict_time in the past), give a 4h resolution window.
+    if conflict_time_dt <= now:
+        deadline = now + timedelta(hours=4)   # ongoing — resolve within 4h
+    else:
+        raw_deadline = conflict_time_dt - timedelta(hours=2)
+        deadline     = max(raw_deadline, now + timedelta(minutes=20))
     reasoning_map = {
         "delay_arrival":    "Lowest cost option with minimal cascade impact. Anchorage capacity is available and pilot can be rescheduled with adequate notice.",
         "advance_departure":"Restores full clearance window but requires immediate terminal action and incurs overtime.",
