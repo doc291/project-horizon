@@ -2049,7 +2049,7 @@ function renderPilotage(d){
     conflicts.filter(c=>c.conflict_type==='pilotage_window').flatMap(c=>c.vessel_ids||[])
   );
 
-  const PILOTS_OFF=['Capt. O\'Brien'];
+  const PILOTS_OFF=['PILOT_MEL_PSP_03'];
   const tbody=document.getElementById('pil-tbody');
   tbody.innerHTML=pilotage.map(p=>{
     const isShort=shortNoticeIds.has(p.vessel_id);

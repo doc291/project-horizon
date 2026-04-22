@@ -29,7 +29,7 @@ PORT_PROFILES = {
         "max_vessel_loa_m":             300,
         "pilot_boarding_point":         "Brisbane Bar",
         "compulsory_pilotage_loa_m":    35,
-        "pilots": ["Capt. Walsh", "Capt. Thompson", "Capt. Nguyen", "Capt. Morrison"],
+        "pilots": ["PILOT_BNE_PSP_01", "PILOT_BNE_PSP_02", "PILOT_BNE_PSP_03", "PILOT_BNE_PSP_04"],
         "pilot_stations": ["Brisbane Bar Pilot Station", "Spitfire Channel Anchorage"],
         "tugs": [
             {"name": "SVR Brisbane",  "bollard_pull_t": 70},
@@ -106,7 +106,7 @@ PORT_PROFILES = {
         "tidal_surge_negative_m":       0.2,
         "pilot_boarding_point":         "5 NM SW Point Lonsdale",
         "compulsory_pilotage_loa_m":    35,           # VPC HMD Ed. 13.1 §2.1
-        "pilots": ["Capt. Anderson", "Capt. Clarke", "Capt. O'Brien", "Capt. Patel"],
+        "pilots": ["PILOT_MEL_PSP_01", "PILOT_MEL_PSP_02", "PILOT_MEL_PSP_03", "PILOT_MEL_PSP_04"],
         "pilot_stations": ["Point Lonsdale Pilot Station", "South Channel Anchorage"],
         "tugs": [
             {"name": "SVR Apex",    "bollard_pull_t": 72},
@@ -232,7 +232,7 @@ PORT_PROFILES = {
         "max_vessel_loa_m":             300,
         "pilot_boarding_point":         "Darwin Harbour Entrance",
         "compulsory_pilotage_loa_m":    50,           # Compulsory ≥50m LOA (Darwin Port Handbook 2026, p.13)
-        "pilots": ["Capt. Jackson", "Capt. Wilson", "Capt. Lee", "Capt. Nguyen"],
+        "pilots": ["PILOT_DRW_PSP_01", "PILOT_DRW_PSP_02", "PILOT_DRW_PSP_03", "PILOT_DRW_PSP_04"],
         "pilot_stations": ["Darwin Harbour Pilot Boarding Ground", "Darwin Outer Anchorage"],
         "tugs": [
             {"name": "CTB Endeavour", "bollard_pull_t": 60},
@@ -334,7 +334,7 @@ PORT_PROFILES = {
         "tidal_surge_negative_m":       0.2,
         "pilot_boarding_point":         "5 NM SW Point Lonsdale",
         "compulsory_pilotage_loa_m":    35,           # Victorian Ports — same threshold
-        "pilots": ["Capt. Morrison", "Capt. Webb", "Capt. Nguyen", "Capt. Russell"],
+        "pilots": ["PILOT_GEX_PSP_01", "PILOT_GEX_PSP_02", "PILOT_GEX_PSP_03", "PILOT_GEX_PSP_04"],
         "pilot_stations": ["Point Lonsdale Pilot Station"],
         "tugs": [
             {"name": "SVR Hawk",    "bollard_pull_t": 65},

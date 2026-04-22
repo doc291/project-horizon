@@ -28,7 +28,7 @@ VESSEL_TYPES = ["Container", "Bulk Carrier", "Tanker", "RoRo", "General Cargo"]
 CARGO_TYPES = ["Containers", "Grain", "Crude Oil", "Vehicles", "Steel Coils", "Coal", "Fertiliser"]
 FLAGS = ["Norway", "Panama", "Liberia", "Marshall Islands", "Bahamas", "Cyprus"]
 AGENTS = ["Wilhelmsen Ships Service", "Inchcape Shipping", "GAC", "Svitzer", "Norton Lilly"]
-PILOT_NAMES = ["Capt. Andersen", "Capt. Müller", "Capt. Johansson", "Capt. O'Brien", "Capt. Kowalski"]
+PILOT_NAMES = ["PILOT_SIM_PSP_01", "PILOT_SIM_PSP_02", "PILOT_SIM_PSP_03", "PILOT_SIM_PSP_04", "PILOT_SIM_PSP_05"]
 BOARDING_STATIONS = ["Outer Pilot Station", "Inner Pilot Station", "North Channel Anchorage"]
 TUG_NAMES = ["TUG Stallion", "TUG Hercules", "TUG Neptune", "TUG Samson", "TUG Trident"]
 

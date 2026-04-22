@@ -392,7 +392,7 @@ def stable_jitter(seed_str: str, scale: float = 0.004):
 # ── Static reference data ─────────────────────────────────────────────────────
 
 AGENTS   = ["Wilhelmsen Ships Service", "Inchcape Shipping", "GAC", "Norton Lilly"]
-PILOTS   = ["Capt. Andersen", "Capt. Müller", "Capt. Johansson", "Capt. O'Brien"]
+PILOTS   = ["PILOT_GEN_PSP_01", "PILOT_GEN_PSP_02", "PILOT_GEN_PSP_03", "PILOT_GEN_PSP_04"]
 TUGS     = ["TUG Stallion", "TUG Hercules", "TUG Neptune", "TUG Samson", "TUG Trident"]
 STATIONS = ["Outer Pilot Station", "North Channel Anchorage"]
 
