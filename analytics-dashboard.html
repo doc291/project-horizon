@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horizon Analytics — Port Operations Intelligence</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --bg-body: #0b0e17;
+            --bg-card: #141927;
+            --bg-card-alt: #1a2035;
+            --bg-header: #0d1120;
+            --border: #1e2a42;
+            --text-primary: #e8ecf4;
+            --text-secondary: #8892a8;
+            --text-dim: #5a6378;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #22d3ee;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --accent-orange: #f97316;
+            --positive: #10b981;
+            --negative: #ef4444;
+            --gap: 14px;
+            --radius: 10px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1480px;
+            margin: 0 auto;
+            padding: var(--gap);
+        }
+
+        /* ── Header ─────────────────────────────────────────────── */
+        .dashboard-header {
+            background: linear-gradient(135deg, #0d1120 0%, #162040 100%);
+            border: 1px solid var(--border);
+            padding: 18px 24px;
+            border-radius: var(--radius);
+            margin-bottom: var(--gap);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .header-left { display: flex; align-items: center; gap: 14px; }
+        .header-left h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+        .header-left .badge {
+            background: var(--accent-blue);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .header-right .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            display: inline-block; margin-right: 5px;
+        }
+        .status-dot.live { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+        .status-dot.sim { background: var(--accent-amber); }
+
+        .data-source-label {
+            background: rgba(16,185,129,0.12);
+            color: var(--accent-green);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 5px;
+            border: 1px solid rgba(16,185,129,0.2);
+        }
+
+        /* ── Section headers ────────────────────────────────────── */
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            padding-left: 2px;
+        }
+        .section-title span { color: var(--text-dim); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+        /* ── KPI Cards ──────────────────────────────────────────── */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+        .kpi-card.blue::before { background: var(--accent-blue); }
+        .kpi-card.cyan::before { background: var(--accent-cyan); }
+        .kpi-card.green::before { background: var(--accent-green); }
+        .kpi-card.amber::before { background: var(--accent-amber); }
+        .kpi-card.red::before { background: var(--accent-red); }
+        .kpi-card.purple::before { background: var(--accent-purple); }
+
+        .kpi-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 6px;
+        }
+        .kpi-value {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+        .kpi-sub {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        .kpi-sub.positive { color: var(--positive); }
+        .kpi-sub.negative { color: var(--negative); }
+
+        /* ── Chart grid ─────────────────────────────────────────── */
+        .chart-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+        .chart-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+        .chart-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+        }
+        .chart-container h3 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chart-container h3 .chart-badge {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--text-dim);
+            background: rgba(255,255,255,0.04);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .chart-container canvas { max-height: 260px; }
+
+        /* ── Tables ─────────────────────────────────────────────── */
+        .table-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            margin-bottom: var(--gap);
+            overflow-x: auto;
+        }
+        .table-section h3 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .data-table thead th {
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+        .data-table thead th:hover { color: var(--text-primary); }
+        .data-table tbody td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(30,42,66,0.5);
+            white-space: nowrap;
+        }
+        .data-table tbody tr:hover { background: rgba(59,130,246,0.04); }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+
+        /* ── Badges & pills ─────────────────────────────────────── */
+        .pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .pill.critical { background: rgba(239,68,68,0.15); color: #f87171; }
+        .pill.high { background: rgba(249,115,22,0.15); color: #fb923c; }
+        .pill.medium { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .pill.low { background: rgba(16,185,129,0.15); color: #34d399; }
+        .pill.berthed { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        .pill.confirmed { background: rgba(16,185,129,0.15); color: #34d399; }
+        .pill.scheduled { background: rgba(139,92,246,0.15); color: #a78bfa; }
+        .pill.at_risk { background: rgba(239,68,68,0.15); color: #f87171; }
+        .pill.expected { background: rgba(245,158,11,0.15); color: #fbbf24; }
+
+        .risk-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.06);
+            position: relative;
+            min-width: 60px;
+        }
+        .risk-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        /* ── Coordination status indicators ─────────────────────── */
+        .coord-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+        .coord-dot.yes { background: var(--accent-green); box-shadow: 0 0 4px rgba(16,185,129,0.4); }
+        .coord-dot.no { background: var(--text-dim); }
+        .coord-dot.warn { background: var(--accent-amber); box-shadow: 0 0 4px rgba(245,158,11,0.3); }
+        .coord-dot.risk { background: var(--accent-red); box-shadow: 0 0 4px rgba(239,68,68,0.4); }
+
+        .coord-status {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .coord-status.ready { background: rgba(16,185,129,0.15); color: #34d399; }
+        .coord-status.watch { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .coord-status.at-risk { background: rgba(239,68,68,0.15); color: #f87171; }
+
+        .pipeline-note {
+            font-size: 11px;
+            color: var(--text-dim);
+            font-style: italic;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(30,42,66,0.4);
+        }
+
+        /* ── Data gap banner ────────────────────────────────────── */
+        .gap-banner {
+            background: rgba(245,158,11,0.06);
+            border: 1px solid rgba(245,158,11,0.15);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            margin-bottom: var(--gap);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .gap-banner strong { color: var(--accent-amber); }
+        .gap-banner .icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+        /* ── Footer ─────────────────────────────────────────────── */
+        .dashboard-footer {
+            text-align: center;
+            padding: 16px;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        /* ── Loading state ──────────────────────────────────────── */
+        .loading-overlay {
+            position: fixed; inset: 0;
+            background: var(--bg-body);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.4s;
+        }
+        .loading-overlay.fade-out { opacity: 0; pointer-events: none; }
+        .loading-spinner {
+            width: 36px; height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 14px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { font-size: 13px; color: var(--text-secondary); }
+
+        /* ── Responsive ─────────────────────────────────────────── */
+        @media (max-width: 1100px) {
+            .kpi-row { grid-template-columns: repeat(3, 1fr); }
+            .chart-row, .chart-row-3 { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 640px) {
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media print {
+            body { background: #fff; color: #111; }
+            .dashboard-container { max-width: none; }
+            .kpi-card, .chart-container, .table-section {
+                background: #fff; border: 1px solid #ddd; box-shadow: none;
+            }
+            .loading-overlay { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Connecting to Horizon API…</div>
+</div>
+
+<div class="dashboard-container" id="app" style="display:none;">
+
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <h1>Horizon Analytics</h1>
+            <span class="badge">BETA</span>
+            <span id="port-name" style="font-size:13px; color:var(--text-secondary);"></span>
+        </div>
+        <div class="header-right">
+            <span id="data-source-badge" class="data-source-label"></span>
+            <span id="generated-at"></span>
+        </div>
+    </header>
+
+    <!-- 1. Inbound Pipeline (primary forward coordination view) -->
+    <div class="section-title">Inbound Pipeline <span>— 48h Coordination View</span></div>
+    <section class="table-section">
+        <h3>Arrival Sequence & Coordination Readiness</h3>
+        <p style="font-size:12px; color:var(--text-secondary); margin:-6px 0 14px 0;">Forward view of arriving vessels and their coordination impact on port operations</p>
+        <div id="pipeline-table-container"></div>
+        <div class="pipeline-note">
+            Beta view based on current Horizon coordination state. Some inbound positions and ETAs may be estimated until live approach-vessel feeds are exposed.
+        </div>
+    </section>
+
+    <!-- 2. Berth Utilisation — 48h Forecast -->
+    <section class="chart-row">
+        <div class="chart-container">
+            <h3>Berth Utilisation — 48h Forecast <span class="chart-badge">2h slots</span></h3>
+            <canvas id="chart-berth-util"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Conflict Severity <span class="chart-badge">Active</span></h3>
+            <canvas id="chart-conflict-sev"></canvas>
+        </div>
+    </section>
+
+    <!-- 3. Operational Efficiency KPIs -->
+    <div class="section-title">Operational Efficiency</div>
+    <section class="kpi-row">
+        <div class="kpi-card blue">
+            <div class="kpi-label">Berth Utilisation</div>
+            <div class="kpi-value" id="kpi-berth-util"></div>
+            <div class="kpi-sub" id="kpi-berth-sub"></div>
+        </div>
+        <div class="kpi-card cyan">
+            <div class="kpi-label">Avg Dwell Time</div>
+            <div class="kpi-value" id="kpi-dwell"></div>
+            <div class="kpi-sub" id="kpi-dwell-sub"></div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-label">On-Time Departure</div>
+            <div class="kpi-value" id="kpi-otd"></div>
+            <div class="kpi-sub" id="kpi-otd-sub"></div>
+        </div>
+        <div class="kpi-card purple">
+            <div class="kpi-label">Pilot Ops (12h)</div>
+            <div class="kpi-value" id="kpi-pilot-ops"></div>
+            <div class="kpi-sub" id="kpi-pilot-sub"></div>
+        </div>
+        <div class="kpi-card amber">
+            <div class="kpi-label">Tug Ops (12h)</div>
+            <div class="kpi-value" id="kpi-tug-ops"></div>
+            <div class="kpi-sub" id="kpi-tug-sub"></div>
+        </div>
+        <div class="kpi-card red">
+            <div class="kpi-label">Vessels at Risk</div>
+            <div class="kpi-value" id="kpi-at-risk"></div>
+            <div class="kpi-sub" id="kpi-risk-sub"></div>
+        </div>
+    </section>
+
+    <!-- Charts row: ETD Risk + Vessel Types + Resource Load -->
+    <section class="chart-row-3">
+        <div class="chart-container">
+            <h3>ETD Risk Distribution</h3>
+            <canvas id="chart-etd-risk"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Vessel Type Mix</h3>
+            <canvas id="chart-vessel-types"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Resource Load — 12h Window</h3>
+            <canvas id="chart-resource-load"></canvas>
+        </div>
+    </section>
+
+    <!-- 4. Risk & Conflict Intelligence -->
+    <div class="section-title">Risk & Conflict Intelligence</div>
+    <section class="kpi-row" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="kpi-card red">
+            <div class="kpi-label">Active Conflicts</div>
+            <div class="kpi-value" id="kpi-conflicts"></div>
+            <div class="kpi-sub" id="kpi-conflicts-sub"></div>
+        </div>
+        <div class="kpi-card amber">
+            <div class="kpi-label">Cost at Risk</div>
+            <div class="kpi-value" id="kpi-cost-risk"></div>
+            <div class="kpi-sub" id="kpi-cost-sub"></div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-label">CO₂ Savings</div>
+            <div class="kpi-value" id="kpi-co2"></div>
+            <div class="kpi-sub" id="kpi-co2-sub"></div>
+        </div>
+        <div class="kpi-card blue">
+            <div class="kpi-label">Fuel Savings</div>
+            <div class="kpi-value" id="kpi-fuel"></div>
+            <div class="kpi-sub" id="kpi-fuel-sub"></div>
+        </div>
+    </section>
+
+    <!-- 5. Detail tables -->
+    <section class="table-section">
+        <h3>Vessel Risk Register</h3>
+        <div id="risk-table-container"></div>
+    </section>
+
+    <section class="table-section">
+        <h3>Active Conflicts & Decisions</h3>
+        <div id="conflict-table-container"></div>
+    </section>
+
+    <!-- Data Gap Banner -->
+    <div class="gap-banner">
+        <span class="icon">⚠</span>
+        <div>
+            <strong>Analytics Data Gaps — Post-Beta Roadmap</strong><br>
+            <strong>Historical trends:</strong> No persistence layer yet — all metrics are point-in-time snapshots. Needs a time-series database to track berth utilisation, conflict rates, and dwell times over days/weeks.<br>
+            <strong>Predictive delay models:</strong> Require historical ATA vs ETA variance data to train. Currently no ATA tracking for inbound vessels.<br>
+            <strong>Throughput metrics:</strong> Need vessel departure event logging (ATD) to compute actual turnaround times vs scheduled.
+        </div>
+    </div>
+
+    <footer class="dashboard-footer">
+        Horizon Analytics Prototype — Data from /api/summary · Point-in-time snapshot · <span id="footer-ts"></span>
+    </footer>
+</div>
+
+<script>
+    // ── Chart.js defaults ────────────────────────────────────────────────────────
+    Chart.defaults.color = '#8892a8';
+    Chart.defaults.borderColor = 'rgba(30,42,66,0.6)';
+    Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.padding = 14;
+
+    const COLORS = ['#3b82f6','#22d3ee','#10b981','#f59e0b','#ef4444','#8b5cf6','#f97316','#ec4899'];
+
+    // ── Data fetching ────────────────────────────────────────────────────────────
+    // Try live API first; fall back to sample data if offline/blocked.
+
+    async function fetchData() {
+        // Determine API base — same origin if served from Horizon, otherwise try Railway
+        const candidates = [
+            window.location.origin + '/api/summary',
+            'https://project-horizon-production-a03c.up.railway.app/api/summary',
+        ];
+        for (const url of candidates) {
+            try {
+                const resp = await fetch(url, { credentials: 'include', signal: AbortSignal.timeout(8000) });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data && data.vessels) return data;
+                }
+            } catch (e) { /* try next */ }
+        }
+        // If all fail, use embedded sample data
+        return SAMPLE_DATA;
+    }
+
+    // ── Render ───────────────────────────────────────────────────────────────────
+    const charts = {};
+
+    async function render() {
+        const D = await fetchData();
+        const dash = D.dashboard || {};
+        const vessels = D.vessels || [];
+        const conflicts = D.conflicts || [];
+        const pilotage = D.pilotage || [];
+        const towage = D.towage || [];
+        const berthUtil = D.berth_utilisation || [];
+        const etdRisk = D.etd_risk || [];
+        const esg = D.esg || {};
+        const esgSummary = esg.summary || {};
+        const profile = D.port_profile || {};
+
+        // ── Header ───────────────────────────────────────────────────────────────
+        document.getElementById('port-name').textContent = D.port_name || '';
+        const isLive = profile.using_live_vessel_data;
+        const badge = document.getElementById('data-source-badge');
+        badge.textContent = D.data_source_label || (isLive ? 'Live Data' : 'Simulation');
+        badge.style.background = isLive ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)';
+        badge.style.color = isLive ? 'var(--accent-green)' : 'var(--accent-amber)';
+        badge.style.borderColor = isLive ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)';
+
+        const genAt = D.generated_at ? new Date(D.generated_at).toLocaleString() : '';
+        document.getElementById('generated-at').textContent = genAt;
+        document.getElementById('footer-ts').textContent = genAt;
+
+        // ── Operational KPIs ─────────────────────────────────────────────────────
+        document.getElementById('kpi-berth-util').textContent = (dash.berth_utilisation_pct || 0) + '%';
+        document.getElementById('kpi-berth-sub').textContent =
+            `${D.port_status?.berths_occupied || 0}/${D.port_status?.berths_total || 0} berths occupied`;
+
+        document.getElementById('kpi-dwell').textContent = (dash.avg_dwell_hours || 0) + 'h';
+        const dwellBench = 16;
+        const dwellDiff = (dash.avg_dwell_hours || 0) - dwellBench;
+        const dwellSub = document.getElementById('kpi-dwell-sub');
+        dwellSub.textContent = dwellDiff > 0 ? `+${dwellDiff.toFixed(1)}h vs ${dwellBench}h benchmark` : `${dwellDiff.toFixed(1)}h vs ${dwellBench}h benchmark`;
+        dwellSub.className = 'kpi-sub ' + (dwellDiff <= 0 ? 'positive' : 'negative');
+
+        document.getElementById('kpi-otd').textContent = (dash.on_time_departure_pct || 0) + '%';
+        const otdSub = document.getElementById('kpi-otd-sub');
+        otdSub.textContent = (dash.on_time_departure_pct || 0) >= 85 ? 'On target (≥85%)' : 'Below target (<85%)';
+        otdSub.className = 'kpi-sub ' + ((dash.on_time_departure_pct || 0) >= 85 ? 'positive' : 'negative');
+
+        document.getElementById('kpi-pilot-ops').textContent = dash.pilot_ops_12h || 0;
+        const pilotsAvail = D.port_status?.pilots_available || 0;
+        document.getElementById('kpi-pilot-sub').textContent = `${pilotsAvail} pilots available`;
+
+        document.getElementById('kpi-tug-ops').textContent = dash.tug_ops_12h || 0;
+        const tugsAvail = D.port_status?.tugs_available || 0;
+        document.getElementById('kpi-tug-sub').textContent = `${tugsAvail} tugs available`;
+
+        document.getElementById('kpi-at-risk').textContent = dash.vessels_at_risk || 0;
+        document.getElementById('kpi-risk-sub').textContent =
+            `of ${vessels.length} total vessels`;
+
+        // ── Risk & Conflict KPIs ─────────────────────────────────────────────────
+        const critConf = conflicts.filter(c => c.severity === 'critical').length;
+        document.getElementById('kpi-conflicts').textContent = conflicts.length;
+        document.getElementById('kpi-conflicts-sub').textContent = `${critConf} critical`;
+        document.getElementById('kpi-conflicts-sub').className = 'kpi-sub ' + (critConf > 0 ? 'negative' : 'positive');
+
+        // Cost at risk — sum from sequencing alternatives
+        let totalCostRisk = 0;
+        conflicts.forEach(c => {
+            const ds = c.decision_support;
+            if (ds && ds.options) {
+                ds.options.forEach(opt => { totalCostRisk += Math.abs(opt.cost_usd || 0); });
+            }
+            // Also count from resolution_options
+            (c.resolution_options || []).forEach(r => {
+                if (r.cost_usd) totalCostRisk += Math.abs(r.cost_usd);
+            });
+        });
+        document.getElementById('kpi-cost-risk').textContent = '$' + (totalCostRisk >= 1000 ? (totalCostRisk/1000).toFixed(1) + 'K' : totalCostRisk);
+        document.getElementById('kpi-cost-sub').textContent = 'across active decisions';
+
+        document.getElementById('kpi-co2').textContent = (esgSummary.co2_saved_t || 0).toFixed(1) + 't';
+        document.getElementById('kpi-co2-sub').textContent = `~${esgSummary.monthly_co2_proj_t || 0}t/month projected`;
+
+        document.getElementById('kpi-fuel').textContent = (esgSummary.fuel_saved_t || 0).toFixed(1) + 't';
+        document.getElementById('kpi-fuel-sub').textContent = `$${(esgSummary.monthly_cost_proj_usd || 0).toLocaleString()}/month projected`;
+
+        // ── Berth Utilisation Chart ──────────────────────────────────────────────
+        if (berthUtil.length) {
+            const berths = berthUtil.map(b => b.berth_name || b.berth_id);
+            const slotCount = (berthUtil[0].slots || []).length;
+            const occRates = berthUtil.map(b => b.utilisation_pct);
+
+            // Stacked bar: each berth shows occupied vs free slots
+            const occSlots = berthUtil.map(b => (b.slots || []).filter(s => s.status === 'occupied').length);
+            const freeSlots = berthUtil.map(b => (b.slots || []).filter(s => s.status === 'free').length);
+            const maintSlots = berthUtil.map(b => (b.slots || []).filter(s => s.status === 'maintenance').length);
+
+            const ctx = document.getElementById('chart-berth-util').getContext('2d');
+            charts.berthUtil = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: berths,
+                    datasets: [
+                        { label: 'Occupied', data: occSlots, backgroundColor: '#3b82f6cc', borderRadius: 3 },
+                        { label: 'Free', data: freeSlots, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 3 },
+                        { label: 'Maintenance', data: maintSlots, backgroundColor: '#ef4444aa', borderRadius: 3 },
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: (items) => {
+                                    const idx = items[0].dataIndex;
+                                    return `Utilisation: ${occRates[idx]}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, title: { display: true, text: '2h Slots (48h window)' } }
+                    }
+                }
+            });
+        }
+
+        // ── Conflict Severity Doughnut ───────────────────────────────────────────
+        const sevCounts = { critical: 0, high: 0, medium: 0, low: 0 };
+        conflicts.forEach(c => { sevCounts[c.severity] = (sevCounts[c.severity] || 0) + 1; });
+        const sevLabels = Object.keys(sevCounts).filter(k => sevCounts[k] > 0);
+        const sevData = sevLabels.map(k => sevCounts[k]);
+        const sevColors = { critical: '#ef4444', high: '#f97316', medium: '#f59e0b', low: '#10b981' };
+
+        if (sevLabels.length) {
+            const ctx2 = document.getElementById('chart-conflict-sev').getContext('2d');
+            charts.conflictSev = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: sevLabels.map(s => s.charAt(0).toUpperCase() + s.slice(1)),
+                    datasets: [{
+                        data: sevData,
+                        backgroundColor: sevLabels.map(s => sevColors[s] || '#666'),
+                        borderColor: '#141927',
+                        borderWidth: 3,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    cutout: '62%',
+                    plugins: {
+                        legend: { position: 'right' },
+                    }
+                }
+            });
+        }
+
+        // ── ETD Risk Distribution ────────────────────────────────────────────────
+        const riskLevels = { critical: 0, high: 0, medium: 0, low: 0 };
+        etdRisk.forEach(r => { riskLevels[r.risk_level] = (riskLevels[r.risk_level] || 0) + 1; });
+        const riskLabels = ['Critical', 'High', 'Medium', 'Low'];
+        const riskData = ['critical', 'high', 'medium', 'low'].map(k => riskLevels[k]);
+        const riskColors = ['#ef4444cc', '#f97316cc', '#f59e0bcc', '#10b981cc'];
+
+        const ctx3 = document.getElementById('chart-etd-risk').getContext('2d');
+        charts.etdRisk = new Chart(ctx3, {
+            type: 'bar',
+            data: {
+                labels: riskLabels,
+                datasets: [{ data: riskData, backgroundColor: riskColors, borderRadius: 4 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+
+        // ── Vessel Type Mix ──────────────────────────────────────────────────────
+        const typeCounts = {};
+        vessels.forEach(v => {
+            const t = v.vessel_type || v.type || 'Other';
+            typeCounts[t] = (typeCounts[t] || 0) + 1;
+        });
+        const typeLabels = Object.keys(typeCounts).sort((a, b) => typeCounts[b] - typeCounts[a]);
+        const typeData = typeLabels.map(k => typeCounts[k]);
+
+        const ctx4 = document.getElementById('chart-vessel-types').getContext('2d');
+        charts.vesselTypes = new Chart(ctx4, {
+            type: 'doughnut',
+            data: {
+                labels: typeLabels,
+                datasets: [{
+                    data: typeData,
+                    backgroundColor: COLORS.slice(0, typeLabels.length).map(c => c + 'cc'),
+                    borderColor: '#141927',
+                    borderWidth: 3,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                cutout: '55%',
+                plugins: { legend: { position: 'right' } }
+            }
+        });
+
+        // ── Resource Load Bar ────────────────────────────────────────────────────
+        const now = new Date(D.generated_at || Date.now());
+        const in12h = new Date(now.getTime() + 12 * 3600000);
+        const pilotIn = pilotage.filter(p => p.direction === 'inbound').length;
+        const pilotOut = pilotage.filter(p => p.direction === 'outbound').length;
+        const tugIn = towage.filter(t => t.direction === 'arrival').length;
+        const tugOut = towage.filter(t => t.direction === 'departure').length;
+
+        const ctx5 = document.getElementById('chart-resource-load').getContext('2d');
+        charts.resourceLoad = new Chart(ctx5, {
+            type: 'bar',
+            data: {
+                labels: ['Pilot Inbound', 'Pilot Outbound', 'Tug Arrival', 'Tug Departure'],
+                datasets: [{
+                    data: [pilotIn, pilotOut, tugIn, tugOut],
+                    backgroundColor: ['#3b82f6cc', '#22d3eecc', '#f59e0bcc', '#f97316cc'],
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { beginAtZero: true, ticks: { stepSize: 1 } },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+
+        // ── Vessel Risk Table ────────────────────────────────────────────────────
+        renderRiskTable(etdRisk);
+
+        // ── Conflict Table ───────────────────────────────────────────────────────
+        renderConflictTable(conflicts);
+
+        // ── Inbound Pipeline ─────────────────────────────────────────────────────
+        renderInboundPipeline(vessels, pilotage, towage, conflicts, D);
+
+        // ── Show app ─────────────────────────────────────────────────────────────
+        document.getElementById('app').style.display = 'block';
+        const loadEl = document.getElementById('loading');
+        loadEl.classList.add('fade-out');
+        setTimeout(() => loadEl.style.display = 'none', 500);
+    }
+
+    // ── Table renderers ──────────────────────────────────────────────────────────
+
+    function renderRiskTable(etdRisk) {
+        const container = document.getElementById('risk-table-container');
+        if (!etdRisk.length) { container.innerHTML = '<p style="color:var(--text-dim)">No vessel risk data.</p>'; return; }
+
+        let html = '<table class="data-table"><thead><tr>';
+        html += '<th>Vessel</th><th>Risk Score</th><th>Level</th><th>Risk Factors</th>';
+        html += '</tr></thead><tbody>';
+
+        etdRisk.slice(0, 20).forEach(r => {
+            const barColor = r.risk_level === 'critical' ? '#ef4444' :
+                             r.risk_level === 'high' ? '#f97316' :
+                             r.risk_level === 'medium' ? '#f59e0b' : '#10b981';
+            html += '<tr>';
+            html += `<td style="font-weight:500">${esc(r.vessel_name)}</td>`;
+            html += `<td><div class="risk-bar"><div class="risk-bar-fill" style="width:${r.risk_score}%; background:${barColor}"></div></div></td>`;
+            html += `<td><span class="pill ${r.risk_level}">${r.risk_level}</span></td>`;
+            html += `<td style="color:var(--text-secondary); font-size:11px">${(r.risk_factors || []).join(', ') || '—'}</td>`;
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    function renderConflictTable(conflicts) {
+        const container = document.getElementById('conflict-table-container');
+        if (!conflicts.length) { container.innerHTML = '<p style="color:var(--text-dim)">No active conflicts.</p>'; return; }
+
+        let html = '<table class="data-table"><thead><tr>';
+        html += '<th>ID</th><th>Type</th><th>Severity</th><th>Vessels</th><th>Berth</th><th>Time</th><th>Safety</th>';
+        html += '</tr></thead><tbody>';
+
+        conflicts.forEach(c => {
+            const names = (c.vessel_names || []).map(n => esc(n)).join(', ');
+            const time = c.conflict_time ? new Date(c.conflict_time).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+            html += '<tr>';
+            html += `<td style="font-family:monospace; font-size:11px; color:var(--text-dim)">${esc(c.id || '')}</td>`;
+            html += `<td>${esc(c.signal_type || c.conflict_type || '')}</td>`;
+            html += `<td><span class="pill ${c.severity}">${c.severity}</span></td>`;
+            html += `<td style="max-width:200px; overflow:hidden; text-overflow:ellipsis">${names || '—'}</td>`;
+            html += `<td>${esc(c.berth_name || '—')}</td>`;
+            html += `<td style="font-size:11px">${time}</td>`;
+            html += `<td><span class="pill ${c.safety_score || 'low'}">${c.safety_score || '—'}</span></td>`;
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    function renderInboundPipeline(vessels, pilotage, towage, conflicts, D) {
+        const container = document.getElementById('pipeline-table-container');
+        const now = new Date(D.generated_at || Date.now());
+        const portGeo = D.port_geo || {};
+        const center = portGeo.center || {};
+        const berths = D.berths || [];
+        const arrivalUkc = D.arrival_ukc || {};
+        const ukcAll = arrivalUkc.all || [];
+
+        // Filter to inbound vessels only (not berthed, not departed)
+        const inbound = vessels
+            .filter(v => v.status && !['berthed','departed','arrived'].includes(v.status) && v.eta)
+            .sort((a, b) => new Date(a.eta) - new Date(b.eta));
+
+        if (!inbound.length) {
+            container.innerHTML = '<p style="color:var(--text-dim)">No inbound vessels in the current 48h window.</p>';
+            return;
+        }
+
+        // Build lookup maps
+        const pilotMap = {};
+        pilotage.forEach(p => { if (p.direction === 'inbound') pilotMap[p.vessel_id] = p; });
+        const tugMap = {};
+        towage.forEach(t => { if (t.direction === 'arrival') tugMap[t.vessel_id] = t; });
+        const conflictVids = new Set();
+        const conflictCostMap = {};
+        conflicts.forEach(c => {
+            (c.vessel_ids || []).forEach(vid => {
+                conflictVids.add(vid);
+                // Accumulate cost-at-risk from decision options
+                let cost = 0;
+                const ds = c.decision_support;
+                if (ds && ds.options) ds.options.forEach(o => { cost += Math.abs(o.cost_usd || 0); });
+                (c.resolution_options || []).forEach(r => { if (r.cost_usd) cost += Math.abs(r.cost_usd); });
+                conflictCostMap[vid] = (conflictCostMap[vid] || 0) + cost;
+            });
+        });
+        const ukcMap = {};
+        ukcAll.forEach(u => { ukcMap[u.vessel_id] = u; });
+        const berthMap = {};
+        berths.forEach(b => { berthMap[b.id] = b; });
+
+        // Haversine distance (nm)
+        function haversineNm(lat1, lon1, lat2, lon2) {
+            if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
+            const R = 3440.065; // Earth radius in nautical miles
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        let html = '<table class="data-table"><thead><tr>';
+        html += '<th>Vessel</th><th>Type</th><th>ETA</th><th>Hours</th><th>Est. Dist.</th>';
+        html += '<th>Berth</th><th>Berth Ready</th>';
+        html += '<th>Pilot</th><th>Tug</th><th>UKC</th>';
+        html += '<th>Conflict</th><th>Cost at Risk</th><th>Coordination</th>';
+        html += '</tr></thead><tbody>';
+
+        inbound.forEach(v => {
+            const etaDt = new Date(v.eta);
+            const hrsToArr = Math.max(0, (etaDt - now) / 3600000);
+            const etaStr = etaDt.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+            const hrsStr = hrsToArr < 1 ? '<1h' : hrsToArr.toFixed(1) + 'h';
+
+            // Distance to port centre
+            const distNm = haversineNm(v.lat, v.lon, center.lat, center.lon);
+            const distStr = distNm != null ? distNm.toFixed(1) + ' nm' : '—';
+
+            // Berth info
+            const berth = berthMap[v.berth_id];
+            const berthName = berth ? (berth.name || v.berth_id) : '—';
+            // Berth readiness: check if berth is currently occupied and will it be free by ETA
+            let berthReady = '—';
+            let berthReadyClass = 'no';
+            if (berth) {
+                if (berth.status === 'available') {
+                    berthReady = 'Clear'; berthReadyClass = 'yes';
+                } else if (berth.status === 'maintenance') {
+                    berthReady = 'Maint.'; berthReadyClass = 'risk';
+                } else if (berth.status === 'occupied' || berth.status === 'reserved') {
+                    // Check if readiness_time is before ETA
+                    if (berth.readiness_time && new Date(berth.readiness_time) <= etaDt) {
+                        berthReady = 'Clearing'; berthReadyClass = 'warn';
+                    } else {
+                        berthReady = 'Occupied'; berthReadyClass = 'risk';
+                    }
+                }
+            }
+
+            // Pilot assigned?
+            const pilot = pilotMap[v.id];
+            const pilotOk = !!pilot;
+
+            // Tug assigned?
+            const tug = tugMap[v.id];
+            const tugOk = !!tug;
+
+            // UKC status
+            const ukc = ukcMap[v.id];
+            let ukcLabel = '—', ukcClass = 'no';
+            if (ukc) {
+                if (ukc.ukc_m >= 1.0) { ukcLabel = ukc.ukc_m.toFixed(1) + 'm'; ukcClass = 'yes'; }
+                else if (ukc.ukc_m >= 0.5) { ukcLabel = ukc.ukc_m.toFixed(1) + 'm'; ukcClass = 'warn'; }
+                else { ukcLabel = ukc.ukc_m.toFixed(1) + 'm'; ukcClass = 'risk'; }
+            }
+
+            // Conflict
+            const hasConflict = conflictVids.has(v.id);
+            const costAtRisk = conflictCostMap[v.id] || 0;
+
+            // Overall coordination status
+            let coordScore = 0;
+            if (pilotOk) coordScore++;
+            if (tugOk || !v.towage_required) coordScore++;
+            if (berthReadyClass === 'yes' || berthReadyClass === 'warn') coordScore++;
+            if (ukcClass === 'yes') coordScore++;
+            if (!hasConflict) coordScore++;
+            // 5 possible points: 5=Ready, 3-4=Watch, 0-2=At Risk
+            let coordLabel, coordClass;
+            if (coordScore >= 5) { coordLabel = 'Ready'; coordClass = 'ready'; }
+            else if (coordScore >= 3) { coordLabel = 'Watch'; coordClass = 'watch'; }
+            else { coordLabel = 'At Risk'; coordClass = 'at-risk'; }
+
+            html += '<tr>';
+            html += `<td style="font-weight:500">${esc(v.name)}</td>`;
+            html += `<td style="font-size:11px; color:var(--text-secondary)">${esc(v.vessel_type || '—')}</td>`;
+            html += `<td style="font-size:11px">${etaStr}</td>`;
+            html += `<td>${hrsStr}</td>`;
+            html += `<td style="font-size:11px; color:var(--text-secondary)">${distStr}</td>`;
+            html += `<td>${esc(berthName)}</td>`;
+            html += `<td><span class="coord-dot ${berthReadyClass}"></span>${berthReady}</td>`;
+            html += `<td><span class="coord-dot ${pilotOk ? 'yes' : 'no'}"></span>${pilotOk ? esc(pilot.pilot_name) : 'None'}</td>`;
+            html += `<td><span class="coord-dot ${tugOk ? 'yes' : (v.towage_required ? 'no' : 'yes')}"></span>${tugOk ? (tug.tugs||[]).map(t=>esc(t.tug_name)).join(', ') : (v.towage_required ? 'None' : 'N/R')}</td>`;
+            html += `<td><span class="coord-dot ${ukcClass}"></span>${ukcLabel}</td>`;
+            html += `<td>${hasConflict ? '<span class="pill critical">Yes</span>' : '<span style="color:var(--text-dim)">—</span>'}</td>`;
+            html += `<td>${costAtRisk > 0 ? '$' + (costAtRisk >= 1000 ? (costAtRisk/1000).toFixed(1)+'K' : costAtRisk) : '—'}</td>`;
+            html += `<td><span class="coord-status ${coordClass}">${coordLabel}</span></td>`;
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // ── Sample data (used when API is unreachable) ───────────────────────────────
+    const SAMPLE_DATA = {
+        port_name: "Port of Brisbane",
+        generated_at: new Date().toISOString(),
+        data_source: "simulation",
+        data_source_label: "Sample Data — Offline",
+        port_status: {
+            berths_occupied: 4, berths_available: 1, berths_total: 6,
+            vessels_in_port: 4, vessels_expected_24h: 3, vessels_departing_24h: 2,
+            active_conflicts: 5, critical_conflicts: 2, pilots_available: 3, tugs_available: 4
+        },
+        dashboard: {
+            berth_utilisation_pct: 67, forecast_utilisation_48h: 72,
+            on_time_departure_pct: 75, avg_dwell_hours: 18.4,
+            vessels_at_risk: 2, active_conflicts: 5, critical_conflicts: 2,
+            pilot_ops_12h: 6, tug_ops_12h: 4, vessels_in_port: 4, vessels_expected_24h: 3
+        },
+        vessels: [
+            {id:'V001',name:'MV NORDIC STAR',vessel_type:'Container',status:'berthed',berth_id:'B01',loa:240,draught:12.0,eta:new Date(Date.now()-18*3600000).toISOString(),etd:new Date(Date.now()+4*3600000).toISOString(),ata:new Date(Date.now()-18*3600000).toISOString()},
+            {id:'V002',name:'MV ATLANTIC PIONEER',vessel_type:'Bulk Carrier',status:'berthed',berth_id:'B02',loa:190,draught:10.5,eta:new Date(Date.now()-6*3600000).toISOString(),etd:new Date(Date.now()+8*3600000).toISOString(),ata:new Date(Date.now()-6*3600000).toISOString()},
+            {id:'V003',name:'MV BALTIC CARRIER',vessel_type:'Tanker',status:'berthed',berth_id:'B06',loa:180,draught:9.5,eta:new Date(Date.now()-12*3600000).toISOString(),etd:new Date(Date.now()+6*3600000).toISOString(),ata:new Date(Date.now()-12*3600000).toISOString()},
+            {id:'V004',name:'MV OCEANIC TRADER',vessel_type:'Container',status:'confirmed',berth_id:'B03',loa:220,draught:11.5,eta:new Date(Date.now()+3*3600000).toISOString(),etd:new Date(Date.now()+19*3600000).toISOString()},
+            {id:'V005',name:'MV HORIZON SCOUT',vessel_type:'General Cargo',status:'confirmed',berth_id:'B04',loa:160,draught:8.5,eta:new Date(Date.now()+5*3600000).toISOString(),etd:new Date(Date.now()+17*3600000).toISOString()},
+            {id:'V006',name:'MV CAPE VENTURE',vessel_type:'Bulk Carrier',status:'scheduled',berth_id:'B01',loa:200,draught:11.0,eta:new Date(Date.now()+7*3600000).toISOString(),etd:new Date(Date.now()+27*3600000).toISOString()},
+            {id:'V007',name:'MV NORTHERN LIGHT',vessel_type:'RoRo',status:'at_risk',berth_id:'B04',loa:185,draught:7.5,eta:new Date(Date.now()+2*3600000).toISOString(),etd:new Date(Date.now()+10*3600000).toISOString(),notes:'ETA variance +2.5h reported by agent'},
+        ],
+        conflicts: [
+            {id:'C1',conflict_type:'berth_overlap',signal_type:'CONFLICT',severity:'critical',vessel_names:['MV NORDIC STAR','MV CAPE VENTURE'],berth_name:'Berth 1',conflict_time:new Date(Date.now()+7*3600000).toISOString(),safety_score:'high',resolution_options:[{cost_usd:2800}],decision_support:{options:[{cost_usd:2800,strategy:'reassign_berth'}]}},
+            {id:'C2',conflict_type:'berth_overlap',signal_type:'CONFLICT',severity:'critical',vessel_names:['MV HORIZON SCOUT','MV NORTHERN LIGHT'],berth_name:'Berth 4',conflict_time:new Date(Date.now()+2*3600000).toISOString(),safety_score:'medium',resolution_options:[{cost_usd:1500}],decision_support:{options:[{cost_usd:1500,strategy:'delay_arrival'}]}},
+            {id:'C3',conflict_type:'tug_clash',signal_type:'ADVISORY',severity:'medium',vessel_names:['MV ATLANTIC PIONEER','MV OCEANIC TRADER'],berth_name:'—',conflict_time:new Date(Date.now()+5*3600000).toISOString(),safety_score:'medium',resolution_options:[],decision_support:null},
+            {id:'C4',conflict_type:'weather_wind',signal_type:'WEATHER',severity:'low',vessel_names:['MV OCEANIC TRADER'],berth_name:'Berth 3',conflict_time:new Date(Date.now()+4*3600000).toISOString(),safety_score:'low',resolution_options:[],decision_support:null},
+            {id:'C5',conflict_type:'pilot_overlap',signal_type:'WARNING',severity:'medium',vessel_names:['MV BALTIC CARRIER','MV CAPE VENTURE'],berth_name:'—',conflict_time:new Date(Date.now()+6*3600000).toISOString(),safety_score:'medium',resolution_options:[],decision_support:null},
+        ],
+        pilotage: [
+            {id:'P1',vessel_id:'V004',vessel_name:'MV OCEANIC TRADER',direction:'inbound',status:'confirmed',scheduled_time:new Date(Date.now()+1.5*3600000).toISOString()},
+            {id:'P2',vessel_id:'V005',vessel_name:'MV HORIZON SCOUT',direction:'inbound',status:'scheduled',scheduled_time:new Date(Date.now()+3.5*3600000).toISOString()},
+            {id:'P3',vessel_id:'V007',vessel_name:'MV NORTHERN LIGHT',direction:'inbound',status:'scheduled',scheduled_time:new Date(Date.now()+0.5*3600000).toISOString()},
+            {id:'P4',vessel_id:'V001',vessel_name:'MV NORDIC STAR',direction:'outbound',status:'scheduled',scheduled_time:new Date(Date.now()+3*3600000).toISOString()},
+            {id:'P5',vessel_id:'V002',vessel_name:'MV ATLANTIC PIONEER',direction:'outbound',status:'scheduled',scheduled_time:new Date(Date.now()+7*3600000).toISOString()},
+            {id:'P6',vessel_id:'V003',vessel_name:'MV BALTIC CARRIER',direction:'outbound',status:'scheduled',scheduled_time:new Date(Date.now()+5*3600000).toISOString()},
+        ],
+        towage: [
+            {id:'T1',vessel_id:'V004',direction:'arrival',scheduled_time:new Date(Date.now()+2.5*3600000).toISOString()},
+            {id:'T2',vessel_id:'V006',direction:'arrival',scheduled_time:new Date(Date.now()+6.5*3600000).toISOString()},
+            {id:'T3',vessel_id:'V001',direction:'departure',scheduled_time:new Date(Date.now()+3.25*3600000).toISOString()},
+            {id:'T4',vessel_id:'V007',direction:'arrival',scheduled_time:new Date(Date.now()+1.5*3600000).toISOString()},
+        ],
+        berth_utilisation: [
+            {berth_id:'B01',berth_name:'Berth 1',terminal:'North Terminal',utilisation_pct:83,current_status:'occupied',slots:Array.from({length:24},(_, i)=>({slot:i,status:i<10?'occupied':i<12?'free':'occupied'}))},
+            {berth_id:'B02',berth_name:'Berth 2',terminal:'North Terminal',utilisation_pct:71,current_status:'occupied',slots:Array.from({length:24},(_, i)=>({slot:i,status:i<4?'occupied':i<8?'free':i<20?'occupied':'free'}))},
+            {berth_id:'B03',berth_name:'Berth 3',terminal:'North Terminal',utilisation_pct:58,current_status:'reserved',slots:Array.from({length:24},(_, i)=>({slot:i,status:i<2?'free':i<16?'occupied':'free'}))},
+            {berth_id:'B04',berth_name:'Berth 4',terminal:'South Terminal',utilisation_pct:46,current_status:'available',slots:Array.from({length:24},(_, i)=>({slot:i,status:i<1?'free':i<6?'occupied':i<13?'free':i<19?'occupied':'free'}))},
+            {berth_id:'B05',berth_name:'Berth 5',terminal:'South Terminal',utilisation_pct:0,current_status:'maintenance',slots:Array.from({length:24},()=>({status:'maintenance'}))},
+            {berth_id:'B06',berth_name:'Berth 6',terminal:'South Terminal',utilisation_pct:50,current_status:'occupied',slots:Array.from({length:24},(_, i)=>({slot:i,status:i<3?'occupied':i<5?'free':i<15?'occupied':'free'}))},
+        ],
+        etd_risk: [
+            {vessel_id:'V007',vessel_name:'MV NORTHERN LIGHT',risk_score:75,risk_level:'critical',risk_factors:['Active conflict','ETA variance reported']},
+            {vessel_id:'V004',vessel_name:'MV OCEANIC TRADER',risk_score:52,risk_level:'high',risk_factors:['Active conflict','Large vessel']},
+            {vessel_id:'V001',vessel_name:'MV NORDIC STAR',risk_score:30,risk_level:'medium',risk_factors:['Active conflict']},
+            {vessel_id:'V006',vessel_name:'MV CAPE VENTURE',risk_score:33,risk_level:'medium',risk_factors:['Active conflict']},
+            {vessel_id:'V002',vessel_name:'MV ATLANTIC PIONEER',risk_score:12,risk_level:'low',risk_factors:[]},
+            {vessel_id:'V005',vessel_name:'MV HORIZON SCOUT',risk_score:15,risk_level:'low',risk_factors:[]},
+            {vessel_id:'V003',vessel_name:'MV BALTIC CARRIER',risk_score:8,risk_level:'low',risk_factors:[]},
+        ],
+        esg: {
+            summary: {
+                calls_this_period: 7, calls_optimised: 5,
+                co2_saved_t: 28.4, fuel_saved_t: 9.0, cost_saved_usd: 5850,
+                monthly_co2_proj_t: 485, monthly_fuel_proj_t: 154, monthly_cost_proj_usd: 100000
+            }
+        },
+        port_profile: {
+            using_live_vessel_data: false,
+            using_live_tidal_data: false,
+        }
+    };
+
+    // ── Boot ─────────────────────────────────────────────────────────────────────
+    render();
+</script>
+</body>
+</html>
