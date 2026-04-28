@@ -2787,8 +2787,6 @@ class HorizonHandler(BaseHTTPRequestHandler):
                     self._redirect("/mobile")
                     return
             self._html()
-        elif path == "/analytics":
-            self._serve_analytics()
         elif path == "/mobile":
             self._serve_mobile()
         elif path == "/mobile-icon":
@@ -3097,18 +3095,6 @@ setInterval(refresh, 30000);
             self.send_error(404, "index.html not found")
             return
         body = INDEX_HTML.read_bytes()
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def _serve_analytics(self):
-        p = Path(__file__).parent / "analytics-dashboard.html"
-        if not p.exists():
-            self.send_error(404, "analytics-dashboard.html not found")
-            return
-        body = p.read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
