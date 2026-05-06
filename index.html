@@ -1282,7 +1282,7 @@
   <!-- Vessel table -->
   <div id="vessel-section">
     <div class="panel-hdr" onclick="toggleVesselTable()">
-      <span>Vessel Roster <span id="vessel-roster-count" style="font-weight:400;color:var(--text-dim);font-size:10px;letter-spacing:normal;text-transform:none;"></span></span>
+      <span>Vessel Roster <span id="vessel-roster-count" style="font-weight:400;color:var(--text-dim);font-size:10px;letter-spacing:normal;text-transform:none;"></span> <span id="vessel-roster-source" style="font-weight:400;font-size:9px;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-dim);margin-left:2px;"></span></span>
       <span style="display:flex;align-items:center;gap:8px;">
         <span id="vessel-scroll-hint" style="display:none;font-size:10px;font-weight:400;color:var(--text-dim);font-style:italic;letter-spacing:normal;text-transform:none;">↓ scroll to see all</span>
         <span id="vessel-count" style="font-size:11px;color:var(--text-dim);">▲ hide</span>
@@ -2703,6 +2703,14 @@ function renderVesselTable(vessels, etdRisk){
   // Roster count + scroll indicator
   const rcEl=document.getElementById('vessel-roster-count');
   if(rcEl)rcEl.textContent=vessels.length?`— ${vessels.length} vessel${vessels.length!==1?'s':''}`:' ';
+  const srcEl=document.getElementById('vessel-roster-source');
+  if(srcEl&&vessels.length){
+    const sources=new Set(vessels.map(v=>v.source));
+    const hasLive=sources.has('ais')||sources.has('mst');
+    const hasSim=sources.has('sim');
+    srcEl.textContent=hasLive&&hasSim?'· LIVE AIS + SIMULATED OPS':hasLive?'· LIVE AIS':hasSim?'· SIMULATED':'';
+    srcEl.style.color=hasLive?'#14b8a6':'var(--text-dim)';
+  }
   const VISIBLE_ROWS=5; // approx visible rows before scroll
   const scrollHint=document.getElementById('vessel-scroll-hint');
   if(scrollHint)scrollHint.style.display=(vessels.length>VISIBLE_ROWS&&_vesselTableOpen)?'inline':'none';
