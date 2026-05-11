@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Platform | Horizon</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="img/favicon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#0B1120">
+  <link rel="canonical" href="https://horizon.ams.group/platform">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Horizon">
+  <meta property="og:title" content="Platform | Horizon">
+  <meta property="og:description" content="A modular system for situational awareness, decision support, and historical operational truth — purpose-built for maritime coordination.">
+  <meta property="og:url" content="https://horizon.ams.group/platform">
+  <meta property="og:image" content="https://horizon.ams.group/img/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Horizon — maritime coordination intelligence">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Platform | Horizon">
+  <meta name="twitter:description" content="A modular system for situational awareness, decision support, and historical operational truth — purpose-built for maritime coordination.">
+  <meta name="twitter:image" content="https://horizon.ams.group/img/og-image.png">
+
+<meta name="description" content="Horizon's coordination layer: live feeds, decision engine, and operational outputs. The architecture of Maritime Coordination Intelligence.">
+<link rel="stylesheet" href="css/horizon.css">
+</head>
+<body>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+    <rect width="600" height="600" fill="#041931"/>
+    <g transform="translate(180,180)" fill="none" stroke="#49BCBF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M30 150 Q120 60 210 150"/>
+      <line x1="0" y1="180" x2="240" y2="180"/>
+      <path d="M80 180 L80 100 L120 100"/>
+      <path d="M120 100 L140 80 L160 100"/>
+      <path d="M160 100 L160 180"/>
+      <rect x="180" y="150" width="40" height="30"/>
+    </g>
+    <text x="300" y="450" text-anchor="middle" fill="#49BCBF" font-family="Georgia, serif" font-size="44" letter-spacing="-1">Horizon</text>
+    <text x="300" y="490" text-anchor="middle" fill="#7da3c0" font-family="monospace" font-size="14" letter-spacing="6">PROJECT · AMS GROUP</text>
+  </svg>
+</template>
+
+<header class="topnav">
+  <div class="topnav__inner">
+    <a class="topnav__brand" href="index.html">
+      <img class="brand-logo" src="img/horizon-logo-tight.png" alt="Project Horizon, by AMS Group" />
+      <span class="topnav__sub">by</span><img class="topnav__sub-logo" src="img/ams-group-logo.png" alt="AMS Group" />
+    </a>
+    <nav class="topnav__links">
+      <a class="topnav__link" href="index.html">Home</a>
+      <a class="topnav__link is-active" href="platform.html">Platform</a>
+      <a class="topnav__link" href="decisions.html">Decision Support</a>
+      <a class="topnav__link" href="operators.html">For Operators</a>
+      <a class="topnav__link" href="about.html">About</a>
+      <a class="topnav__cta" href="about.html#briefing">Request a briefing →</a>
+      <a class="topnav__signin" href="https://app.horizon.ams.group" target="_blank" rel="noopener">Sign in</a>
+    </nav>
+  </div>
+</header>
+
+<section class="page-hd">
+  <div class="container container--wide">
+    <div class="eyebrow eyebrow--teal">● Platform</div>
+    <h1 class="h-display" style="font-size:clamp(40px,5vw,72px);">An interconnected platform.<br><em>One decision engine at its heart.</em></h1>
+    <p class="lede" style="max-width:64ch;">Horizon connects every operational system in the port and the maritime layer around it, and adds the layer they were never built to provide. Below: what flows in, what the engine does, and what comes out the other side.</p>
+  </div>
+</section>
+
+<!-- Architecture -->
+<section class="section">
+  <div class="container container--wide">
+    <div class="eyebrow" style="margin-bottom:var(--s-6);">01 / Architecture</div>
+
+    <div class="frame frame--pad" style="padding:var(--s-12);">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--s-8); align-items:stretch;">
+        <div>
+          <div class="mono" style="color:var(--brand-teal); font-size:11px; letter-spacing:0.14em; margin-bottom:var(--s-4);">LIVE FEEDS IN</div>
+          <div style="display:flex; flex-direction:column; gap:var(--s-2);">
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--brand-teal); font-size:10px;">VESSEL</div><div style="font-size:13px; margin-top:2px;">AIS open water + port movements</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--brand-teal); font-size:10px;">TIDAL</div><div style="font-size:13px; margin-top:2px;">DUKC · UKC predictions</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--brand-teal); font-size:10px;">METEO</div><div style="font-size:13px; margin-top:2px;">Wind · swell · visibility</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--brand-teal); font-size:10px;">SCHEDULES</div><div style="font-size:13px; margin-top:2px;">Berth · pilot · tug · lines</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--brand-teal); font-size:10px;">VTS</div><div style="font-size:13px; margin-top:2px;">Existing tracking systems</div></div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:center;">
+          <div style="width:100%; aspect-ratio:1/1; max-width:280px; border:1px solid var(--brand-teal); border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:var(--s-6); position:relative; box-shadow:0 0 80px rgba(73,188,191,0.15) inset;">
+            <div class="mono" style="color:var(--brand-teal); font-size:10px; letter-spacing:0.16em;">DECISION ENGINE</div>
+            <div style="font-size:26px; font-weight:500; letter-spacing:-0.02em; margin-top:var(--s-3); text-align:center; line-height:1.1;">Context<br>Risk<br>Reward</div>
+            <div style="position:absolute; inset:-12px; border:1px solid rgba(73,188,191,0.3); border-radius:50%;"></div>
+            <div style="position:absolute; inset:-28px; border:1px solid rgba(73,188,191,0.15); border-radius:50%;"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="mono" style="color:var(--brand-teal); font-size:11px; letter-spacing:0.14em; margin-bottom:var(--s-4); text-align:right;">DECISIONS OUT</div>
+          <div style="display:flex; flex-direction:column; gap:var(--s-2);">
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--sig-critical); font-size:10px;">CONFLICT</div><div style="font-size:13px; margin-top:2px;">Detection + cascade modelling</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--sig-advisory); font-size:10px;">ETD RISK</div><div style="font-size:13px; margin-top:2px;">Variance scoring · live</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--sig-decision); font-size:10px;">DECISION</div><div style="font-size:13px; margin-top:2px;">Recommendations + audit trail</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--sig-nominal); font-size:10px;">COORDINATION</div><div style="font-size:13px; margin-top:2px;">Pilot · tug · berth tasking</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--sig-info); font-size:10px;">FORWARD PICTURE</div><div style="font-size:13px; margin-top:2px;">Next 24h shared view</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Capability deep-dive -->
+<section class="section">
+  <div class="container container--wide">
+    <div class="eyebrow" style="margin-bottom:var(--s-6);">02 / Capabilities</div>
+    <h2 class="h-section" style="margin-bottom:var(--s-12); max-width:24ch;">Six modules. <em>One operating picture.</em></h2>
+
+    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:var(--s-5);">
+      <div class="card">
+        <div class="mono" style="color:var(--brand-teal); font-size:10px; letter-spacing:0.14em;">M01 / FORWARD PICTURE</div>
+        <div class="h-card" style="margin:var(--s-4) 0;">A shared 24-hour view, continually re-modelled.</div>
+        <p class="body body--sm">Every vessel arrival, departure, berth swap and pilot exchange, projected forward and re-evaluated as each new signal lands. The forward picture is what every operator sees. There is no second version.</p>
+      </div>
+      <div class="card">
+        <div class="mono" style="color:var(--sig-critical); font-size:10px; letter-spacing:0.14em;">M02 / CONFLICT DETECTION</div>
+        <div class="h-card" style="margin:var(--s-4) 0;">Safety-critical events, surfaced before commitment.</div>
+        <p class="body body--sm">Under-keel clearance violations, air-draught against tide-adjusted bridge clearance, berth overlap and swing-room interference, the events that turn into incidents if they're seen late. The same engine catches the operational ones too: pilot coverage gaps, tug and line double-bookings, sequence conflicts. Each event evaluated at the point of variance, ranked by cascade impact, and held in front of the operator until it's resolved.</p>
+      </div>
+      <div class="card">
+        <div class="mono" style="color:var(--sig-advisory); font-size:10px; letter-spacing:0.14em;">M03 / ETD RISK SCORING</div>
+        <div class="h-card" style="margin:var(--s-4) 0;">Variance, scored live. Not a static ETA.</div>
+        <p class="body body--sm">Every projected departure carries a live confidence band built from tide, weather, draft, service availability and upstream movement. As inputs shift, the score shifts. Operators see drift early, not at the window's edge.</p>
+      </div>
+      <div class="card">
+        <div class="mono" style="color:var(--sig-decision); font-size:10px; letter-spacing:0.14em;">M04 / DECISION RECOMMENDATIONS</div>
+        <div class="h-card" style="margin:var(--s-4) 0;">The action to take, with the trade-off visible.</div>
+        <p class="body body--sm">Each recommendation carries the alternatives evaluated, the cascade impact of each, and the window in which the decision must be made. The operator decides. Horizon supports.</p>
+      </div>
+      <div class="card">
+        <div class="mono" style="color:var(--sig-nominal); font-size:10px; letter-spacing:0.14em;">M05 / COORDINATION TASKING</div>
+        <div class="h-card" style="margin:var(--s-4) 0;">One source of tasking for pilots, tugs, lines.</div>
+        <p class="body body--sm">When a decision is taken, the downstream tasking flows, to pilot rosters, tug operators, line handlers and port control. Service providers keep their tools. Coordination stops happening on the radio.</p>
+      </div>
+      <div class="card">
+        <div class="mono" style="color:var(--sig-info); font-size:10px; letter-spacing:0.14em;">M06 / DECISION LEDGER</div>
+        <div class="h-card" style="margin:var(--s-4) 0;">Every call, logged. Every action, traceable.</div>
+        <p class="body body--sm">Immutable record of every decision, the data that informed it, the alternatives, and the operator who made the call. Audit trails built in, not bolted on. Regulator-ready by default.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Integration -->
+<section class="section">
+  <div class="container container--wide">
+    <div class="eyebrow" style="margin-bottom:var(--s-6);">03 / How it sits with your stack</div>
+    <h2 class="h-section" style="margin-bottom:var(--s-10); max-width:32ch;">A different category. <em>Not a different version.</em></h2>
+    <p class="lede" style="margin-top:calc(var(--s-10) * -1 + var(--s-2)); margin-bottom:var(--s-10); max-width:62ch; color:var(--ink-secondary);">VTS was built to track vessels. Maritime Coordination Intelligence was built to coordinate ports. Different layers, different jobs. Horizon sits above your VTS, it doesn't sit beside it, and it doesn't replace it.</p>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:var(--s-8);">
+      <div class="frame frame--pad" style="padding:var(--s-8);">
+        <div class="mono" style="color:var(--brand-teal); font-size:11px; letter-spacing:0.14em; margin-bottom:var(--s-4);">WHAT STAYS</div>
+        <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:var(--s-3); font-size:14px;">
+          <li style="display:flex; gap:var(--s-3); align-items:flex-start;"><span style="color:var(--brand-teal); font-family:var(--font-mono); flex:0 0 16px;">→</span><div><b style="color:var(--ink-primary); font-weight:500;">Your VTS.</b> <span style="color:var(--ink-secondary);">VTS owns the tracking layer. Horizon reads from it as one input into the coordination picture.</span></div></li>
+          <li style="display:flex; gap:var(--s-3); align-items:flex-start;"><span style="color:var(--brand-teal); font-family:var(--font-mono); flex:0 0 16px;">→</span><div><b style="color:var(--ink-primary); font-weight:500;">Your TOS, your scheduling tools.</b> <span style="color:var(--ink-secondary);">Berth and gang management stay in place.</span></div></li>
+          <li style="display:flex; gap:var(--s-3); align-items:flex-start;"><span style="color:var(--brand-teal); font-family:var(--font-mono); flex:0 0 16px;">→</span><div><b style="color:var(--ink-primary); font-weight:500;">Service-provider tools.</b> <span style="color:var(--ink-secondary);">Pilots, tugs and lines keep their existing rostering and dispatch.</span></div></li>
+          <li style="display:flex; gap:var(--s-3); align-items:flex-start;"><span style="color:var(--brand-teal); font-family:var(--font-mono); flex:0 0 16px;">→</span><div><b style="color:var(--ink-primary); font-weight:500;">Operator authority.</b> <span style="color:var(--ink-secondary);">Every decision remains the operator's call.</span></div></li>
+        </ul>
+      </div>
+      <div class="frame frame--pad" style="padding:var(--s-8);">
+        <div class="mono" style="color:var(--sig-decision); font-size:11px; letter-spacing:0.14em; margin-bottom:var(--s-4);">WHAT CHANGES</div>
+        <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:var(--s-3); font-size:14px;">
+          <li style="display:flex; gap:var(--s-3); align-items:flex-start;"><span style="color:var(--sig-decision); font-family:var(--font-mono); flex:0 0 16px;">◊</span><div><b style="color:var(--ink-primary); font-weight:500;">No more phone calls to fill the gaps.</b> <span style="color:var(--ink-secondary);">Coordination state lives in the platform.</span></div></li>
+          <li style="display:flex; gap:var(--s-3); align-items:flex-start;"><span style="color:var(--sig-decision); font-family:var(--font-mono); flex:0 0 16px;">◊</span><div><b style="color:var(--ink-primary); font-weight:500;">One forward picture.</b> <span style="color:var(--ink-secondary);">Replaces three different mental models with one shared one.</span></div></li>
+          <li style="display:flex; gap:var(--s-3); align-items:flex-start;"><span style="color:var(--sig-decision); font-family:var(--font-mono); flex:0 0 16px;">◊</span><div><b style="color:var(--ink-primary); font-weight:500;">Decisions, not alerts.</b> <span style="color:var(--ink-secondary);">Recommendations come with trade-offs and cascade impact.</span></div></li>
+          <li style="display:flex; gap:var(--s-3); align-items:flex-start;"><span style="color:var(--sig-decision); font-family:var(--font-mono); flex:0 0 16px;">◊</span><div><b style="color:var(--ink-primary); font-weight:500;">Everything is logged.</b> <span style="color:var(--ink-secondary);">The audit trail is the side-effect of doing the job.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="border-bottom:0; padding:var(--s-20) 0;">
+  <div class="container container--narrow" style="text-align:center;">
+    <h2 class="h-section" style="margin-bottom:var(--s-6);">See it in motion.</h2>
+    <p class="lede" style="margin:0 auto var(--s-10); max-width:54ch;">Walk through a live conflict scenario, from the first signal of variance to the decision logged.</p>
+    <div style="display:flex; gap:var(--s-3); justify-content:center;">
+      <a class="btn btn--primary btn--lg" href="decisions.html">See a decision walkthrough →</a>
+      <a class="btn btn--ghost btn--lg" href="about.html#briefing">Request a briefing</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container container--wide">
+    <div class="footer__top">
+      <div class="footer__brand-block">
+        <a class="topnav__brand" href="index.html">
+          <img class="brand-logo" src="img/horizon-logo-tight.png" alt="Project Horizon, by AMS Group" />
+          <span class="topnav__sub">by</span><img class="topnav__sub-logo" src="img/ams-group-logo.png" alt="AMS Group" />
+        </a>
+        <p class="lede">Maritime intelligence, built beyond the horizon. A shared forward picture for Harbour Masters, VTS teams and port control.</p>
+      </div>
+      <div class="footer__col"><h4>Product</h4><ul><li><a href="platform.html">Platform</a></li><li><a href="decisions.html">Decision Support</a></li><li><a href="operators.html">For Operators</a></li></ul></div>
+      <div class="footer__col"><h4>Company</h4><ul><li><a href="about.html">About</a></li><li><a href="about.html#briefing">Request a briefing</a></li></ul></div>
+      <div class="footer__col"><h4>AMS Group</h4><ul><li><a href="about.html">About AMS</a></li><li><a href="mailto:ahoy@horizon.ams.group">ahoy@horizon.ams.group</a></li><li><a href="about.html#contact">Contact</a></li></ul></div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 AMS GROUP · HORIZON DIVISION · PATENT PENDING</span>
+      <div class="footer__legal"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Security</a></div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
