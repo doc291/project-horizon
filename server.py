@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Project Horizon — Beta 9
+Project Horizon — Beta 10
 Port profile system: multi-port support with live BOM tidal data
 and Ports Victoria vessel scraper.  Active port set via HORIZON_PORT env var.
 
