@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision Support | Horizon</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="img/favicon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#0B1120">
+  <link rel="canonical" href="https://horizon.ams.group/decisions">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Horizon">
+  <meta property="og:title" content="Decision Support | Horizon">
+  <meta property="og:description" content="AI-driven decision support that turns observation into action — for VTS, port authorities, pilots, and harbour masters.">
+  <meta property="og:url" content="https://horizon.ams.group/decisions">
+  <meta property="og:image" content="https://horizon.ams.group/img/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Horizon — maritime coordination intelligence">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Decision Support | Horizon">
+  <meta name="twitter:description" content="AI-driven decision support that turns observation into action — for VTS, port authorities, pilots, and harbour masters.">
+  <meta name="twitter:image" content="https://horizon.ams.group/img/og-image.png">
+
+<meta name="description" content="A live walkthrough of how Horizon detects a conflict, models the cascade, and surfaces the decision before the window closes.">
+<link rel="stylesheet" href="css/horizon.css">
+</head>
+<body>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+    <rect width="600" height="600" fill="#041931"/>
+    <g transform="translate(180,180)" fill="none" stroke="#49BCBF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M30 150 Q120 60 210 150"/>
+      <line x1="0" y1="180" x2="240" y2="180"/>
+      <path d="M80 180 L80 100 L120 100"/>
+      <path d="M120 100 L140 80 L160 100"/>
+      <path d="M160 100 L160 180"/>
+      <rect x="180" y="150" width="40" height="30"/>
+    </g>
+    <text x="300" y="450" text-anchor="middle" fill="#49BCBF" font-family="Georgia, serif" font-size="44" letter-spacing="-1">Horizon</text>
+    <text x="300" y="490" text-anchor="middle" fill="#7da3c0" font-family="monospace" font-size="14" letter-spacing="6">PROJECT · AMS GROUP</text>
+  </svg>
+</template>
+
+<header class="topnav">
+  <div class="topnav__inner">
+    <a class="topnav__brand" href="index.html">
+      <img class="brand-logo" src="img/horizon-logo-tight.png" alt="Project Horizon, by AMS Group" />
+      <span class="topnav__sub">by</span><img class="topnav__sub-logo" src="img/ams-group-logo.png" alt="AMS Group" />
+    </a>
+    <nav class="topnav__links">
+      <a class="topnav__link" href="index.html">Home</a>
+      <a class="topnav__link" href="platform.html">Platform</a>
+      <a class="topnav__link is-active" href="decisions.html">Decision Support</a>
+      <a class="topnav__link" href="operators.html">For Operators</a>
+      <a class="topnav__link" href="about.html">About</a>
+      <a class="topnav__cta" href="about.html#briefing">Request a briefing →</a>
+      <a class="topnav__signin" href="https://app.horizon.ams.group" target="_blank" rel="noopener">Sign in</a>
+    </nav>
+  </div>
+</header>
+
+<section class="page-hd">
+  <div class="container container--wide">
+    <div class="eyebrow eyebrow--teal">● Decision Support</div>
+    <h1 class="h-display" style="font-size:clamp(40px,5vw,72px);">A live conflict, <em>walked through.</em></h1>
+    <p class="lede" style="max-width:64ch;">Five steps from the first signal of variance to the decision logged. The same scenario every operator on shift sees, the same picture, the same window, the same trade-offs. This is what Maritime Coordination Intelligence looks like in motion.</p>
+  </div>
+</section>
+
+<!-- Scenario header strip -->
+<section class="section" style="padding-top:var(--s-8); padding-bottom:var(--s-8); border-bottom:1px solid var(--bg-line-soft);">
+  <div class="container container--wide">
+    <div class="frame frame--pad" style="padding:var(--s-6) var(--s-8); display:flex; flex-wrap:wrap; gap:var(--s-8); align-items:center; justify-content:space-between;">
+      <div style="display:flex; gap:var(--s-8); flex-wrap:wrap;">
+        <div>
+          <div class="mono" style="color:var(--ink-muted); font-size:10px; letter-spacing:0.14em;">SCENARIO</div>
+          <div style="font-size:15px; margin-top:2px;">Berth contention · tide window · pilot rebalance</div>
+        </div>
+        <div>
+          <div class="mono" style="color:var(--ink-muted); font-size:10px; letter-spacing:0.14em;">LOCATION</div>
+          <div style="font-size:15px; margin-top:2px;">PORT OF MERIDIAN · NORTH QUAY 4</div>
+        </div>
+        <div>
+          <div class="mono" style="color:var(--ink-muted); font-size:10px; letter-spacing:0.14em;">SHIFT</div>
+          <div style="font-size:15px; margin-top:2px;">06:00 – 14:00 UTC</div>
+        </div>
+      </div>
+      <div class="mono" style="color:var(--brand-teal); font-size:11px; letter-spacing:0.14em;">▶ LIVE WALKTHROUGH</div>
+    </div>
+  </div>
+</section>
+
+<!-- Step 1 -->
+<section class="section">
+  <div class="container container--wide">
+    <div style="display:grid; grid-template-columns: 1fr 1.4fr; gap:var(--s-12); align-items:start;">
+      <div>
+        <div class="mono" style="color:var(--brand-teal); font-size:11px; letter-spacing:0.16em; margin-bottom:var(--s-4);">STEP 01 · 09:42 UTC</div>
+        <h2 class="h-section" style="margin-bottom:var(--s-5);">A signal lands.</h2>
+        <p class="body" style="max-width:46ch;">MV Talara is 38nm out, inbound. AIS shows 0.6kn under projected speed. Wind has lifted the swell on her approach. The variance is small, but it lands in the system before the bridge has flagged it.</p>
+        <p class="body body--sm" style="color:var(--ink-secondary); margin-top:var(--s-4); max-width:46ch;">No alarm. No alert fatigue. Horizon takes the input and runs it forward.</p>
+      </div>
+      <div class="frame frame--pad" style="padding:var(--s-8);">
+        <div class="mono" style="color:var(--ink-muted); font-size:10px; letter-spacing:0.14em; margin-bottom:var(--s-4);">INBOUND · MV TALARA</div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--s-4);">
+          <div><div class="mono" style="color:var(--ink-muted); font-size:9px;">RANGE</div><div style="font-size:18px; font-weight:300; letter-spacing:-0.01em;">38.2 nm</div></div>
+          <div><div class="mono" style="color:var(--ink-muted); font-size:9px;">SOG</div><div style="font-size:18px; font-weight:300; letter-spacing:-0.01em; color:var(--sig-advisory);">11.4 kn</div></div>
+          <div><div class="mono" style="color:var(--ink-muted); font-size:9px;">VARIANCE</div><div style="font-size:18px; font-weight:300; letter-spacing:-0.01em; color:var(--sig-advisory);">−0.6 kn</div></div>
+          <div><div class="mono" style="color:var(--ink-muted); font-size:9px;">PROJ. ETA</div><div style="font-size:18px; font-weight:300; letter-spacing:-0.01em;">12:48</div></div>
+        </div>
+        <div style="margin-top:var(--s-6); padding-top:var(--s-5); border-top:1px solid var(--bg-line-soft); display:flex; gap:var(--s-6); font-size:13px; color:var(--ink-secondary);">
+          <div><span class="mono" style="font-size:10px; color:var(--ink-muted);">DRAFT</span> 11.8m</div>
+          <div><span class="mono" style="font-size:10px; color:var(--ink-muted);">DEST</span> Berth 4 · North Quay</div>
+          <div><span class="mono" style="font-size:10px; color:var(--ink-muted);">PILOT</span> Hawkes (assigned 12:30)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Step 2 -->
+<section class="section" style="background:var(--bg-elev-1);">
+  <div class="container container--wide">
+    <div style="display:grid; grid-template-columns: 1.4fr 1fr; gap:var(--s-12); align-items:start;">
+      <div class="frame frame--pad" style="padding:var(--s-8);">
+        <div class="mono" style="color:var(--sig-critical); font-size:10px; letter-spacing:0.14em; margin-bottom:var(--s-4);">CONFLICT DETECTED · CASCADE MODELLED</div>
+        <div style="font-size:17px; line-height:1.5; max-width:52ch;">Talara's projected ETA crosses the closing tide window for Berth 4. <b style="color:var(--ink-primary); font-weight:500;">If she berths after 13:06 UTC, depth clearance falls below operational margin.</b></div>
+
+        <div style="margin-top:var(--s-7); display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--s-3);">
+          <div class="card card--bare" style="padding:var(--s-4);">
+            <div class="mono" style="color:var(--sig-critical); font-size:10px;">PRIMARY</div>
+            <div style="font-size:13px; margin-top:4px;">Tide window · Berth 4 closes 13:06</div>
+          </div>
+          <div class="card card--bare" style="padding:var(--s-4);">
+            <div class="mono" style="color:var(--sig-advisory); font-size:10px;">CASCADE +1</div>
+            <div style="font-size:13px; margin-top:4px;">MV Korowai (waiting) loses pilot Hawkes</div>
+          </div>
+          <div class="card card--bare" style="padding:var(--s-4);">
+            <div class="mono" style="color:var(--sig-advisory); font-size:10px;">CASCADE +2</div>
+            <div style="font-size:13px; margin-top:4px;">Tug Northline 7, coverage gap 13:30</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="mono" style="color:var(--brand-teal); font-size:11px; letter-spacing:0.16em; margin-bottom:var(--s-4);">STEP 02 · 09:43 UTC</div>
+        <h2 class="h-section" style="margin-bottom:var(--s-5);">The cascade is modelled.</h2>
+        <p class="body" style="max-width:46ch;">A 0.6kn variance, taken alone, is nothing. Taken with the tide curve, the next inbound, and the pilot roster, it's a 28-minute decision window with two further movements at risk.</p>
+        <p class="body body--sm" style="color:var(--ink-secondary); margin-top:var(--s-4); max-width:46ch;">Horizon evaluates against every projected movement in the next four hours. The conflict is ranked by cascade impact, not arrival order.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Step 3 -->
+<section class="section">
+  <div class="container container--wide">
+    <div style="display:grid; grid-template-columns: 1fr 1.4fr; gap:var(--s-12); align-items:start;">
+      <div>
+        <div class="mono" style="color:var(--brand-teal); font-size:11px; letter-spacing:0.16em; margin-bottom:var(--s-4);">STEP 03 · 09:44 UTC</div>
+        <h2 class="h-section" style="margin-bottom:var(--s-5);">Options, with trade-offs.</h2>
+        <p class="body" style="max-width:46ch;">Three viable plays. Each carries the alternatives evaluated, the cascade impact, and the window in which the call must be made. The operator decides, Horizon shows the cost of each path.</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:var(--s-3);">
+        <div class="frame frame--pad" style="padding:var(--s-6); display:grid; grid-template-columns: 28px 1fr auto; gap:var(--s-5); align-items:center;">
+          <div class="mono" style="color:var(--sig-decision); font-size:11px;">A</div>
+          <div>
+            <div style="font-size:15px; font-weight:500;">Reorder berth sequence, Talara → Berth 4 ahead of Korowai</div>
+            <div style="font-size:13px; color:var(--ink-secondary); margin-top:4px;">Korowai holds at anchor +47m. No tide breach. Pilot Hawkes re-tasked.</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="mono" style="font-size:9px; color:var(--ink-muted);">CASCADE</div>
+            <div style="color:var(--sig-decision); font-size:14px; font-weight:500;">+47m / 1 hold</div>
+          </div>
+        </div>
+        <div class="frame frame--pad" style="padding:var(--s-6); display:grid; grid-template-columns: 28px 1fr auto; gap:var(--s-5); align-items:center; opacity:0.92;">
+          <div class="mono" style="color:var(--ink-muted); font-size:11px;">B</div>
+          <div>
+            <div style="font-size:15px; font-weight:500;">Hold Talara, wait for next tide window 18:42</div>
+            <div style="font-size:13px; color:var(--ink-secondary); margin-top:4px;">No berth swap. 5h 36m anchor delay. Knock-on: 2 outbound departures shift.</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="mono" style="font-size:9px; color:var(--ink-muted);">CASCADE</div>
+            <div style="color:var(--sig-critical); font-size:14px; font-weight:500;">+5h 36m / 3 affected</div>
+          </div>
+        </div>
+        <div class="frame frame--pad" style="padding:var(--s-6); display:grid; grid-template-columns: 28px 1fr auto; gap:var(--s-5); align-items:center; opacity:0.92;">
+          <div class="mono" style="color:var(--ink-muted); font-size:11px;">C</div>
+          <div>
+            <div style="font-size:15px; font-weight:500;">Reassign Talara to Berth 6, South Quay</div>
+            <div style="font-size:13px; color:var(--ink-secondary); margin-top:4px;">No tide constraint. Requires tug rebalance + line gang relocate. TOS flag.</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="mono" style="font-size:9px; color:var(--ink-muted);">CASCADE</div>
+            <div style="color:var(--sig-advisory); font-size:14px; font-weight:500;">+22m / 2 services</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Step 4 -->
+<section class="section" style="background:var(--bg-elev-1);">
+  <div class="container container--wide">
+    <div style="display:grid; grid-template-columns: 1.4fr 1fr; gap:var(--s-12); align-items:start;">
+      <div>
+        <div class="frame frame--pad" style="padding:var(--s-8); border-color:var(--sig-decision); box-shadow:0 0 60px rgba(73,188,191,0.08);">
+          <div style="display:flex; align-items:center; gap:var(--s-4); margin-bottom:var(--s-5);">
+            <div class="mono" style="color:var(--sig-decision); font-size:11px; letter-spacing:0.14em;">◊ DECISION LOGGED</div>
+            <span class="mono" style="color:var(--ink-muted); font-size:10px;">10:11 UTC · Op. Kiriakidis</span>
+          </div>
+          <div style="font-size:21px; font-weight:500; letter-spacing:-0.01em; line-height:1.3; max-width:48ch;">Option A, Reorder berth sequence. MV Talara → Berth 4 ahead of MV Korowai.</div>
+
+          <div style="margin-top:var(--s-7); display:grid; grid-template-columns:repeat(4,1fr); gap:var(--s-4); padding-top:var(--s-5); border-top:1px solid var(--bg-line-soft);">
+            <div><div class="mono" style="font-size:9px; color:var(--ink-muted);">PILOT</div><div style="font-size:14px; margin-top:2px;">Hawkes → Talara</div></div>
+            <div><div class="mono" style="font-size:9px; color:var(--ink-muted);">TUGS</div><div style="font-size:14px; margin-top:2px;">Northline 7, 11</div></div>
+            <div><div class="mono" style="font-size:9px; color:var(--ink-muted);">LINES</div><div style="font-size:14px; margin-top:2px;">Gang 4 · 12:35</div></div>
+            <div><div class="mono" style="font-size:9px; color:var(--ink-muted);">KOROWAI</div><div style="font-size:14px; margin-top:2px;">Hold · ETD 13:50</div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="mono" style="color:var(--brand-teal); font-size:11px; letter-spacing:0.16em; margin-bottom:var(--s-4);">STEP 04 · 10:11 UTC</div>
+        <h2 class="h-section" style="margin-bottom:var(--s-5);">The call is made.</h2>
+        <p class="body" style="max-width:46ch;">The operator selects Option A. The decision flows downstream, pilot reassignment, tug tasking, line gang scheduling, Korowai's revised ETD, without a single phone call.</p>
+        <p class="body body--sm" style="color:var(--ink-secondary); margin-top:var(--s-4); max-width:46ch;">Coordination state is the platform. The radio is for what it should be for.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Step 5 -->
+<section class="section">
+  <div class="container container--wide">
+    <div style="display:grid; grid-template-columns: 1fr 1.4fr; gap:var(--s-12); align-items:start;">
+      <div>
+        <div class="mono" style="color:var(--brand-teal); font-size:11px; letter-spacing:0.16em; margin-bottom:var(--s-4);">STEP 05 · 13:24 UTC</div>
+        <h2 class="h-section" style="margin-bottom:var(--s-5);">The ledger holds.</h2>
+        <p class="body" style="max-width:46ch;">Talara is alongside. Korowai is on her revised window. Every input that informed the call, every alternative considered, every downstream task, captured. Audit-ready by default.</p>
+        <p class="body body--sm" style="color:var(--ink-secondary); margin-top:var(--s-4); max-width:46ch;">The decision ledger isn't a separate report. It's the side-effect of doing the job.</p>
+      </div>
+      <div class="frame frame--pad" style="padding:var(--s-8);">
+        <div class="mono" style="color:var(--sig-info); font-size:10px; letter-spacing:0.14em; margin-bottom:var(--s-4);">DECISION LEDGER · ENTRY 4,127</div>
+        <div style="display:flex; flex-direction:column; gap:var(--s-3); font-size:13px;">
+          <div style="display:flex; justify-content:space-between; padding-bottom:var(--s-3); border-bottom:1px solid var(--bg-line-soft);"><span style="color:var(--ink-muted);">Decision</span><span>Reorder berth sequence · Berth 4</span></div>
+          <div style="display:flex; justify-content:space-between; padding-bottom:var(--s-3); border-bottom:1px solid var(--bg-line-soft);"><span style="color:var(--ink-muted);">Operator</span><span>hm.meridian.kiriakidis</span></div>
+          <div style="display:flex; justify-content:space-between; padding-bottom:var(--s-3); border-bottom:1px solid var(--bg-line-soft);"><span style="color:var(--ink-muted);">Window</span><span>28m · taken at 24m</span></div>
+          <div style="display:flex; justify-content:space-between; padding-bottom:var(--s-3); border-bottom:1px solid var(--bg-line-soft);"><span style="color:var(--ink-muted);">Inputs</span><span>AIS · DUKC · meteo · roster · TOS</span></div>
+          <div style="display:flex; justify-content:space-between; padding-bottom:var(--s-3); border-bottom:1px solid var(--bg-line-soft);"><span style="color:var(--ink-muted);">Alternatives</span><span>B (5h 36m hold) · C (Berth 6 swap)</span></div>
+          <div style="display:flex; justify-content:space-between;"><span style="color:var(--ink-muted);">Outcome</span><span style="color:var(--sig-nominal);">Alongside · within window</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Closing -->
+<section class="section" style="border-bottom:0; padding:var(--s-20) 0;">
+  <div class="container container--narrow" style="text-align:center;">
+    <div class="eyebrow" style="margin-bottom:var(--s-6);">What just happened</div>
+    <h2 class="h-section" style="margin-bottom:var(--s-6);">A 0.6 knot variance.<br><em>A decision before the window closed.</em></h2>
+    <p class="lede" style="margin:0 auto var(--s-10); max-width:54ch;">No alarm cascade. No phone tree. No retrospective audit assembled from logs. The platform did what it should, surfaced the decision, modelled the cost, and held the record.</p>
+    <div style="display:flex; gap:var(--s-3); justify-content:center;">
+      <a class="btn btn--primary btn--lg" href="about.html#briefing">Request a briefing →</a>
+      <a class="btn btn--ghost btn--lg" href="platform.html">See the platform</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container container--wide">
+    <div class="footer__top">
+      <div class="footer__brand-block">
+        <a class="topnav__brand" href="index.html">
+          <img class="brand-logo" src="img/horizon-logo-tight.png" alt="Project Horizon, by AMS Group" />
+          <span class="topnav__sub">by</span><img class="topnav__sub-logo" src="img/ams-group-logo.png" alt="AMS Group" />
+        </a>
+        <p class="lede">Maritime intelligence, built beyond the horizon. A shared forward picture for Harbour Masters, VTS teams and port control.</p>
+      </div>
+      <div class="footer__col"><h4>Product</h4><ul><li><a href="platform.html">Platform</a></li><li><a href="decisions.html">Decision Support</a></li><li><a href="operators.html">For Operators</a></li></ul></div>
+      <div class="footer__col"><h4>Company</h4><ul><li><a href="about.html">About</a></li><li><a href="about.html#briefing">Request a briefing</a></li></ul></div>
+      <div class="footer__col"><h4>AMS Group</h4><ul><li><a href="about.html">About AMS</a></li><li><a href="mailto:ahoy@horizon.ams.group">ahoy@horizon.ams.group</a></li><li><a href="about.html#contact">Contact</a></li></ul></div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 AMS GROUP · HORIZON DIVISION · PATENT PENDING</span>
+      <div class="footer__legal"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Security</a></div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

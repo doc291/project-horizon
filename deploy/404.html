@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Off the chart, 404 | Horizon</title>
+<meta name="description" content="The page you're looking for is off the chart.">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png">
+<link rel="icon" type="image/png" sizes="192x192" href="img/favicon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+<meta name="theme-color" content="#0B1120">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="css/horizon.css">
+<style>
+  body { background: var(--bg-canvas); }
+  .err-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .err-page__main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--s-12) var(--s-8);
+    position: relative;
+    overflow: hidden;
+  }
+  .err-page__main::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 1100px;
+    height: 1100px;
+    background: radial-gradient(circle, rgba(73,188,191,0.10), rgba(73,188,191,0) 60%);
+    pointer-events: none;
+  }
+  .err {
+    position: relative;
+    text-align: center;
+    max-width: 720px;
+  }
+  .err__logo {
+    display: block;
+    width: 320px;
+    height: auto;
+    margin: 0 auto var(--s-10);
+  }
+  .err__code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--brand-teal);
+    margin-bottom: var(--s-5);
+    text-transform: uppercase;
+  }
+  .err__title {
+    font-size: clamp(48px, 7vw, 88px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--ink-primary);
+    font-weight: 400;
+    margin: 0 0 var(--s-6);
+  }
+  .err__title em {
+    font-style: normal;
+    color: var(--brand-teal);
+  }
+  .err__lede {
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink-secondary);
+    max-width: 56ch;
+    margin: 0 auto var(--s-10);
+    font-weight: 300;
+  }
+  .err__path {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-3);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-muted);
+    background: var(--bg-elev-1);
+    border: 1px solid var(--bg-line-soft);
+    padding: var(--s-2) var(--s-4);
+    border-radius: var(--r-md);
+    margin-bottom: var(--s-10);
+    letter-spacing: 0.04em;
+  }
+  .err__path::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--sig-critical);
+    box-shadow: 0 0 6px var(--sig-critical);
+  }
+  .err__actions {
+    display: flex;
+    gap: var(--s-4);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* Tiny constellation of nav links */
+  .err__nav {
+    margin-top: var(--s-12);
+    padding-top: var(--s-8);
+    border-top: 1px solid var(--bg-line-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-6);
+    justify-content: center;
+  }
+  .err__nav a {
+    font-size: 13px;
+    color: var(--ink-secondary);
+    transition: color .15s;
+  }
+  .err__nav a:hover { color: var(--brand-teal); }
+
+  .err-foot {
+    padding: var(--s-6) var(--s-8);
+    border-top: 1px solid var(--bg-line-soft);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-muted);
+    letter-spacing: 0.06em;
+  }
+  .err-foot a { color: var(--ink-secondary); }
+  .err-foot a:hover { color: var(--brand-teal); }
+</style>
+</head>
+<body>
+
+<div class="err-page">
+  <main class="err-page__main">
+    <div class="err">
+      <img class="err__logo" src="img/horizon-logo-tight.png" alt="Project Horizon" />
+
+      <div class="err__code">● 404 / OFF THE CHART</div>
+      <h1 class="err__title">This route is <em>uncharted.</em></h1>
+      <p class="err__lede">We couldn't find that page in our coordination layer. Maybe the link's drifted, maybe the page has moved berths. Either way: let's get you back on course.</p>
+
+      <div class="err__path"><span id="lost-path">/unknown</span></div>
+
+      <div class="err__actions">
+        <a class="btn btn--primary" href="index.html">Return to home</a>
+        <a class="btn btn--ghost" href="about.html#briefing">Request a briefing</a>
+      </div>
+
+      <div class="err__nav">
+        <a href="platform.html">Platform</a>
+        <a href="decisions.html">Decision Support</a>
+        <a href="operators.html">For Operators</a>
+        <a href="about.html">About</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="err-foot">
+    <span>HORIZON · MARITIME COORDINATION INTELLIGENCE · BUILT BY AMS GROUP</span>
+    <a href="mailto:ahoy@horizon.ams.group">ahoy@horizon.ams.group</a>
+  </footer>
+</div>
+
+<script>
+  // Show the path the user tried to reach
+  try {
+    var p = document.location.pathname || '/';
+    if (p === '/' || p === '/404.html') p = '/unknown';
+    document.getElementById('lost-path').textContent = p;
+  } catch (e) {}
+</script>
+
+</body>
+</html>

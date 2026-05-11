@@ -1811,8 +1811,9 @@ function renderDecisions(conflicts){
     const ss=c.safety_score||'low';
     const ssLbl={'low':'LOW RISK','medium':'MED RISK','high':'HIGH RISK'}[ss]||ss.toUpperCase();
     const ssCol={'low':'#6ee7b7','medium':'#fbbf24','high':'#ef4444'}[ss]||'#6ee7b7';
-    // Data provenance label
-    const provLabel = c.data_source==='live'
+    // Data provenance label — downgrade to Simulated if any vessel in the conflict has a SIM- prefix
+    const hasSim = (c.vessel_ids||[]).some(id => id && String(id).startsWith('SIM-'));
+    const provLabel = (!hasSim && c.data_source==='live')
       ? '<span class="src-badge live">● Live Data — BOM Tidal Prediction</span>'
       : '<span class="src-badge simulated">Platform Integration — Simulation</span>';
     return `

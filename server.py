@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Project Horizon — Beta 9
+Project Horizon — Beta 10
 Port profile system: multi-port support with live BOM tidal data
 and Ports Victoria vessel scraper.  Active port set via HORIZON_PORT env var.
 
@@ -59,6 +59,10 @@ _COOKIE_TTL  = 60 * 60 * 12                   # 12 hours
 
 # Paths that bypass auth entirely (assets needed by the login page itself)
 _PUBLIC_PATHS = {"/login", "/logo", "/amsg-logo", "/health", "/api/health-data"}
+
+# ── Website host routing ──────────────────────────────────────────────────────
+_SITE_HOST = "horizon.ams.group"
+_SITE_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "deploy")
 
 # ── Port Brief email config ───────────────────────────────────────────────────
 _SMTP_HOST       = os.environ.get("SMTP_HOST", "")
@@ -130,7 +134,7 @@ _scraping     = False      # Flag: scrape in progress
 # Populated by background thread; build_summary() reads from cache only.
 _mst_cache      = {}          # {"AUBNE": [...], "AUMEL": [...], ...}
 _mst_cache_lock = threading.Lock()
-_MST_REFRESH_HOURS = 12       # refresh twice daily
+_MST_REFRESH_HOURS = 2        # refresh every 2 hours
 
 
 def _refresh_mst_cache():
@@ -2519,6 +2523,18 @@ class HorizonHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.split("?")[0]
+
+        # ── Host routing: horizon.ams.group → only login/logout are valid POSTs ─
+        host = self.headers.get("Host", "").split(":")[0].lower().strip()
+        if host == _SITE_HOST:
+            if path == "/login":
+                self._handle_login()
+            elif path == "/logout":
+                self._handle_logout()
+            else:
+                self.send_error(405)
+            return
+
         if path == "/login":
             self._handle_login()
         elif path == "/logout":
@@ -2685,6 +2701,75 @@ class HorizonHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _serve_site(self, path: str):
+        """Serve the static marketing website for horizon.ams.group."""
+        from urllib.parse import urlparse, parse_qs, quote
+
+        # Auth gate — identical behaviour to main app
+        if path == "/login":
+            qs = parse_qs(urlparse(self.path).query)
+            next_path = qs.get("next", ["/"])[0]
+            self._serve_login(next_path=next_path)
+            return
+        if not self._is_authenticated():
+            safe_next = self.path if self.path.startswith("/") else "/"
+            self._redirect(f"/login?next={quote(safe_next, safe='/?=&')}")
+            return
+
+        # Clean URL map: extensionless paths → HTML filename
+        _CLEAN = {
+            "/":           "index.html",
+            "/index":      "index.html",
+            "/platform":   "platform.html",
+            "/decisions":  "decisions.html",
+            "/operators":  "operators.html",
+            "/about":      "about.html",
+        }
+        _MIME = {
+            ".html":        "text/html; charset=utf-8",
+            ".css":         "text/css; charset=utf-8",
+            ".png":         "image/png",
+            ".svg":         "image/svg+xml",
+            ".ico":         "image/x-icon",
+            ".json":        "application/json",
+            ".xml":         "application/xml",
+            ".txt":         "text/plain; charset=utf-8",
+            ".webmanifest": "application/manifest+json",
+        }
+
+        rel = _CLEAN.get(path)
+        if rel is None:
+            rel = path.lstrip("/")
+            # Add .html for extensionless paths not in the clean map
+            if rel and not os.path.splitext(rel)[1]:
+                rel = rel + ".html"
+
+        # Path traversal guard — resolve and confirm target stays inside deploy/
+        site_root = os.path.realpath(_SITE_ROOT)
+        target = os.path.realpath(os.path.join(site_root, rel)) if rel else site_root
+        if not target.startswith(site_root + os.sep):
+            self.send_error(403)
+            return
+
+        # Serve file; fall back to 404.html with 404 status
+        status = 200
+        if not os.path.isfile(target):
+            target = os.path.join(site_root, "404.html")
+            status  = 404
+
+        ext  = os.path.splitext(target)[1].lower()
+        mime = _MIME.get(ext, "application/octet-stream")
+        try:
+            with open(target, "rb") as fh:
+                body = fh.read()
+            self.send_response(status)
+            self.send_header("Content-Type", mime)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        except OSError:
+            self.send_error(500)
+
     def _set_port(self):
         """Switch active port profile for the current session (in-memory only)."""
         global _ACTIVE_PORT_ID, _PORT_PROFILE
@@ -2715,6 +2800,12 @@ class HorizonHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?")[0]
+
+        # ── Host routing: horizon.ams.group → static marketing site ───────────
+        host = self.headers.get("Host", "").split(":")[0].lower().strip()
+        if host == _SITE_HOST:
+            self._serve_site(path)
+            return
 
         # ── Auth gate ──────────────────────────────────────────────────────────
         if path == "/login":

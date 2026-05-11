@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horizon | Maritime intelligence, built beyond the horizon.</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="img/favicon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#0B1120">
+  <link rel="canonical" href="https://horizon.ams.group/">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Horizon">
+  <meta property="og:title" content="Horizon | Maritime intelligence, built beyond the horizon.">
+  <meta property="og:description" content="Real-time visibility, decision support, and historical insight for VTS operators, port authorities, and maritime managers.">
+  <meta property="og:url" content="https://horizon.ams.group/">
+  <meta property="og:image" content="https://horizon.ams.group/img/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Horizon — maritime coordination intelligence">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Horizon | Maritime intelligence, built beyond the horizon.">
+  <meta name="twitter:description" content="Real-time visibility, decision support, and historical insight for VTS operators, port authorities, and maritime managers.">
+  <meta name="twitter:image" content="https://horizon.ams.group/img/og-image.png">
+
+<meta name="description" content="Horizon is a Maritime Coordination Intelligence platform. It connects every vessel, berth, tide and service provider into one forward picture, and surfaces the decisions that need action before the window closes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="css/horizon.css">
+</head>
+<body>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+    <rect width="600" height="600" fill="#041931"/>
+    <g transform="translate(180,180)" fill="none" stroke="#49BCBF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M30 150 Q120 60 210 150"/>
+      <line x1="0" y1="180" x2="240" y2="180"/>
+      <path d="M80 180 L80 100 L120 100"/>
+      <path d="M120 100 L140 80 L160 100"/>
+      <path d="M160 100 L160 180"/>
+      <rect x="180" y="150" width="40" height="30"/>
+    </g>
+    <text x="300" y="450" text-anchor="middle" fill="#49BCBF" font-family="Georgia, serif" font-size="44" letter-spacing="-1">Horizon</text>
+    <text x="300" y="490" text-anchor="middle" fill="#7da3c0" font-family="monospace" font-size="14" letter-spacing="6">PROJECT · AMS GROUP</text>
+  </svg>
+</template>
+
+<!-- ============ TOP NAV ============ -->
+<header class="topnav">
+  <div class="topnav__inner">
+    <a class="topnav__brand" href="index.html">
+      <img class="brand-logo" src="img/horizon-logo-tight.png" alt="Project Horizon, by AMS Group" />
+      <span class="topnav__sub">by</span><img class="topnav__sub-logo" src="img/ams-group-logo.png" alt="AMS Group" />
+    </a>
+    <nav class="topnav__links">
+      <a class="topnav__link is-active" href="index.html">Home</a>
+      <a class="topnav__link" href="platform.html">Platform</a>
+      <a class="topnav__link" href="decisions.html">Decision Support</a>
+      <a class="topnav__link" href="operators.html">For Operators</a>
+      <a class="topnav__link" href="about.html">About</a>
+      <a class="topnav__cta" href="about.html#briefing">Request a briefing →</a>
+      <a class="topnav__signin" href="https://app.horizon.ams.group" target="_blank" rel="noopener">Sign in</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="container container--wide">
+    <div class="hero__inner">
+      <div class="hero__copy">
+        <div class="eyebrow eyebrow--teal">● Maritime Coordination Intelligence</div>
+        <h1 class="h-display">See what's <em>coming</em><br>before it arrives.</h1>
+        <p class="lede">Horizon is a Maritime Coordination Intelligence platform. It connects every vessel, berth, tide and service provider into one forward picture, and surfaces the decisions that need action before the window closes.</p>
+        <p class="lede" style="margin-top:var(--s-5); padding-left:var(--s-4); border-left:2px solid var(--brand-teal); color:var(--ink-primary);">Conflicts surfaced before they become incidents. Under-keel and air-draught risks flagged before vessels commit to the channel. Decisions made with full context, not conservative guesswork.</p>
+        <div class="hero__cta">
+          <a class="btn btn--primary btn--lg" href="about.html#briefing">Request a briefing →</a>
+          <a class="btn btn--ghost btn--lg" href="platform.html">See the platform</a>
+        </div>
+        <div style="display:flex; gap:var(--s-6); margin-top:var(--s-12); padding-top:var(--s-6); border-top:1px solid var(--bg-line-soft);">
+          <div>
+            <div class="mono" style="color:var(--ink-muted); font-size:10px; letter-spacing:0.14em; text-transform:uppercase;">Built by</div>
+            <div style="font-weight:500; margin-top:6px; letter-spacing:0.06em;">AMS GROUP</div>
+          </div>
+          <div>
+            <div class="mono" style="color:var(--ink-muted); font-size:10px; letter-spacing:0.14em; text-transform:uppercase;">In development with</div>
+            <div style="font-weight:500; margin-top:6px; letter-spacing:0.06em;">Founding port partners</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live operations viz -->
+      <div class="hero__viz">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--s-4);">
+          <div style="display:flex; gap:var(--s-3); align-items:center;">
+            <span class="pill pill--teal">LIVE</span>
+            <span class="mono" style="color:var(--ink-muted);">PORT OF MERIDIAN · 08:42:06 UTC</span>
+          </div>
+          <span class="mono" style="color:var(--ink-muted);">NEXT 24H</span>
+        </div>
+
+        <!-- forward timeline -->
+        <div style="background:var(--bg-base); border:1px solid var(--bg-line-soft); border-radius:var(--r-md); padding:var(--s-4); margin-bottom:var(--s-3);">
+          <div class="mono" style="color:var(--ink-muted); margin-bottom:var(--s-3);">FORWARD PICTURE · 08:00 → NEXT-DAY 08:00</div>
+          <div style="position:relative; height:48px;">
+            <!-- baseline -->
+            <div style="position:absolute; left:0; right:0; top:24px; height:1px; background:var(--bg-line);"></div>
+            <!-- ticks -->
+            <div style="position:absolute; left:0; top:18px; width:1px; height:14px; background:var(--bg-line);"></div>
+            <div style="position:absolute; left:25%; top:18px; width:1px; height:14px; background:var(--bg-line);"></div>
+            <div style="position:absolute; left:50%; top:18px; width:1px; height:14px; background:var(--bg-line);"></div>
+            <div style="position:absolute; left:75%; top:18px; width:1px; height:14px; background:var(--bg-line);"></div>
+            <div style="position:absolute; right:0; top:18px; width:1px; height:14px; background:var(--bg-line);"></div>
+            <!-- now marker -->
+            <div style="position:absolute; left:8%; top:0; bottom:0; width:2px; background:var(--brand-teal);"></div>
+            <div style="position:absolute; left:8%; top:-4px; transform:translateX(-50%); font-family:var(--font-mono); font-size:9px; color:var(--brand-teal); letter-spacing:0.1em;">NOW</div>
+            <!-- events -->
+            <div title="Conflict at Berth 4" style="position:absolute; left:22%; top:18px; width:8px; height:8px; border-radius:50%; background:var(--sig-critical); transform:translate(-50%,0); box-shadow:0 0 0 4px rgba(240,74,90,0.15);"></div>
+            <div title="Tide window" style="position:absolute; left:38%; top:18px; width:8px; height:8px; border-radius:50%; background:var(--sig-advisory); transform:translate(-50%,0);"></div>
+            <div title="Decision required" style="position:absolute; left:55%; top:18px; width:8px; height:8px; border-radius:50%; background:var(--sig-decision); transform:translate(-50%,0); box-shadow:0 0 0 4px rgba(139,92,246,0.15);"></div>
+            <div title="Pilot exchange" style="position:absolute; left:71%; top:18px; width:8px; height:8px; border-radius:50%; background:var(--sig-info); transform:translate(-50%,0);"></div>
+            <div title="On-time" style="position:absolute; left:87%; top:18px; width:8px; height:8px; border-radius:50%; background:var(--sig-nominal); transform:translate(-50%,0);"></div>
+            <!-- labels -->
+            <div style="position:absolute; left:0; bottom:0; font-family:var(--font-mono); font-size:9px; color:var(--ink-muted);">08:00</div>
+            <div style="position:absolute; left:50%; bottom:0; transform:translateX(-50%); font-family:var(--font-mono); font-size:9px; color:var(--ink-muted);">20:00</div>
+            <div style="position:absolute; right:0; bottom:0; font-family:var(--font-mono); font-size:9px; color:var(--ink-muted);">08:00 +1</div>
+          </div>
+        </div>
+
+        <!-- decision card -->
+        <div class="decision" style="margin-bottom:var(--s-3);">
+          <div class="decision__hd">
+            <div style="display:flex; align-items:center; gap:var(--s-3);">
+              <span class="pill pill--decision">Decision</span>
+              <span class="decision__id">HZN-D-20260430-0142</span>
+            </div>
+            <span class="mono" style="color:var(--ink-muted);">DECIDE WITHIN 28m</span>
+          </div>
+          <div class="decision__title">Reorder berth sequence, MV Talara → Berth 4 ahead of MV Korowai</div>
+          <div class="decision__row"><span>Tide window closes</span><span>10:14 UTC</span></div>
+          <div class="decision__row"><span>Pilots affected</span><span>2 · re-tasked</span></div>
+          <div class="decision__row"><span>Forecast variance reduced</span><span style="color:var(--brand-teal);">−47 min</span></div>
+        </div>
+
+        <!-- mini metrics -->
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:var(--s-2);">
+          <div style="background:var(--bg-base); border:1px solid var(--bg-line-soft); border-radius:var(--r-sm); padding:var(--s-3);">
+            <div class="mono" style="color:var(--ink-muted); font-size:9px;">ACTIVE CONFLICTS</div>
+            <div style="font-size:22px; font-weight:300; color:var(--sig-critical); letter-spacing:-0.02em;">3</div>
+          </div>
+          <div style="background:var(--bg-base); border:1px solid var(--bg-line-soft); border-radius:var(--r-sm); padding:var(--s-3);">
+            <div class="mono" style="color:var(--ink-muted); font-size:9px;">DECISIONS PENDING</div>
+            <div style="font-size:22px; font-weight:300; color:var(--sig-decision); letter-spacing:-0.02em;">7</div>
+          </div>
+          <div style="background:var(--bg-base); border:1px solid var(--bg-line-soft); border-radius:var(--r-sm); padding:var(--s-3);">
+            <div class="mono" style="color:var(--ink-muted); font-size:9px;">ON-TIME · 24H</div>
+            <div style="font-size:22px; font-weight:300; color:var(--sig-nominal); letter-spacing:-0.02em;">94<span style="font-size:14px; color:var(--ink-muted);">%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ NUMBERS ============ -->
+<section class="section section--tight" style="padding-top:var(--s-12); padding-bottom:var(--s-12);">
+  <div class="container container--wide">
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0;">
+      <div class="metric"><div class="metric__value"><em>80</em>%</div><div class="metric__label">Of global trade moves by sea</div><div class="metric__sub">11B+ tonnes shipped annually</div></div>
+      <div class="metric"><div class="metric__value"><em>48</em>h</div><div class="metric__label">Forward coordination window</div><div class="metric__sub">vessels · tides · services</div></div>
+      <div class="metric"><div class="metric__value">&lt;<em>10</em>s</div><div class="metric__label">Conflict detection latency</div><div class="metric__sub">UKC · air draught · berth · service</div></div>
+      <div class="metric"><div class="metric__value"><em>Every</em></div><div class="metric__label">Decision audited</div><div class="metric__sub">inputs · alternatives · outcome</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PILLARS ============ -->
+<section class="section">
+  <div class="container container--wide">
+    <div class="section__head">
+      <div>
+        <div class="eyebrow" style="margin-bottom:var(--s-4);">The shift that matters</div>
+        <h2 class="h-section">Coordination intelligence doesn't just see.<br><em>It understands.</em></h2>
+      </div>
+      <p class="lede" style="max-width:42ch;">The ports that lead the next decade won't have the best tracking. They'll have the best decisions.</p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:var(--s-5);">
+      <div class="pillar">
+        <div class="pillar__num">●  01 / Connected</div>
+        <div class="pillar__title">One shared picture.</div>
+        <div class="pillar__body">Every vessel, berth, tide and service provider in one operational view, with no phone call needed to fill the gaps.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar__num">●  02 / Contextual</div>
+        <div class="pillar__title">Not just what. What it means.</div>
+        <div class="pillar__body">Horizon doesn't just surface events. It shows what's at risk, what cascades next and what happens if nothing changes.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar__num">●  03 / Decisive</div>
+        <div class="pillar__title">The right action. The right moment.</div>
+        <div class="pillar__body">We surface the action to take with the risk and reward visible before the window closes, and log every decision behind it.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SAFETY ============ -->
+<section class="section" style="background:var(--bg-elev-1);">
+  <div class="container container--wide">
+    <div class="section__head">
+      <div>
+        <div class="eyebrow eyebrow--teal" style="margin-bottom:var(--s-4);">● Safety, by detection</div>
+        <h2 class="h-section">The conflicts you can't afford<br>to find out about <em>after.</em></h2>
+        <p class="lede" style="margin-top:var(--s-6); max-width:58ch;">Every signal feeding the engine is checked against the full forward picture. Risks are surfaced at the point they emerge, not at the point they become incidents.</p>
+      </div>
+      <div style="max-width:36ch; align-self:end;">
+        <div class="mono" style="color:var(--ink-muted); font-size:11px; letter-spacing:0.14em; margin-bottom:var(--s-3);">RISK CLASSES</div>
+        <div style="font-size:14px; color:var(--ink-secondary); line-height:1.5;">Five categories of safety event, continually re-evaluated as inputs shift. Each carries a window, a cascade, and a recommendation.</div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:var(--s-4); margin-top:var(--s-10);">
+      <div class="card" style="padding:var(--s-6);">
+        <div class="mono" style="color:var(--sig-critical); font-size:10px; letter-spacing:0.14em;">UKC</div>
+        <div style="font-weight:500; font-size:17px; margin:var(--s-3) 0; letter-spacing:-0.01em; line-height:1.25;">Under-keel clearance violation.</div>
+        <p class="body body--sm" style="color:var(--ink-secondary);">Live draft, tide curve and channel survey data scored against vessel commitment point. Flagged before the channel becomes the wrong place to be.</p>
+      </div>
+      <div class="card" style="padding:var(--s-6);">
+        <div class="mono" style="color:var(--sig-critical); font-size:10px; letter-spacing:0.14em;">AIR DRAUGHT</div>
+        <div style="font-weight:500; font-size:17px; margin:var(--s-3) 0; letter-spacing:-0.01em; line-height:1.25;">Bridge & overhead clearance.</div>
+        <p class="body body--sm" style="color:var(--ink-secondary);">Vessel air draught checked against tide-adjusted bridge clearance for every fixed structure on the inbound and outbound track. Margin held visible.</p>
+      </div>
+      <div class="card" style="padding:var(--s-6);">
+        <div class="mono" style="color:var(--sig-critical); font-size:10px; letter-spacing:0.14em;">BERTH OVERLAP</div>
+        <div style="font-weight:500; font-size:17px; margin:var(--s-3) 0; letter-spacing:-0.01em; line-height:1.25;">Berth & swing-room conflicts.</div>
+        <p class="body body--sm" style="color:var(--ink-secondary);">Berth occupancy, swing-room interference and adjacent-berth crane reach checked across every projected movement. Contention surfaced at variance, not at arrival.</p>
+      </div>
+      <div class="card" style="padding:var(--s-6);">
+        <div class="mono" style="color:var(--sig-critical); font-size:10px; letter-spacing:0.14em;">PILOT GAP</div>
+        <div style="font-weight:500; font-size:17px; margin:var(--s-3) 0; letter-spacing:-0.01em; line-height:1.25;">Pilot coverage gaps.</div>
+        <p class="body body--sm" style="color:var(--ink-secondary);">Roster vs. demand, cross-checked against transit time, hours-of-rest and exchange points. Pilot shortfall flagged before the first vessel commits inbound.</p>
+      </div>
+      <div class="card" style="padding:var(--s-6);">
+        <div class="mono" style="color:var(--sig-critical); font-size:10px; letter-spacing:0.14em;">SERVICE CLASH</div>
+        <div style="font-weight:500; font-size:17px; margin:var(--s-3) 0; letter-spacing:-0.01em; line-height:1.25;">Tug & line double-bookings.</div>
+        <p class="body body--sm" style="color:var(--ink-secondary);">Tug capacity, bollard pull suitability and line-gang availability validated against every concurrent movement in the window. No two vessels assigned the same asset.</p>
+      </div>
+    </div>
+
+    <div class="frame frame--pad" style="margin-top:var(--s-8); padding:var(--s-6) var(--s-8); display:flex; gap:var(--s-8); align-items:center; justify-content:space-between; flex-wrap:wrap;">
+      <div style="display:flex; gap:var(--s-3); align-items:center;">
+        <span class="mono" style="color:var(--brand-teal); font-size:11px; letter-spacing:0.14em;">PRINCIPLE</span>
+        <div style="font-size:15px;">Every safety event detected is recorded, surfaced or not, acted on or not. The ledger is the audit trail.</div>
+      </div>
+      <a class="btn btn--ghost" href="platform.html">Conflict detection in detail →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRODUCT PREVIEW ============ -->
+<section class="section">
+  <div class="container container--wide">
+    <div class="section__head">
+      <div>
+        <div class="eyebrow" style="margin-bottom:var(--s-4);">The platform</div>
+        <h2 class="h-section">A coordination layer<br>that <em>sits above</em> your systems.</h2>
+        <p class="lede" style="margin-top:var(--s-6);">VTS was built to track. Horizon was built to coordinate. It sits above your VTS, TOS and scheduling tools, connecting them and adding the layer they were never built to provide: context, risk, and recommendation.</p>
+      </div>
+    </div>
+
+    <!-- architecture diagram -->
+    <div class="frame frame--pad" style="padding:var(--s-12);">
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:var(--s-4); align-items:stretch;">
+        <!-- left col: live feeds -->
+        <div>
+          <div class="eyebrow" style="margin-bottom:var(--s-4);">Live feeds in</div>
+          <div style="display:flex; flex-direction:column; gap:var(--s-2);">
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--brand-teal); font-size:10px;">VESSEL</div><div style="font-size:13px; margin-top:2px;">AIS · open water + port</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--brand-teal); font-size:10px;">TIDAL</div><div style="font-size:13px; margin-top:2px;">DUKC · UKC predictions</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--brand-teal); font-size:10px;">METEO</div><div style="font-size:13px; margin-top:2px;">Wind · swell · visibility</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--brand-teal); font-size:10px;">SCHEDULES</div><div style="font-size:13px; margin-top:2px;">Berth · pilot · tug · lines</div></div>
+          </div>
+        </div>
+
+        <!-- centre: engine -->
+        <div style="display:flex; align-items:center; justify-content:center; padding:var(--s-6);">
+          <div style="width:100%; aspect-ratio:1/1; max-width:240px; border:1px solid var(--brand-teal); border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:var(--s-6); position:relative; box-shadow:0 0 60px rgba(73,188,191,0.15) inset;">
+            <div class="mono" style="color:var(--brand-teal); font-size:10px; letter-spacing:0.16em;">DECISION ENGINE</div>
+            <div style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin-top:var(--s-3); text-align:center; line-height:1.1;">Context<br>Risk<br>Reward</div>
+            <!-- pulse rings -->
+            <div style="position:absolute; inset:-12px; border:1px solid rgba(73,188,191,0.3); border-radius:50%;"></div>
+            <div style="position:absolute; inset:-28px; border:1px solid rgba(73,188,191,0.15); border-radius:50%;"></div>
+          </div>
+        </div>
+
+        <!-- right col: actions out -->
+        <div>
+          <div class="eyebrow" style="margin-bottom:var(--s-4); text-align:right;">Decisions out</div>
+          <div style="display:flex; flex-direction:column; gap:var(--s-2);">
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--sig-critical); font-size:10px;">CONFLICT</div><div style="font-size:13px; margin-top:2px;">Detection + cascade modelling</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--sig-advisory); font-size:10px;">ETD RISK</div><div style="font-size:13px; margin-top:2px;">Variance scoring · live</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--sig-decision); font-size:10px;">DECISION</div><div style="font-size:13px; margin-top:2px;">Recommendations + audit trail</div></div>
+            <div class="card card--bare" style="padding:var(--s-4);"><div class="mono" style="color:var(--sig-nominal); font-size:10px;">COORDINATION</div><div style="font-size:13px; margin-top:2px;">Pilot · tug · berth tasking</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:var(--s-10);">
+      <a class="btn btn--ghost btn--lg" href="platform.html">Explore the platform →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ OUTCOMES ============ -->
+<section class="section">
+  <div class="container container--wide">
+    <div class="section__head">
+      <div>
+        <div class="eyebrow" style="margin-bottom:var(--s-4);">What it makes possible</div>
+        <h2 class="h-section"><em>Safer.</em> Smarter. Stronger.</h2>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:var(--s-5);">
+      <div class="card">
+        <div class="mono" style="color:var(--sig-nominal); margin-bottom:var(--s-4); font-size:11px; letter-spacing:0.14em;">✓  SAFER</div>
+        <div class="h-card" style="margin-bottom:var(--s-4);">Confident calls,<br>not conservative ones.</div>
+        <p class="body body--sm">Decisions made with full context. Conflicts surfaced before they become incidents. Every movement backed by live tide, weather and draft data, so conservative calls are replaced with confident ones.</p>
+      </div>
+      <div class="card">
+        <div class="mono" style="color:var(--brand-teal); margin-bottom:var(--s-4); font-size:11px; letter-spacing:0.14em;">→  SMARTER</div>
+        <div class="h-card" style="margin-bottom:var(--s-4);">More movements.<br>Same infrastructure.</div>
+        <p class="body body--sm">Tide windows, berth sequencing and service coordination optimised in real time, not managed conservatively because visibility is limited. More throughput without adding capacity or cost.</p>
+      </div>
+      <div class="card">
+        <div class="mono" style="color:var(--sig-decision); margin-bottom:var(--s-4); font-size:11px; letter-spacing:0.14em;">◊  STRONGER</div>
+        <div class="h-card" style="margin-bottom:var(--s-4);">Data-driven operations,<br>audited by design.</div>
+        <p class="body body--sm">Every decision logged, every action traceable. Audit trails built in, not bolted on. As throughput rises and idle berth time falls, the commercial case builds itself.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA BAND ============ -->
+<section class="section" style="border-bottom:0; padding:var(--s-20) 0;">
+  <div class="container container--narrow" style="text-align:center;">
+    <div class="eyebrow" style="margin-bottom:var(--s-5);">The opportunity</div>
+    <h2 class="h-section" style="margin-bottom:var(--s-6);">Be the port that<br><em>builds what comes next.</em></h2>
+    <p class="lede" style="margin:0 auto var(--s-10); max-width:56ch;">Horizon is already running. What it needs now is the right environment and the right partner. We're inviting founding development partners to shape how the platform evolves.</p>
+    <div style="display:flex; gap:var(--s-3); justify-content:center;">
+      <a class="btn btn--primary btn--lg" href="about.html#briefing">Request a briefing →</a>
+      <a class="btn btn--ghost btn--lg" href="decisions.html">See a live decision walkthrough</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="container container--wide">
+    <div class="footer__top">
+      <div class="footer__brand-block">
+        <a class="topnav__brand" href="index.html">
+          <img class="brand-logo" src="img/horizon-logo-tight.png" alt="Project Horizon, by AMS Group" />
+          <span class="topnav__sub">by</span><img class="topnav__sub-logo" src="img/ams-group-logo.png" alt="AMS Group" />
+        </a>
+        <p class="lede">Maritime intelligence, built beyond the horizon. A shared forward picture for Harbour Masters, VTS teams and port control.</p>
+      </div>
+      <div class="footer__col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="platform.html">Platform</a></li>
+          <li><a href="decisions.html">Decision Support</a></li>
+          <li><a href="operators.html">For Operators</a></li>
+        </ul>
+      </div>
+      <div class="footer__col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="about.html">About</a></li>
+          
+          <li><a href="about.html#briefing">Request a briefing</a></li>
+        </ul>
+      </div>
+      <div class="footer__col">
+        <h4>AMS Group</h4>
+        <ul>
+          <li><a href="about.html">About AMS</a></li>
+          <li><a href="mailto:ahoy@horizon.ams.group">ahoy@horizon.ams.group</a></li>
+          <li><a href="about.html#contact">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 AMS GROUP · HORIZON DIVISION · PATENT PENDING</span>
+      <div class="footer__legal">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Security</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

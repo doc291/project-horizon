@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Internal / staging
+Disallow: /sign-in-options.html
+Disallow: /partials/
+Disallow: /dist/
+Disallow: /CHANGELOG-v2.md
+Disallow: /README.md
+
+Sitemap: https://horizon.ams.group/sitemap.xml
