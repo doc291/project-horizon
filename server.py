@@ -2509,6 +2509,21 @@ def build_summary():
 # ── HTTP handler ──────────────────────────────────────────────────────────────
 
 class HorizonHandler(BaseHTTPRequestHandler):
+    # Browser security headers emitted on every response.
+    # CSP and HSTS are deliberately excluded from this set — they ship separately.
+    _SECURITY_HEADERS = (
+        ("X-Content-Type-Options",     "nosniff"),
+        ("X-Frame-Options",            "DENY"),
+        ("Referrer-Policy",            "strict-origin-when-cross-origin"),
+        ("Permissions-Policy",         "camera=(), microphone=(), geolocation=(), interest-cohort=()"),
+        ("Cross-Origin-Opener-Policy", "same-origin"),
+    )
+
+    def end_headers(self):
+        for name, value in self._SECURITY_HEADERS:
+            self.send_header(name, value)
+        super().end_headers()
+
     def log_message(self, format, *args):
         if args and str(args[1]) not in ("200", "304"):
             super().log_message(format, *args)
