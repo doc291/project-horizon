@@ -2510,13 +2510,14 @@ def build_summary():
 
 class HorizonHandler(BaseHTTPRequestHandler):
     # Browser security headers emitted on every response.
-    # CSP and HSTS are deliberately excluded from this set — they ship separately.
+    # CSP is deliberately excluded from this set — it ships separately via report-only staging.
     _SECURITY_HEADERS = (
         ("X-Content-Type-Options",     "nosniff"),
         ("X-Frame-Options",            "DENY"),
         ("Referrer-Policy",            "strict-origin-when-cross-origin"),
         ("Permissions-Policy",         "camera=(), microphone=(), geolocation=(), interest-cohort=()"),
         ("Cross-Origin-Opener-Policy", "same-origin"),
+        ("Strict-Transport-Security",  "max-age=15552000; includeSubDomains"),
     )
 
     def end_headers(self):
@@ -2594,7 +2595,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 self.send_header("Location", next_p)
                 self.send_header(
                     "Set-Cookie",
-                    f"{_COOKIE_NAME}={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age={_COOKIE_TTL}"
+                    f"{_COOKIE_NAME}={token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age={_COOKIE_TTL}"
                 )
                 self.send_header("Content-Length", "0")
                 self.end_headers()
@@ -2609,7 +2610,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
         self.send_header("Location", "/login")
         self.send_header(
             "Set-Cookie",
-            f"{_COOKIE_NAME}=; Path=/; HttpOnly; Max-Age=0"
+            f"{_COOKIE_NAME}=; Path=/; HttpOnly; Secure; Max-Age=0"
         )
         self.send_header("Content-Length", "0")
         self.end_headers()
