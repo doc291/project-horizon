@@ -2718,10 +2718,10 @@ class HorizonHandler(BaseHTTPRequestHandler):
             self._amsg_logo()
             return
         if path == "/favicon.ico":
-            self._serve_icon_asset(os.path.join(_SITE_ROOT, "img", "favicon-192.png"))
+            self._serve_icon_asset(str(MOBILE_ICON_FILE))
             return
         if path == "/apple-touch-icon.png":
-            self._serve_icon_asset(os.path.join(_SITE_ROOT, "img", "apple-touch-icon.png"))
+            self._serve_icon_asset(str(MOBILE_ICON_FILE))
             return
 
         # Favicon and PWA icon assets are fetched by browsers before the user can
@@ -2920,9 +2920,9 @@ class HorizonHandler(BaseHTTPRequestHandler):
         elif path == "/amsg-logo":
             self._amsg_logo()
         elif path == "/favicon.ico":
-            self._serve_icon_asset(os.path.join(_SITE_ROOT, "img", "favicon-192.png"))
+            self._serve_icon_asset(str(MOBILE_ICON_FILE))
         elif path == "/apple-touch-icon.png":
-            self._serve_icon_asset(os.path.join(_SITE_ROOT, "img", "apple-touch-icon.png"))
+            self._serve_icon_asset(str(MOBILE_ICON_FILE))
         elif path == "/api/port-brief":
             self._port_brief_pdf()
         elif path == "/api/brief-config":
