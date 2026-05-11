@@ -130,7 +130,7 @@ _scraping     = False      # Flag: scrape in progress
 # Populated by background thread; build_summary() reads from cache only.
 _mst_cache      = {}          # {"AUBNE": [...], "AUMEL": [...], ...}
 _mst_cache_lock = threading.Lock()
-_MST_REFRESH_HOURS = 12       # refresh twice daily
+_MST_REFRESH_HOURS = 2        # refresh every 2 hours
 
 
 def _refresh_mst_cache():
