@@ -34,6 +34,7 @@ from vessel_scraper import fetch_vessel_movements
 from weather import fetch_weather
 import mst_scraper
 import aisstream_scraper
+import db
 
 _ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
@@ -4250,6 +4251,7 @@ doRefresh();setInterval(doRefresh,30000);
 
 if __name__ == "__main__":
     log.info("Starting — active port: %s", _ACTIVE_PORT_ID)
+    db.verify_connection_if_configured()
     _schedule_scrapes()
     load_qships_data()
     aisstream_scraper.start()       # WebSocket — preferred live AIS source

@@ -18,6 +18,11 @@
 # Database migrations (Phase 0 step 0.2 onwards)
 alembic>=1.13,<2.0
 
+# SQLAlchemy — used by Alembic's env.py for online migrations.
+# Transitively required by alembic; declared explicitly here so the
+# version is locked alongside alembic.
+sqlalchemy>=2.0,<3.0
+
 # Postgres driver — pure Python core with binary wheel fallback
 psycopg[binary]>=3.1,<4.0
 

@@ -173,6 +173,48 @@ Phase 0 ships in two operational modes that share the same codebase:
 
 In Phase 0, **DATABASE_URL stays unset in Railway production** until cost, backup, and restore posture are confirmed (per ADR-002 amendment recorded at acceptance). Development can freely use the Postgres-backed mode.
 
+### Startup verification (when DATABASE_URL is set)
+
+When `DATABASE_URL` is set, the application verifies Postgres connectivity at startup before serving requests. Expected log line on a healthy connection:
+
+```
+INFO  [horizon.db] DATABASE_URL verified — Postgres connectivity OK
+```
+
+If the connection fails, the application exits with a clear error. This is intentional: misconfiguration should surface immediately, not at first query.
+
+If `DATABASE_URL` is unset, expected log line:
+
+```
+INFO  [horizon.db] DATABASE_URL not set — running in legacy in-memory mode
+```
+
+### Running Alembic migrations (development only)
+
+Alembic manages the database schema. Migrations live in `migrations/versions/`. Each Phase 0 step adds new migrations; this section is the operating procedure.
+
+```bash
+# Ensure DATABASE_URL is set in your shell (.env file loaded)
+echo $DATABASE_URL   # → postgresql://localhost:5432/horizon_dev
+
+# Apply all pending migrations
+alembic upgrade head
+
+# Show the current revision
+alembic current
+
+# Show migration history
+alembic history --verbose
+
+# Roll back one migration (development only — production migrations are
+# forward-only in v1)
+alembic downgrade -1
+```
+
+The Phase 0.2 baseline is `0001_initial_marker`, an empty marker that creates only the `alembic_version` table. Subsequent migrations build on it.
+
+**Important:** Alembic is a development tool in Phase 0. Production migrations will be a separate, governed process once any tenant deployment uses Postgres operationally. Do not run `alembic` against any production database without explicit authorisation.
+
 ## 9. Common issues
 
 | Symptom | Likely cause | Fix |
@@ -194,6 +236,8 @@ In Phase 0, **DATABASE_URL stays unset in Railway production** until cost, backu
 - `aisstream_scraper.py`, `mst_scraper.py` — AIS connectors.
 - `requirements.txt` — runtime dependencies (4 packages).
 - `requirements-dev.txt` — development dependencies (this file's companion).
+- `db.py` — Postgres connection module (Phase 0.2). Gated behind `DATABASE_URL`.
+- `alembic.ini`, `migrations/` — schema migration tooling. Used only when `DATABASE_URL` is set.
 - `CLAUDE.md` — architectural overview, conventions, and operational notes.
 
 Once Phase 0.2 lands, additional modules and migration directories will appear; this section will be updated with each Phase 0 PR.
