@@ -57,8 +57,10 @@ _SESSION_KEY = secrets.token_hex(32)          # regenerated each server restart
 _COOKIE_NAME = "hz_sess"
 _COOKIE_TTL  = 60 * 60 * 12                   # 12 hours
 
-# Paths that bypass auth entirely (assets needed by the login page itself)
-_PUBLIC_PATHS = {"/login", "/logo", "/amsg-logo", "/health", "/api/health-data"}
+# Paths that bypass auth entirely (assets needed by the login page itself,
+# plus favicon/PWA icons that browsers fetch before the user can authenticate)
+_PUBLIC_PATHS = {"/login", "/logo", "/amsg-logo", "/health", "/api/health-data",
+                 "/favicon.ico", "/apple-touch-icon.png"}
 
 # ── Website host routing ──────────────────────────────────────────────────────
 _SITE_HOST = "horizon.ams.group"
@@ -2705,13 +2707,27 @@ class HorizonHandler(BaseHTTPRequestHandler):
         """Serve the static marketing website for horizon.ams.group."""
         from urllib.parse import urlparse, parse_qs, quote
 
-        # Auth gate — identical behaviour to main app
+        # Favicon and PWA icon assets are fetched by browsers before the user can
+        # authenticate. Exempt only these specific paths so the rest of the site
+        # (including robots.txt and sitemap.xml) remains auth-gated pre-launch.
+        _SITE_PUBLIC = {
+            "/favicon.ico",
+            "/apple-touch-icon.png",
+            "/img/favicon-16.png",
+            "/img/favicon-32.png",
+            "/img/favicon-192.png",
+            "/img/apple-touch-icon.png",
+            "/img/icon-512.png",
+            "/site.webmanifest",
+        }
+
+        # Auth gate — identical behaviour to main app, with favicon/PWA exemption
         if path == "/login":
             qs = parse_qs(urlparse(self.path).query)
             next_path = qs.get("next", ["/"])[0]
             self._serve_login(next_path=next_path)
             return
-        if not self._is_authenticated():
+        if path not in _SITE_PUBLIC and not self._is_authenticated():
             safe_next = self.path if self.path.startswith("/") else "/"
             self._redirect(f"/login?next={quote(safe_next, safe='/?=&')}")
             return
@@ -2886,6 +2902,10 @@ class HorizonHandler(BaseHTTPRequestHandler):
             self._logo()
         elif path == "/amsg-logo":
             self._amsg_logo()
+        elif path == "/favicon.ico":
+            self._serve_icon_asset(os.path.join(_SITE_ROOT, "img", "favicon-192.png"))
+        elif path == "/apple-touch-icon.png":
+            self._serve_icon_asset(os.path.join(_SITE_ROOT, "img", "apple-touch-icon.png"))
         elif path == "/api/port-brief":
             self._port_brief_pdf()
         elif path == "/api/brief-config":
@@ -4177,6 +4197,20 @@ doRefresh();setInterval(doRefresh,30000);
                 self.wfile.write(body)
                 return
         self.send_error(404, "amsg logo not found")
+
+    def _serve_icon_asset(self, file_path: str):
+        """Serve a PNG icon file (favicon, apple-touch-icon) from deploy/img/."""
+        try:
+            with open(file_path, "rb") as fh:
+                body = fh.read()
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.end_headers()
+            self.wfile.write(body)
+        except OSError:
+            self.send_error(404, "icon asset not found")
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
