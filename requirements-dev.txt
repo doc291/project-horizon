@@ -1,0 +1,26 @@
+# Project Horizon — development dependencies
+#
+# These are installed in development environments only.
+# Production deployments use requirements.txt; do not install this file
+# in production.
+#
+# Setup:
+#   pip install -r requirements-dev.txt
+# (this transitively installs requirements.txt via the -r line below)
+#
+# Scope: Phase 0 foundation work per ADR-002 (Postgres connection,
+# migrations, audit infrastructure, tests). Phase 0 does not require
+# Postgres in production — DATABASE_URL stays unset in Railway until
+# cost, backup, and restore posture are confirmed.
+
+-r requirements.txt
+
+# Database migrations (Phase 0 step 0.2 onwards)
+alembic>=1.13,<2.0
+
+# Postgres driver — pure Python core with binary wheel fallback
+psycopg[binary]>=3.1,<4.0
+
+# Testing
+pytest>=8.0,<9.0
+pytest-cov>=4.0,<6.0
