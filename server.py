@@ -2707,6 +2707,23 @@ class HorizonHandler(BaseHTTPRequestHandler):
         """Serve the static marketing website for horizon.ams.group."""
         from urllib.parse import urlparse, parse_qs, quote
 
+        # Shared image assets — delegate to the same handlers used by the
+        # operational app so /logo, /amsg-logo, /favicon.ico and the
+        # apple-touch-icon resolve identically on both hosts. These are public
+        # by design (the login page image references must work before auth).
+        if path == "/logo":
+            self._logo()
+            return
+        if path == "/amsg-logo":
+            self._amsg_logo()
+            return
+        if path == "/favicon.ico":
+            self._serve_icon_asset(os.path.join(_SITE_ROOT, "img", "favicon-192.png"))
+            return
+        if path == "/apple-touch-icon.png":
+            self._serve_icon_asset(os.path.join(_SITE_ROOT, "img", "apple-touch-icon.png"))
+            return
+
         # Favicon and PWA icon assets are fetched by browsers before the user can
         # authenticate. Exempt only these specific paths so the rest of the site
         # (including robots.txt and sitemap.xml) remains auth-gated pre-launch.
