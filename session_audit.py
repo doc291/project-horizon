@@ -26,6 +26,7 @@ ADR-002 §6 (commits / forecloses) for the explicit transition point.
 
 from __future__ import annotations
 
+import copy
 import logging
 import os
 import threading
@@ -84,13 +85,27 @@ def emit_async(
     When DATABASE_URL is unset OR AUDIT_EMISSION_ENABLED is false:
     no thread is spawned, no DB connection attempted, no psycopg
     imported.
+
+    Lifecycle safety: the payload dict is deep-copied here, BEFORE the
+    worker thread starts. The worker thread sees an immutable snapshot
+    of the payload regardless of what the caller does next (including
+    mutating, garbage-collecting, or reusing the original dict).
     """
     if not is_enabled():
         return
 
+    # Lifecycle: pin a snapshot of the payload. The caller may construct
+    # the payload using shared references that are mutated, freed, or
+    # reused after this call returns. The worker thread runs
+    # concurrently, so we must own our own copy before crossing the
+    # thread boundary. tenant_id, event_type, subject_type, subject_id,
+    # actor_handle, and actor_type are all immutable strings (or None),
+    # so they are inherently safe to share by reference.
+    payload_snapshot = copy.deepcopy(payload)
+
     threading.Thread(
         target=_emit_worker,
-        args=(tenant_id, event_type, subject_type, subject_id, payload, actor_handle, actor_type),
+        args=(tenant_id, event_type, subject_type, subject_id, payload_snapshot, actor_handle, actor_type),
         daemon=True,
         name=f"audit-emit-{event_type}",
     ).start()
@@ -114,8 +129,12 @@ def emit_sync(
     """
     if not is_enabled():
         return False
+    # Symmetric lifecycle safety with emit_async — snapshot the payload
+    # so test code that mutates the payload after emit_sync still sees
+    # the expected stored value.
+    payload_snapshot = copy.deepcopy(payload)
     return _emit_worker(
-        tenant_id, event_type, subject_type, subject_id, payload,
+        tenant_id, event_type, subject_type, subject_id, payload_snapshot,
         actor_handle, actor_type,
     )
 

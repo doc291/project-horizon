@@ -310,6 +310,89 @@ class TestSessionEventsEmission:
             time.sleep(0.1)
         assert count == 1
 
+    def test_payload_isolated_from_caller_mutation_after_emit_async(
+        self, session_audit_enabled, conn, tenant_id
+    ):
+        """
+        Lifecycle safety per ChatGPT Phase-0.6 review:
+        the worker thread MUST see an immutable snapshot of the
+        payload, even if the caller mutates the dict immediately
+        after emit_async returns.
+        """
+        sa = session_audit_enabled
+        payload = {
+            "username": "horizon",
+            "marker": "ORIGINAL",
+            "client_info": {"remote_addr": "10.0.0.1"},
+        }
+        sa.emit_async(
+            tenant_id=tenant_id,
+            event_type="SESSION_STARTED",
+            subject_type="operator_session",
+            subject_id="horizon",
+            payload=payload,
+        )
+        # Immediately mutate the payload AFTER emit_async returns —
+        # this races with the daemon thread. Deep-copy in emit_async
+        # must make the worker see the original values.
+        payload["marker"] = "TAMPERED_AFTER_THREAD_START"
+        payload["injected"] = "SECRET"
+        payload["client_info"]["remote_addr"] = "9.9.9.9"
+        del payload["username"]
+
+        # Wait for the daemon thread to complete and inspect the stored row
+        stored = None
+        for _ in range(50):
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT payload FROM audit.events WHERE tenant_id = %s",
+                    (tenant_id,),
+                )
+                row = cur.fetchone()
+            if row:
+                stored = row[0]
+                break
+            time.sleep(0.1)
+
+        assert stored is not None, "no audit row appeared within 5 seconds"
+        assert stored.get("marker") == "ORIGINAL", (
+            f"caller mutation leaked into stored audit row: {stored}"
+        )
+        assert stored.get("username") == "horizon", (
+            f"caller deletion leaked into stored audit row: {stored}"
+        )
+        assert "injected" not in stored, (
+            f"caller injection leaked into stored audit row: {stored}"
+        )
+        assert stored["client_info"]["remote_addr"] == "10.0.0.1", (
+            f"caller nested mutation leaked: {stored}"
+        )
+
+    def test_payload_isolated_from_caller_mutation_emit_sync(
+        self, session_audit_enabled, conn, tenant_id
+    ):
+        """emit_sync also pins a payload snapshot (symmetric guarantee)."""
+        sa = session_audit_enabled
+        payload = {"username": "horizon", "marker": "ORIGINAL"}
+        sa.emit_sync(
+            tenant_id=tenant_id,
+            event_type="SESSION_STARTED",
+            subject_type="operator_session",
+            subject_id="horizon",
+            payload=payload,
+        )
+        # Mutate after emit_sync — should not affect stored row (already
+        # written), but tests that emit_sync also copies (no shared state)
+        payload["marker"] = "TAMPERED"
+
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT payload FROM audit.events WHERE tenant_id = %s",
+                (tenant_id,),
+            )
+            stored = cur.fetchone()[0]
+        assert stored["marker"] == "ORIGINAL"
+
 
 @db_required
 class TestBestEffortFailureMode:
