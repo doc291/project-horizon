@@ -256,14 +256,27 @@ class TestSequentialChain:
 
 @db_required
 class TestTamperDetection:
-    def test_row_hash_tamper_detected(self, conn, tenant_id):
-        """Modify a row's payload directly in DB; chain verify fails."""
+    """
+    Four-case tamper coverage per ChatGPT amendment to ADR-002 §1.2:
+
+      1. modifying only `payload` jsonb                → payload_hash_mismatch
+      2. modifying only `payload_hash`                 → payload_hash_mismatch
+      3. modifying only `row_hash`                     → row_hash_mismatch
+      4. modifying `payload` + `payload_hash` together → row_hash_mismatch
+         (consistent payload tamper, but row_hash still references old hash)
+
+    All four MUST cause verify_chain to fail. The chain is no longer
+    indifferent to the live payload jsonb — payload_hash is now
+    recomputed from the stored jsonb on every verification.
+    """
+
+    def _emit_two_events(self, conn, tenant_id):
         audit.emit(
             conn, tenant_id,
             event_type="TENANT_INITIALISED",
             subject_type="tenant",
             subject_id=tenant_id,
-            payload={"original": True},
+            payload={"v": 1},
         )
         audit.emit(
             conn, tenant_id,
@@ -274,7 +287,10 @@ class TestTamperDetection:
         )
         conn.commit()
 
-        # Tamper: change payload of row 2 without updating row_hash.
+    def test_case_1_payload_jsonb_only_tamper_detected(self, conn, tenant_id):
+        """Case 1: modify payload jsonb; payload_hash unchanged → payload_hash_mismatch."""
+        self._emit_two_events(conn, tenant_id)
+
         with conn.cursor() as cur:
             cur.execute(
                 "UPDATE audit.events SET payload = %s::jsonb "
@@ -284,68 +300,31 @@ class TestTamperDetection:
         conn.commit()
 
         result = audit.verify_chain(conn, tenant_id)
-        # row_hash recomputed from CURRENT payload will not match stored hash
-        # (because payload_hash stored was computed from original; we did not
-        # change payload_hash). However, payload_hash is also stored separately
-        # and the row's row_hash was computed from the stored payload_hash, not
-        # from the live payload jsonb. The chain verification recomputes
-        # row_hash from stored fields, so it should still pass.
-        #
-        # Demonstrate the right tamper test: modify payload_hash directly,
-        # which will break the chain.
-        assert result["ok"] is True  # changing payload jsonb alone does not break the chain
-        # because chain is built over payload_hash, not over live payload jsonb.
+        assert result["ok"] is False
+        assert result["break_at"] == 2
+        assert result["error_kind"] == "payload_hash_mismatch"
 
-    def test_payload_hash_tamper_detected(self, conn, tenant_id):
-        audit.emit(
-            conn, tenant_id,
-            event_type="TENANT_INITIALISED",
-            subject_type="tenant",
-            subject_id=tenant_id,
-            payload={"v": 1},
-        )
-        audit.emit(
-            conn, tenant_id,
-            event_type="VESSEL_STATE_OBSERVED",
-            subject_type="vessel",
-            subject_id="V",
-            payload={"v": 2},
-        )
-        conn.commit()
+    def test_case_2_payload_hash_only_tamper_detected(self, conn, tenant_id):
+        """Case 2: modify payload_hash; payload jsonb unchanged → payload_hash_mismatch."""
+        self._emit_two_events(conn, tenant_id)
 
-        # Tamper the payload_hash of row 2 (must keep 32 bytes to satisfy CHECK).
-        tampered = b"\x00" * 32
         with conn.cursor() as cur:
             cur.execute(
                 "UPDATE audit.events SET payload_hash = %s "
                 "WHERE tenant_id = %s AND sequence_no = 2",
-                (tampered, tenant_id),
+                (b"\x00" * 32, tenant_id),
             )
         conn.commit()
 
         result = audit.verify_chain(conn, tenant_id)
         assert result["ok"] is False
         assert result["break_at"] == 2
-        assert result["error_kind"] == "row_hash_mismatch"
+        assert result["error_kind"] == "payload_hash_mismatch"
 
-    def test_row_hash_direct_tamper_detected(self, conn, tenant_id):
-        audit.emit(
-            conn, tenant_id,
-            event_type="TENANT_INITIALISED",
-            subject_type="tenant",
-            subject_id=tenant_id,
-            payload={"v": 1},
-        )
-        audit.emit(
-            conn, tenant_id,
-            event_type="VESSEL_STATE_OBSERVED",
-            subject_type="vessel",
-            subject_id="V",
-            payload={"v": 2},
-        )
-        conn.commit()
+    def test_case_3_row_hash_only_tamper_detected(self, conn, tenant_id):
+        """Case 3: modify row_hash directly; payload + payload_hash intact → row_hash_mismatch."""
+        self._emit_two_events(conn, tenant_id)
 
-        # Tamper row_hash of row 1; subsequent row's prev_hash linkage will break.
         with conn.cursor() as cur:
             cur.execute(
                 "UPDATE audit.events SET row_hash = %s "
@@ -356,9 +335,35 @@ class TestTamperDetection:
 
         result = audit.verify_chain(conn, tenant_id)
         assert result["ok"] is False
-        # row 1's row_hash now doesn't match what was used to compute it,
-        # so verify_chain detects mismatch at row 1.
         assert result["break_at"] == 1
+        assert result["error_kind"] == "row_hash_mismatch"
+
+    def test_case_4_payload_and_hash_consistent_but_row_hash_unchanged(self, conn, tenant_id):
+        """
+        Case 4: attacker updates BOTH payload and payload_hash to a
+        consistent new pair, but leaves row_hash alone.
+
+        payload_hash check now passes (jsonb hashes to the new stored
+        hash), but row_hash check fails because the stored row_hash was
+        computed from the OLD payload_hash. Detection lands on
+        row_hash_mismatch, not payload_hash_mismatch.
+        """
+        self._emit_two_events(conn, tenant_id)
+
+        new_payload = {"position": [99, 99]}
+        new_payload_hash = audit.payload_hash(new_payload)
+
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE audit.events SET payload = %s::jsonb, payload_hash = %s "
+                "WHERE tenant_id = %s AND sequence_no = 2",
+                ('{"position":[99,99]}', new_payload_hash, tenant_id),
+            )
+        conn.commit()
+
+        result = audit.verify_chain(conn, tenant_id)
+        assert result["ok"] is False
+        assert result["break_at"] == 2
         assert result["error_kind"] == "row_hash_mismatch"
 
 

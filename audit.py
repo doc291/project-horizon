@@ -340,7 +340,14 @@ def verify_chain(
 
     1. Verify there is no sequence gap.
     2. Verify prev_hash matches the prior row's row_hash (or genesis).
-    3. Verify row_hash equals the recomputed hash of this row's content.
+    3. Verify stored payload_hash equals SHA-256(canonical_json(payload))
+       — catches direct tampering of the payload jsonb in the DB.
+    4. Verify stored row_hash equals the recomputed hash of this row's
+       content (including the stored payload_hash and prev_hash).
+
+    Together (3) and (4) ensure that any tampering of payload jsonb,
+    payload_hash, or row_hash is detectable. (2) extends detection to
+    insertions or deletions across the chain.
 
     Returns a dict:
       {
@@ -350,7 +357,8 @@ def verify_chain(
         "checked":           int,             # number of rows verified
         "ok":                bool,
         "break_at":          int | None,      # sequence_no where chain broke
-        "error_kind":        str | None,      # 'gap' | 'prev_hash_mismatch' | 'row_hash_mismatch'
+        "error_kind":        str | None,      # 'gap' | 'prev_hash_mismatch'
+                                              # | 'payload_hash_mismatch' | 'row_hash_mismatch'
       }
     """
     base = {
@@ -367,7 +375,7 @@ def verify_chain(
         query = (
             "SELECT event_id, sequence_no, ts_event, ts_recorded, "
             "event_type, subject_type, subject_id, actor_handle, actor_type, "
-            "payload_hash, source_payload_refs, prev_hash, row_hash "
+            "payload, payload_hash, source_payload_refs, prev_hash, row_hash "
             "FROM audit.events "
             "WHERE tenant_id = %s AND sequence_no >= %s"
         )
@@ -404,7 +412,7 @@ def verify_chain(
         (event_id, seq, ts_event, ts_recorded,
          event_type, subject_type, subject_id,
          actor_handle, actor_type,
-         p_hash_db, src_refs, prev_h_db, row_h_db) = row
+         payload_db, p_hash_db, src_refs, prev_h_db, row_h_db) = row
 
         # Gap detection
         if seq != expected_seq:
@@ -419,6 +427,14 @@ def verify_chain(
         if prev_h_db_bytes != expected_prev_hash:
             return {**base, "checked": checked, "ok": False,
                     "break_at": seq, "error_kind": "prev_hash_mismatch"}
+
+        # payload_hash integrity: stored hash must match SHA-256 of the
+        # canonical JSON of the stored payload. Catches direct DB tamper
+        # of payload jsonb or of payload_hash.
+        recomputed_payload_hash = payload_hash(payload_db)
+        if recomputed_payload_hash != p_hash_db_bytes:
+            return {**base, "checked": checked, "ok": False,
+                    "break_at": seq, "error_kind": "payload_hash_mismatch"}
 
         # Recompute row_hash from row content
         recomputed = compute_row_hash(
