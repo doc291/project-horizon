@@ -36,6 +36,7 @@ import mst_scraper
 import aisstream_scraper
 import db
 import tenant
+import session_audit
 
 _ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
@@ -2602,6 +2603,21 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 )
                 self.send_header("Content-Length", "0")
                 self.end_headers()
+                # Best-effort audit emission (Phase 0.6). No-op when
+                # DATABASE_URL is unset; never blocks the response.
+                session_audit.emit_async(
+                    tenant_id=self.tenant_id,
+                    event_type="SESSION_STARTED",
+                    subject_type="operator_session",
+                    subject_id=user,
+                    payload=session_audit.make_session_started_payload(
+                        user,
+                        remote_addr=(self.client_address[0] if self.client_address else None),
+                        next_path=next_p,
+                    ),
+                    actor_handle=session_audit.resolve_actor_handle(user, _AUTH_USER),
+                    actor_type="operator",
+                )
             else:
                 self._serve_login(error=True, next_path=next_p)
         except Exception as exc:
@@ -2609,6 +2625,15 @@ class HorizonHandler(BaseHTTPRequestHandler):
             self.send_error(500)
 
     def _handle_logout(self):
+        # Extract the username from the existing cookie for the audit
+        # event subject_id; fall back to _AUTH_USER if not parseable.
+        cookie_token = _get_cookie(self, _COOKIE_NAME)
+        logged_out_user = _AUTH_USER
+        if cookie_token:
+            parts = cookie_token.split(":")
+            if parts and parts[0]:
+                logged_out_user = parts[0]
+
         self.send_response(302)
         self.send_header("Location", "/login")
         self.send_header(
@@ -2617,6 +2642,19 @@ class HorizonHandler(BaseHTTPRequestHandler):
         )
         self.send_header("Content-Length", "0")
         self.end_headers()
+        # Best-effort audit emission (Phase 0.6). No-op when
+        # DATABASE_URL is unset; never blocks the response.
+        session_audit.emit_async(
+            tenant_id=self.tenant_id,
+            event_type="SESSION_ENDED",
+            subject_type="operator_session",
+            subject_id=logged_out_user,
+            payload=session_audit.make_session_ended_payload(
+                logged_out_user, reason="explicit_logout"
+            ),
+            actor_handle=session_audit.resolve_actor_handle(logged_out_user, _AUTH_USER),
+            actor_type="operator",
+        )
 
     def _serve_login(self, error: bool = False, next_path: str = "/"):
         error_html = (
