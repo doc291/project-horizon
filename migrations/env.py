@@ -24,8 +24,17 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Inject DATABASE_URL from environment into Alembic's config.
+#
+# SQLAlchemy 2.x defaults the `postgresql://` URL scheme to the legacy
+# psycopg2 driver. Horizon uses psycopg v3 (per requirements-dev.txt).
+# Insert the explicit driver hint so SQLAlchemy picks psycopg v3 and so
+# the same DATABASE_URL works for both db.py (raw psycopg) and Alembic.
 _db_url = os.environ.get("DATABASE_URL", "").strip()
 if _db_url:
+    if _db_url.startswith("postgresql://"):
+        _db_url = _db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    elif _db_url.startswith("postgres://"):
+        _db_url = _db_url.replace("postgres://", "postgresql+psycopg://", 1)
     config.set_main_option("sqlalchemy.url", _db_url)
 
 # Phase 0 migrations are hand-written; no SQLAlchemy ORM metadata yet.

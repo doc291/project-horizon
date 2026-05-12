@@ -3,6 +3,11 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Python virtualenvs
+.venv/
+.venv-*/
+venv/
+
 # macOS
 .DS_Store
 
