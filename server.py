@@ -37,6 +37,7 @@ import aisstream_scraper
 import db
 import tenant
 import session_audit
+import conflict_audit
 
 _ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
@@ -2911,8 +2912,10 @@ class HorizonHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/summary":
+            summary = None
             try:
-                self._json(build_summary())
+                summary = build_summary()
+                self._json(summary)
             except Exception as exc:
                 import traceback
                 tb = traceback.format_exc()
@@ -2920,12 +2923,20 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 global _qships_data
                 _qships_data = None
                 try:
-                    self._json(build_summary())
+                    summary = build_summary()
+                    self._json(summary)
                 except Exception as exc2:
                     tb2 = traceback.format_exc()
                     log.error("Simulation fallback also crashed: %s\n%s", exc2, tb2)
                     # Return the actual error as JSON so we can diagnose remotely
                     self._json({"error": str(exc2), "traceback": tb2}, status=500)
+            # Best-effort CONFLICT_DETECTED audit emission (Phase 0.7a).
+            # No-op when DATABASE_URL is unset or for already-seen conflict_ids.
+            # Runs after the response is already on the wire.
+            if summary and summary.get("conflicts"):
+                _port = summary.get("active_port_id") or summary.get("port")
+                for _c in summary["conflicts"]:
+                    conflict_audit.emit_async(self.tenant_id, _c, port_id=_port)
         elif path == "/api/diag":
             # Temporary diagnostic — calls build_summary and returns any exception
             import traceback as _tb
