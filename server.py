@@ -35,6 +35,7 @@ from weather import fetch_weather
 import mst_scraper
 import aisstream_scraper
 import db
+import tenant
 
 _ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
@@ -2542,6 +2543,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.split("?")[0]
+        self.tenant_id = tenant.resolve_tenant_id(self.headers.get("Host", ""))
 
         # ── Host routing: horizon.ams.group → only login/logout are valid POSTs ─
         host = self.headers.get("Host", "").split(":")[0].lower().strip()
@@ -2850,6 +2852,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?")[0]
+        self.tenant_id = tenant.resolve_tenant_id(self.headers.get("Host", ""))
 
         # ── Host routing: horizon.ams.group → static marketing site ───────────
         host = self.headers.get("Host", "").split(":")[0].lower().strip()
@@ -4252,6 +4255,7 @@ doRefresh();setInterval(doRefresh,30000);
 if __name__ == "__main__":
     log.info("Starting — active port: %s", _ACTIVE_PORT_ID)
     db.verify_connection_if_configured()
+    tenant.log_startup_mapping()
     _schedule_scrapes()
     load_qships_data()
     aisstream_scraper.start()       # WebSocket — preferred live AIS source
