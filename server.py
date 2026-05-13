@@ -2888,16 +2888,12 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 "port":         port_id,
                 "display_name": new_profile["display_name"],
             })
-            # Phase 0.8a: best-effort OPERATOR_ACTED audit. No-op when
-            # DATABASE_URL is unset; runs after the response is on the wire.
-            operator_action_audit.emit_async(
-                self.tenant_id,
-                operator_action_audit.ACTION_PORT_SWITCH,
-                summary=f"Switched active port to {port_id}",
-                surface="api_set_port",
-                actor_handle=session_audit.resolve_actor_handle(_AUTH_USER, _AUTH_USER),
-                port_id=port_id,
-            )
+            # Phase 0.8a: /api/set_port is NOT audited as OPERATOR_ACTED.
+            # Port switching is a dashboard navigation toggle (view state
+            # only) — it does not change real port operations and does
+            # not acknowledge / accept / defer / override any
+            # recommendation. A future CONFIG_CHANGED /
+            # PORT_CONTEXT_CHANGED event type will capture this concern.
         except Exception as exc:
             log.error("set_port error: %s", exc)
             self._json({"success": False, "error": str(exc)})

@@ -6,7 +6,6 @@ OPERATOR_ACTED events for *existing* Beta 10 operator actions only.
 
 Scope of Phase 0.8a (no new action semantics, no new UI):
 
-  /api/set_port      → action_type = "port_switch"
   /api/apply-whatif  → action_type = "whatif_apply"
   /api/clear-whatif  → action_type = "whatif_clear"
   /api/send-brief    → action_type = "send_brief"
@@ -15,6 +14,12 @@ Endpoints deliberately NOT instrumented in 0.8a:
   - /api/whatif (shadow simulation; read-only, no state change)
   - /login, /logout (already covered by SESSION_STARTED / SESSION_ENDED
     in Phase 0.6)
+  - /api/set_port: port-switching is dashboard navigation (view state
+    only). It does not change real port operations and does not
+    acknowledge / accept / defer / override any recommendation.
+    A future CONFIG_CHANGED / PORT_CONTEXT_CHANGED event type will
+    capture this concern. Recording it as OPERATOR_ACTED would dilute
+    the semantic of the ledger (per ADR-002 §1.4).
 
 Inaction / DEADLINE_PASSED is Phase 0.8b and is NOT emitted here.
 OPERATOR_DEFERRED / OPERATOR_OVERRODE are NOT emitted in 0.8a because
@@ -62,13 +67,11 @@ _AUDIT_EMISSION_ENABLED: bool = os.environ.get(
 
 
 # ── Canonical action types (closed set within 0.8a) ───────────────────
-ACTION_PORT_SWITCH = "port_switch"
 ACTION_WHATIF_APPLY = "whatif_apply"
 ACTION_WHATIF_CLEAR = "whatif_clear"
 ACTION_SEND_BRIEF   = "send_brief"
 
 ACTION_TYPES: frozenset[str] = frozenset({
-    ACTION_PORT_SWITCH,
     ACTION_WHATIF_APPLY,
     ACTION_WHATIF_CLEAR,
     ACTION_SEND_BRIEF,
@@ -141,7 +144,7 @@ def _subject_for_action(
       - whatif_apply / whatif_clear: if a conflict_id is present
         (operator was acting on a specific decision card), subject is
         that conflict. Otherwise subject is system / port_id.
-      - port_switch / send_brief: subject is system / port_id.
+      - send_brief: subject is system / port_id.
     """
     if action_type in (ACTION_WHATIF_APPLY, ACTION_WHATIF_CLEAR) and conflict_id:
         return ("conflict", conflict_id)
