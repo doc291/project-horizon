@@ -40,6 +40,7 @@ import session_audit
 import conflict_audit
 import recommendation_audit
 import recommendation_presented_audit
+import operator_action_audit
 
 _ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
@@ -2887,6 +2888,12 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 "port":         port_id,
                 "display_name": new_profile["display_name"],
             })
+            # Phase 0.8a: /api/set_port is NOT audited as OPERATOR_ACTED.
+            # Port switching is a dashboard navigation toggle (view state
+            # only) — it does not change real port operations and does
+            # not acknowledge / accept / defer / override any
+            # recommendation. A future CONFIG_CHANGED /
+            # PORT_CONTEXT_CHANGED event type will capture this concern.
         except Exception as exc:
             log.error("set_port error: %s", exc)
             self._json({"success": False, "error": str(exc)})
@@ -4191,24 +4198,54 @@ doRefresh();setInterval(doRefresh,30000);
         try:
             length = int(self.headers.get("Content-Length", 0))
             body   = json.loads(self.rfile.read(length)) if length else {}
+            adjustments = body.get("adjustments", [])
+            label       = body.get("label", "Custom scenario")
+            conflict_id = body.get("conflict_id", "") or None
             with _whatif_lock:
                 _WHATIF_OVERLAY.clear()
                 _WHATIF_OVERLAY.update({
                     "active":      True,
-                    "adjustments": body.get("adjustments", []),
-                    "label":       body.get("label", "Custom scenario"),
-                    "conflict_id": body.get("conflict_id", ""),
+                    "adjustments": adjustments,
+                    "label":       label,
+                    "conflict_id": conflict_id or "",
                 })
             self._json({"success": True})
+            # Phase 0.8a: best-effort OPERATOR_ACTED audit. The audit
+            # summary records the adjustment count only — free-form
+            # labels and raw adjustment bodies are NOT included.
+            operator_action_audit.emit_async(
+                self.tenant_id,
+                operator_action_audit.ACTION_WHATIF_APPLY,
+                summary=f"Applied scenario overlay with {len(adjustments)} adjustment(s)",
+                surface="api_apply_whatif",
+                actor_handle=session_audit.resolve_actor_handle(_AUTH_USER, _AUTH_USER),
+                port_id=_ACTIVE_PORT_ID,
+                conflict_id=conflict_id,
+            )
         except Exception as exc:
             log.error("apply-whatif failed: %s", exc, exc_info=True)
             self.send_error(500, str(exc))
 
     def _clear_whatif(self):
         """POST /api/clear-whatif — remove the active scenario overlay."""
+        # Capture the conflict_id (if any) the scenario was tied to so
+        # the audit event can reference it as subject. Read happens
+        # under the same lock and BEFORE we clear, so the value is
+        # consistent with what we just removed.
         with _whatif_lock:
+            cleared_conflict_id = _WHATIF_OVERLAY.get("conflict_id", "") or None
             _WHATIF_OVERLAY.clear()
         self._json({"success": True})
+        # Phase 0.8a: best-effort OPERATOR_ACTED audit.
+        operator_action_audit.emit_async(
+            self.tenant_id,
+            operator_action_audit.ACTION_WHATIF_CLEAR,
+            summary="Cleared active scenario overlay",
+            surface="api_clear_whatif",
+            actor_handle=session_audit.resolve_actor_handle(_AUTH_USER, _AUTH_USER),
+            port_id=_ACTIVE_PORT_ID,
+            conflict_id=cleared_conflict_id,
+        )
 
     def _send_brief(self):
         """POST /api/send-brief — email the Port Brief PDF to a list of recipients."""
@@ -4249,6 +4286,18 @@ doRefresh();setInterval(doRefresh,30000);
 
             log.info("Port Brief emailed to: %s", ", ".join(recipients))
             self._json({"success": True, "recipients": recipients, "port": port_name})
+            # Phase 0.8a: best-effort OPERATOR_ACTED audit. We record
+            # the recipient COUNT only, not the addresses themselves —
+            # raw email addresses are PII that should not enter the
+            # audit ledger in Phase 0.
+            operator_action_audit.emit_async(
+                self.tenant_id,
+                operator_action_audit.ACTION_SEND_BRIEF,
+                summary=f"Sent port brief to {len(recipients)} recipient(s)",
+                surface="api_send_brief",
+                actor_handle=session_audit.resolve_actor_handle(_AUTH_USER, _AUTH_USER),
+                port_id=_ACTIVE_PORT_ID,
+            )
 
         except Exception as exc:
             log.error("send-brief failed: %s", exc, exc_info=True)
