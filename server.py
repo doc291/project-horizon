@@ -2576,10 +2576,23 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 return
             self._send_brief()
         elif path == "/api/whatif":
+            # Phase 1.1: application-layer auth gate. Mirrors the
+            # pattern already in use for /api/set_port and /api/send-brief.
+            if not self._is_authenticated():
+                self.send_error(401)
+                return
             self._whatif()
         elif path == "/api/apply-whatif":
+            # Phase 1.1: application-layer auth gate.
+            if not self._is_authenticated():
+                self.send_error(401)
+                return
             self._apply_whatif()
         elif path == "/api/clear-whatif":
+            # Phase 1.1: application-layer auth gate.
+            if not self._is_authenticated():
+                self.send_error(401)
+                return
             self._clear_whatif()
         else:
             self.send_error(405)
