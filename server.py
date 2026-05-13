@@ -39,6 +39,7 @@ import tenant
 import session_audit
 import conflict_audit
 import recommendation_audit
+import recommendation_presented_audit
 
 _ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
@@ -2941,14 +2942,28 @@ class HorizonHandler(BaseHTTPRequestHandler):
             # objects the engine just produced — no re-fetch, no recompute.
             # Dedup is per (conflict_id, recommended_option_id), so repeated
             # /api/summary polls with the same recommendation emit once.
+            #
+            # Phase 0.7c: also emit RECOMMENDATION_PRESENTED for the same
+            # conflicts. /api/summary is gated behind _is_authenticated() at
+            # line ~2910, so reaching this point implies an authenticated
+            # operator surface. Dedup is per (conflict_id,
+            # recommended_option_id, actor_handle) — a distinct operator
+            # viewing the same recommendation produces a fresh event.
             if summary and summary.get("conflicts"):
                 _port = summary.get("active_port_id") or summary.get("port")
+                _actor = session_audit.resolve_actor_handle(_AUTH_USER, _AUTH_USER)
                 for _c in summary["conflicts"]:
                     conflict_audit.emit_async(self.tenant_id, _c, port_id=_port)
                     if _c.get("decision_support"):
                         recommendation_audit.emit_async(
                             self.tenant_id, _c,
                             summary=summary, port_id=_port,
+                        )
+                        recommendation_presented_audit.emit_async(
+                            self.tenant_id, _c,
+                            surface=recommendation_presented_audit.SURFACE_API_SUMMARY,
+                            port_id=_port,
+                            actor_handle=_actor,
                         )
         elif path == "/api/diag":
             # Temporary diagnostic — calls build_summary and returns any exception
