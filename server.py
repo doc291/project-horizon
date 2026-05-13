@@ -38,6 +38,7 @@ import db
 import tenant
 import session_audit
 import conflict_audit
+import recommendation_audit
 
 _ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
@@ -2933,10 +2934,22 @@ class HorizonHandler(BaseHTTPRequestHandler):
             # Best-effort CONFLICT_DETECTED audit emission (Phase 0.7a).
             # No-op when DATABASE_URL is unset or for already-seen conflict_ids.
             # Runs after the response is already on the wire.
+            #
+            # Phase 0.7b: also emit RECOMMENDATION_GENERATED for any conflict
+            # carrying a decision_support recommendation. The decision-time
+            # snapshot is built from the same in-memory `summary` and conflict
+            # objects the engine just produced — no re-fetch, no recompute.
+            # Dedup is per (conflict_id, recommended_option_id), so repeated
+            # /api/summary polls with the same recommendation emit once.
             if summary and summary.get("conflicts"):
                 _port = summary.get("active_port_id") or summary.get("port")
                 for _c in summary["conflicts"]:
                     conflict_audit.emit_async(self.tenant_id, _c, port_id=_port)
+                    if _c.get("decision_support"):
+                        recommendation_audit.emit_async(
+                            self.tenant_id, _c,
+                            summary=summary, port_id=_port,
+                        )
         elif path == "/api/diag":
             # Temporary diagnostic — calls build_summary and returns any exception
             import traceback as _tb
