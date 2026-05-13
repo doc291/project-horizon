@@ -143,8 +143,8 @@ When that happens, fill in the line below (do not delete previous
 sign-offs — they are the audit trail of Phase 0 exits across deploys):
 
 ```
-Phase 0 exit confirmed on YYYY-MM-DD by <name>
-Verified against main commit <SHA>
+Phase 0 exit confirmed on 2026-05-13 by Tony Trajceski
+Verified against main commit 4ad4aae
 All 4 manual checks: PASS
 Automated regression test: PASS (140 passed)
 ```
