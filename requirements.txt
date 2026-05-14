@@ -2,3 +2,11 @@ beautifulsoup4>=4.12.3
 requests>=2.31.0
 reportlab>=4.0.0
 websocket-client>=1.7.0
+# Phase 1.2 Stage A — psycopg runtime dependency pinned at the same
+# version requirements-dev.txt has been using. Adding the binary here
+# does NOT activate audit emission: the helpers import psycopg lazily
+# inside the worker thread, and that worker is only reached when
+# is_enabled() returns True (which requires DATABASE_URL to be set
+# AND AUDIT_EMISSION_ENABLED to be truthy). Both stay unset/false in
+# production until the Stage B–E activation sequence is executed.
+psycopg[binary]==3.3.4
