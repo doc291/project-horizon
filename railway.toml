@@ -2,4 +2,34 @@
 buildCommand = "pip install -r requirements.txt && playwright install chromium --with-deps || true"
 
 [deploy]
-startCommand = "python3 server.py"
+# Phase 1.2 Stage D-preview smoke-test runner.
+#
+# This branch (chore/preview-smoke-runner) is a preview deployment
+# target only — DO NOT MERGE TO MAIN. The branch exists so the
+# Railway preview-audit-activation environment can run
+# scripts/audit_smoke_test.py from INSIDE the Railway runtime, where
+# the internal DATABASE_URL is reachable.
+#
+# Production safety:
+#   - When DATABASE_URL is unset (production posture), the smoke
+#     test is skipped via the `if [ -n "$DATABASE_URL" ]` guard, and
+#     the web server starts exactly as before.
+#   - `set -e` ensures any smoke-test failure aborts the deploy
+#     loudly — Railway will mark the deploy failed and NOT promote
+#     the new container to live traffic.
+#   - `exec python3 server.py` hands PID 1 to the Python web process
+#     so signal handling (SIGTERM on redeploy) is clean.
+#
+# The smoke test internally validates the schema (Phase 1 of
+# scripts/audit_smoke_test.py delegates to activate_audit.py), so
+# this branch does NOT need to re-run alembic. Stage C-preview
+# already applied the migrations via chore/preview-migration-runner.
+#
+# Smoke rows inserted by the test are intentionally preserved as
+# activation evidence — the audit chain is append-only by design.
+# They carry payload->>'origin' = 'activation_smoke' and are
+# trivially filterable from operational queries.
+#
+# After Stage D-preview succeeds, the preview environment can be
+# re-pointed back to main and this branch deleted or abandoned.
+startCommand = "bash -c 'set -e; if [ -n \"$DATABASE_URL\" ]; then echo \">>> DATABASE_URL set — running scripts/audit_smoke_test.py\"; python3 scripts/audit_smoke_test.py; echo \">>> Smoke test complete — starting web server\"; else echo \">>> DATABASE_URL unset — skipping smoke test (production-safe path)\"; fi; exec python3 server.py'"
