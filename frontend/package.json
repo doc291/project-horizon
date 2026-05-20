@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Horizon V1 frontend — M0 scaffold (static, demo-only).",
+  "description": "Horizon V1 frontend — M1 adapter-backed read-only operational shell (fixture-fed, demo-only).",
   "engines": {
     "node": ">=18"
   },
@@ -11,15 +11,20 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "serve -s dist -l ${PORT:-3000}"
+    "start": "serve -s dist -l ${PORT:-3000}",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "date-fns": "^3.6.0",
+    "date-fns-tz": "^3.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "serve": "^14.2.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.0",
-    "vite": "^5.4.0"
+    "vite": "^5.4.0",
+    "vitest": "^2.0.0"
   }
 }
