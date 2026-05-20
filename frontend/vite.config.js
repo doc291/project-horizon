@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Horizon V1 frontend — M0 build config.
-// Static React build only; no proxy, no dev API, no backend.
+// Horizon V1 frontend — M1 build + test config.
+// Static React build; no proxy, no dev API, no backend coupling.
+// Vitest integrated via test config below (M1 §5 + §17).
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -13,5 +14,10 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: false,
+  },
+  test: {
+    environment: 'node',
+    include: ['tests/**/*.test.{js,jsx}'],
+    globals: false,
   },
 });

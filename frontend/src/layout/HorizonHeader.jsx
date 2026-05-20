@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.jsx';
 import { Pill } from '../components/Pill.jsx';
 import { Dot } from '../components/Dot.jsx';
+import { localShort } from '../api/adapters/time.js';
 
 // HorizonHeader — Canon §1.1.1 + §4.2. Sticky 72px top ribbon.
-// Identity + 4 stat tiles + role pill + data-source pill + clock + co-brand.
-// All data from sample.js; clock is real (local timekeeping, not Beta 10 data).
+// M1: adapter-backed stat tiles; "Last update" indicator added near the clock.
+// All data values come from ViewSummary; clock is real (UI only, not data).
 
 function useClock() {
   const [now, setNow] = useState(new Date());
@@ -28,10 +29,14 @@ function fmtDate(d) {
   });
 }
 
-export function HorizonHeader({ summary }) {
+export function HorizonHeader({ summary, lastUpdated, isStale }) {
   const now = useClock();
-  const { portName, portStatus, conditions, dashboardMetrics } = summary;
-  const movements6h = dashboardMetrics.pilotOps12h + dashboardMetrics.tugOps12h;
+  const { portName, portStatus, conditions, dashboardMetrics, portTimezone } = summary;
+  const movements12h = (dashboardMetrics.pilotOps12h || 0) + (dashboardMetrics.tugOps12h || 0);
+  const criticalConflicts = portStatus.criticalConflicts ?? 0;
+  const lastUpdateShort = lastUpdated
+    ? localShort(lastUpdated.toISOString(), portTimezone)
+    : null;
 
   return (
     <header className="hz-header">
@@ -42,22 +47,30 @@ export function HorizonHeader({ summary }) {
       </div>
 
       <div className="hz-header-stats">
-        <Stat label="Vessels in port" value={portStatus.vesselsInPort} />
-        <Stat label="Movements 6h" value={movements6h} />
+        <Stat label="Vessels in port" value={portStatus.vesselsInPort ?? '—'} />
+        <Stat label="Movements 12h" value={movements12h} />
         <Stat
           label="Conflicts"
-          value={portStatus.criticalConflicts}
-          pulse={portStatus.criticalConflicts > 0}
+          value={criticalConflicts}
+          pulse={criticalConflicts > 0}
         />
-        <Stat label="Conditions" value={conditions.rating} />
+        <Stat label="Conditions" value={conditions.rating ?? 'UNKNOWN'} />
       </div>
 
       <div className="hz-header-right">
         <Pill tone="info" variant="outline">VTSO</Pill>
-        <Pill tone="warning">DEMO · SIMULATION</Pill>
+        <Pill tone="warning">DEMO · FIXTURE</Pill>
         <div className="hz-clock">
           <div className="hz-clock-time">{fmtClock(now)}</div>
           <div className="hz-clock-date">{fmtDate(now)}</div>
+          {lastUpdateShort && (
+            <div
+              className="hz-clock-date"
+              style={{ color: isStale ? 'var(--warning)' : 'var(--text-muted)' }}
+            >
+              UPDATED {lastUpdateShort}{isStale ? ' · STALE' : ''}
+            </div>
+          )}
         </div>
         <div className="hz-cobrand">AMS Group</div>
       </div>

@@ -1,0 +1,87 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`summaryAdapter — top-level ViewSummary (Adapter Note §5) > matches snapshot for brisbaneBusy 1`] = `
+{
+  "conditionsKeys": [
+    "pressureHpa",
+    "rating",
+    "swellDirLabel",
+    "swellHeightM",
+    "swellPeriodS",
+    "tideAmplitudeM",
+    "tideHeightM",
+    "tideMeanM",
+    "tideNextHeightM",
+    "tideNextLabel",
+    "tideNextTime",
+    "tideNextTimeIso",
+    "tideSource",
+    "tideState",
+    "ukcM",
+    "ukcStatus",
+    "visibilityKm",
+    "visibilityNm",
+    "weatherSource",
+    "windBearingDeg",
+    "windBeaufort",
+    "windDirLabel",
+    "windSpeedKts",
+  ],
+  "conflictCount": 9,
+  "dashboardMetricsKeys": [
+    "activeConflicts",
+    "avgDwellHours",
+    "berthUtilisationPct",
+    "berthsAvailable",
+    "berthsOccupied",
+    "berthsTotal",
+    "criticalConflicts",
+    "forecastUtilisation48h",
+    "onTimeDeparturePct",
+    "pilotOps12h",
+    "pilotsAvailable",
+    "tugOps12h",
+    "tugsAvailable",
+    "vesselsAtRisk",
+    "vesselsDeparting24h",
+    "vesselsExpected24h",
+    "vesselsInPort",
+  ],
+  "etdRiskCount": 13,
+  "liveness": {
+    "isLive": false,
+    "tide": false,
+    "vessel": false,
+    "weather": true,
+  },
+  "missingDomains": [
+    "shiftLog",
+    "auditLog",
+    "cascade",
+  ],
+  "portId": "BRISBANE",
+  "portName": "Port of Brisbane",
+  "portTimezone": "Australia/Brisbane",
+  "vesselCount": 13,
+}
+`;
+
+exports[`summaryAdapter — top-level ViewSummary (Adapter Note §5) > matches snapshot for brisbaneQuiet 1`] = `
+{
+  "activeConflicts": 0,
+  "conflictCount": 0,
+  "criticalConflicts": 0,
+  "portId": "BRISBANE",
+  "vesselCount": 13,
+}
+`;
+
+exports[`summaryAdapter — top-level ViewSummary (Adapter Note §5) > matches snapshot for melbourneSim 1`] = `
+{
+  "conflictCount": 18,
+  "portId": "MELBOURNE",
+  "portName": "Port of Melbourne",
+  "portTimezone": "Australia/Melbourne",
+  "vesselCount": 9,
+}
+`;

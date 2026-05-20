@@ -200,3 +200,91 @@
 .hz-design-row:first-of-type { border-top: 0; }
 .hz-design-row-name { color: var(--text-primary); font-weight: 600; font-size: 11px; letter-spacing: 0.06em; }
 .hz-design-row-example { color: var(--text-muted); font-size: 11px; font-style: italic; }
+
+/* ── Stale-data banner (M1) ────────────────────────────────────────────── */
+.hz-stale-banner {
+  background: var(--warning-bg);
+  border-bottom: 1px solid var(--warning);
+  color: var(--warning);
+  text-align: center;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+/* ── Dashboard tab (M1, Canon §4.5 partial) ────────────────────────────── */
+.hz-dashboard-tab { display: flex; flex-direction: column; gap: var(--s-3); }
+.hz-dashboard-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-2); }
+.hz-dashboard-title { font-size: 22px; font-weight: 700; color: var(--text-primary); margin: 0; letter-spacing: -0.01em; }
+.hz-dashboard-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.hz-dashboard-footer { display: flex; align-items: center; padding: var(--s-2) var(--s-4); }
+
+.hz-section-title { color: var(--text-primary); font-size: 15px; font-weight: 700; margin: 0 0 4px 0; }
+.hz-section-sub { color: var(--text-muted); font-size: 12px; margin: 0 0 var(--s-3) 0; }
+
+/* KPI tiles */
+.hz-kpi-groups { display: flex; flex-direction: column; gap: var(--s-4); }
+.hz-kpi-row { display: flex; flex-direction: column; gap: var(--s-2); }
+.hz-kpi-row-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-muted); margin: 0;
+}
+.hz-kpi-tiles {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-3);
+}
+.hz-kpi-tile {
+  background: var(--bg-surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-card); padding: var(--s-3) var(--s-4);
+}
+.hz-kpi-tile-critical { border-left: 3px solid var(--critical); }
+.hz-kpi-tile-warning  { border-left: 3px solid var(--warning); }
+.hz-kpi-tile-success  { border-left: 3px solid var(--success); }
+.hz-kpi-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.10em;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;
+}
+.hz-kpi-value {
+  font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 24px; color: var(--text-primary); line-height: 1.1;
+}
+.hz-kpi-sub { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+/* ETD risk table */
+.hz-etd-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.hz-etd-table th {
+  text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-muted); padding: var(--s-2) var(--s-2);
+  border-bottom: 1px solid var(--border);
+}
+.hz-etd-table td {
+  padding: var(--s-2) var(--s-2); border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+.hz-etd-table td:first-child { font-weight: 600; }
+.hz-etd-factor { color: var(--text-secondary); font-size: 11px; }
+.hz-etd-empty { padding: var(--s-3) 0; }
+
+.hz-risk-bar {
+  position: relative; height: 8px; background: var(--bg-surface-3);
+  border-radius: 4px; overflow: hidden; min-width: 80px;
+}
+.hz-risk-bar-fill { height: 100%; border-radius: 4px; }
+.hz-risk-bar-value {
+  position: absolute; right: 4px; top: -14px; font-size: 10px;
+  font-weight: 700; color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums;
+}
+
+/* Utilisation summary */
+.hz-utilisation-summary { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--s-2); }
+.hz-utilisation-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.hz-utilisation-value {
+  font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px;
+  color: var(--text-primary);
+}
+.hz-utilisation-forecast { font-size: 12px; color: var(--text-secondary); }
+.hz-utilisation-note { font-size: 11px; color: var(--text-muted); font-style: italic; }
