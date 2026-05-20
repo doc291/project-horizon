@@ -37,15 +37,56 @@ Local `python3.10 server.py` instance bound to
 PORT=19191 HORIZON_PORT=BRISBANE python3.10 server.py
 ```
 
-Environment variables **deliberately unset** so the server falls
-through to its simulated data sources:
+Environment variables **deliberately unset** to starve the
+server of paid / keyed external connectors:
 
 - `DATABASE_URL` (unset → audit emission no-op, matching Beta 10
   production posture)
-- `AISSTREAM_API_KEY` (unset → AISStream WebSocket disabled)
-- `MST_API_KEY` (unset → MyShipTracking fallback disabled)
-- `BOM_*`, `OPEN_METEO_*` (unset → simulation fallback for
-  weather/tides)
+- `AISSTREAM_API_KEY` (unset → AISStream WebSocket disabled →
+  vessels fall through to `make_vessels()` simulation)
+- `MST_API_KEY` (unset → MyShipTracking fallback disabled →
+  vessels simulation continues)
+- `BOM_*` env vars (unset → BOM tidal API not contacted → tides
+  fall through to cosine simulation fallback)
+
+**One source IS live in these captures: weather, from Open-Meteo.**
+Open-Meteo is a **free public weather API requiring no API key**
+(`https://api.open-meteo.com/v1/forecast` and
+`https://marine-api.open-meteo.com/v1/marine`). The
+`server.py` background thread `_schedule_bom_weather_warmup`
+(server.py line 4402) runs at server startup and populates the
+weather cache via these endpoints regardless of `OPEN_METEO_*`
+env-var presence. The fixtures therefore contain **real public
+weather data** for Brisbane and Melbourne at capture time. The
+`weather.source: "live"` field in each captured fixture
+accurately reflects this — it is not a self-label artefact.
+
+This is **acceptable for M1 fixtures** because:
+
+- Open-Meteo weather is **public information**, not customer
+  data, operator data, or vessel identity data
+- The weather data at any point in time is the same data
+  Open-Meteo would return to anyone making the same
+  unauthenticated query
+- The adapter's `conditions` mapping (Adapter Note §6)
+  consumes this shape verbatim regardless of whether the
+  underlying source was live or simulated
+- The visibility of "real Brisbane weather at 2026-05-20 ~20:04
+  AEST" in the fixture poses no privacy or operational risk
+
+If future re-captures must guarantee fully simulated weather
+(e.g. for entirely deterministic reproducibility), three
+options exist:
+
+1. Block `api.open-meteo.com` and `marine-api.open-meteo.com`
+   at the host firewall before starting `server.py`
+2. Run the local `server.py` inside a network-isolated
+   container
+3. Patch `server.py` to disable the warmup thread in a future
+   small authorised change
+
+None is currently necessary; Option 1 is the fastest if
+re-capture without live Open-Meteo is ever required.
 
 Authentication used the default Beta 10 dev credentials
 (`HORIZON_USER=horizon` / `HORIZON_PASS=ams2026`) — these are
@@ -70,14 +111,24 @@ Top-level structure matches Beta 10's `/api/summary` response
 §3).
 
 `data_source: "mock"` and `data_source_label: "<port> —
-Simulation"` confirm the simulated fallback was used (not real
-AIS / MST / QShips data).
+Simulation"` confirm the simulated fallback was used **for
+vessel data** (not real AIS / MST / QShips data). These two
+top-level fields describe the **vessel** source only.
 
-`weather.source` reports `"live"` (this is the `weather.py`
-module's own self-label inside the simulated path — it indicates
-the module *would* have used live data if API keys were
-configured; in this capture environment it served the simulated
-fallback). No real external weather data was retrieved.
+`port_profile.using_live_vessel_data: false` confirms vessels
+are simulated.
+`port_profile.using_live_tidal_data: false` confirms tides are
+simulated (BOM API not contacted).
+`port_profile.using_live_weather_data: true` confirms the
+weather data **is live** from Open-Meteo per the explanation
+in "Capture environment" above.
+
+The fixtures therefore mix simulated infrastructure (vessels,
+tides, conflicts derived from them, dashboard metrics, ETD risk)
+with one live public data source (weather from Open-Meteo).
+Everything in the fixture is either deterministic simulator
+output or publicly available weather data — no customer,
+operator, or vessel-identity information is present.
 
 ## Derived fixtures (2)
 
@@ -136,11 +187,20 @@ Has 25 top-level keys (`port_profile` removed).
   defaults
 - **No production session cookies.** Local capture cookie
   discarded immediately
-- **No production API keys.** None configured during capture
+- **No production API keys.** None configured during capture;
+  the only external endpoint contacted was Open-Meteo's free
+  public tier which requires no key
 - **No production timestamps.** `generated_at` reflects local
   server clock at capture time, not Beta 10 production state
-- **No live AIS / MST / BOM / Open-Meteo data.** All external
-  sources fall through to simulation fallbacks
+- **No live AIS / MST data.** Vessel data falls through to the
+  simulation fallback
+- **No live BOM tidal data.** Tides fall through to the cosine
+  simulation fallback
+
+**Caveat:** weather **is** live (Open-Meteo public free tier);
+see "Capture environment" above for the explanation. Live
+weather is acceptable because it is public information and
+contains no customer / operator / vessel identity data.
 
 ## How to re-capture
 
