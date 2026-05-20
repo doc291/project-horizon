@@ -26,11 +26,19 @@ M1 code is written.
 
 ## 1. Executive summary
 
-M1 introduces the **adapter layer** and **polling-based live data
-refresh** to the V1 frontend, exercising the full Adapter Design
-Note contract against representative `/api/summary` responses
-**without touching Beta 10, without enforcing auth, and without
-writing anything anywhere**.
+M1 introduces the **adapter layer** and **polling-based
+read-only refresh of captured operational data** to the V1
+frontend, exercising the full Adapter Design Note contract
+against representative `/api/summary` responses **without
+touching Beta 10, without calling any live backend endpoint,
+without enforcing auth, and without writing anything anywhere**.
+
+**Explicitly:** M1 does **not** call live Beta 10 `/api/summary`.
+M1 does **not** call any backend endpoint. M1 is **read-only
+and fixture-backed** — it reads recorded `/api/summary`
+snapshots committed to the repo. Live Beta 10 backend
+integration is **M2+** scope, conditional on same-origin /
+auth / RBAC questions being separately resolved.
 
 M1 is a read-only milestone. Per Tony's three directional
 decisions:
@@ -42,8 +50,9 @@ decisions:
    acquired; no API endpoint is gated. Real same-origin auth,
    server-side RBAC, and audit attribution are deferred to M2+
    unless separately authorised.
-3. M1 focuses on **live read-only data integration and limited
-   UI surface expansion**, not operational authority.
+3. M1 focuses on **read-only, fixture-backed operational data
+   integration and limited UI surface expansion**, not
+   operational authority.
 
 The data path M1 implements is the **complete fetch wrapper →
 polling hook → adapter → ViewSummary → components pipeline**,
@@ -76,15 +85,17 @@ commit flow, scaffold a Replay surface, build mobile / executive
 E-prod, or touch the root `railway.toml`.
 
 M1 closes when the adapter is implemented + tested + the sandbox
-URL renders the partial Dashboard against fixture-fed live data
-with all the same Beta 10 protection guarantees from M0.
+URL renders the partial Dashboard against fixture-fed captured
+operational data with all the same Beta 10 protection guarantees
+from M0.
 
 ---
 
 ## 2. M1 objective
 
 **Prove the V1 data pipeline end-to-end against representative
-data, without touching Beta 10.**
+captured data, without calling any live backend and without
+touching Beta 10.**
 
 That single objective subsumes:
 
@@ -116,8 +127,13 @@ sound.
 
 ## 3. What M1 is
 
-M1 is **a fixture-fed live-data integration of the V1 React
-shell**.
+M1 is **a fixture-backed, read-only, adapter-driven integration
+of the V1 React shell**. The end-to-end data pipeline (fetch
+wrapper → polling hook → adapter → `ViewSummary` → components)
+is exercised completely, but the endpoint it targets is a set
+of captured `/api/summary` JSON fixtures committed to the repo
+— **not** live Beta 10 production, **not** any backend
+endpoint.
 
 Concretely:
 
@@ -505,11 +521,13 @@ partial Dashboard tab. Per Canon §4.5 Dashboard composition:
 Per the inherited decision (§5 item 10), the
 `DesignVerificationSwatch` is **removed** from the operator
 view in M1. The lifecycle pill / glyph / colour treatments are
-now exercised against **real conflicts** from the fixtures
-(conflicts of various severities will render with their pills
-and glyphs in the M1 alert list if/when M1 ships the alert
-list; otherwise via the Dashboard's ETD risk table for risk
-levels).
+now exercised against **captured conflict fixtures** drawn
+from recorded `/api/summary` snapshots (conflicts of various
+severities will render with their pills and glyphs in the M1
+alert list if/when M1 ships the alert list; otherwise via the
+Dashboard's ETD risk table for risk levels). These are
+captured snapshots, not live conflicts from a running
+backend.
 
 The LeftPanel itself remains a placeholder in M1 because the
 alert list + Active Decision card surfaces are scheduled for a
@@ -774,8 +792,9 @@ Same as M0:
 - Railway auto-deploys; Claude runs read-only verification
 - Sandbox URL renders the partial Dashboard + adapter-fed
   HorizonHeader + ConditionsBar
-- Live polling visible in browser devtools (network tab shows
-  periodic GETs to `/fixtures/*.json`)
+- Periodic fixture polling visible in browser devtools (network
+  tab shows periodic GETs to `/fixtures/*.json` only — no
+  `/api/*` calls, no calls to any live backend)
 - Adapter handles `cascade: null` / `delta: null` / missing
   domains correctly (test by serving a derived `null-fields`
   fixture)
