@@ -635,6 +635,24 @@ def make_vessels(now: datetime) -> list:
     else:
         shuffled = []
 
+    # Demo-deterministic slot pinning — per-port profile data.
+    # When a port profile declares
+    #   "sim_pinned_vessels": {slot_index: "Roster Vessel Name", ...}
+    # the named roster entries are forced into the given slot indices
+    # regardless of the daily shuffle. Used by Darwin to guarantee the
+    # B04 berth_overlap decision-card pair (V005 / V007 must be ≥100 m,
+    # otherwise the Decisions panel filter — signal_type=='CONFLICT'
+    # AND decision_support — has nothing to show). No-op for any port
+    # without this profile field. See port_profiles.py for rationale.
+    pinned_slots = _PORT_PROFILE.get("sim_pinned_vessels") or {}
+    if pinned_slots and shuffled:
+        by_name = {rv["name"]: rv for rv in roster}
+        shuffled = list(shuffled)
+        for slot_idx, vessel_name in pinned_slots.items():
+            rv = by_name.get(vessel_name)
+            if rv is not None and 0 <= slot_idx < len(shuffled):
+                shuffled[slot_idx] = rv
+
     vessels = []
     for slot_i, (vid, berth_id, eta_h, etd_h, status, note) in enumerate(slots):
         eta = now + timedelta(hours=eta_h)
