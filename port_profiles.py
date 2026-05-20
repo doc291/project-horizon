@@ -249,6 +249,13 @@ PORT_PROFILES = {
         "wind_limit_berthing_knots":    30,           # Reasonable default — wind limits in Port Notice PN014
         "wind_limit_critical_knots":    40,           # Reasonable default — wind limits in Port Notice PN014
         "bridge_restrictions":          [],           # No bridge air-draft restrictions at Darwin
+        # Demo simulation lock — Darwin is a low-traffic port; live AIS often
+        # returns a vessel mix that does not produce a decision card. Forcing
+        # the simulation path keeps Darwin demo behaviour deterministic so the
+        # existing simulated conflict scenarios (V007 ETA variance, V005/V007
+        # B04 berth overlap) reliably surface. Per-port flag — does not affect
+        # Brisbane / Melbourne / Geelong.
+        "demo_force_simulation":        True,
         # Simulation scenario — 7 vessels, Darwin-specific berth occupancy (2/4)
         "sim_vessel_count": 7,
         "sim_berth_slots": [
