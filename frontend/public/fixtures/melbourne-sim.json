@@ -1,0 +1,6984 @@
+{
+  "port_name": "Port of Melbourne",
+  "generated_at": "2026-05-20T10:04:24Z",
+  "lookahead_hours": 48,
+  "data_source": "mock",
+  "data_source_label": "Melbourne — Simulation",
+  "scraped_at": null,
+  "port_status": {
+    "berths_occupied": 3,
+    "berths_available": 2,
+    "berths_total": 6,
+    "vessels_in_port": 3,
+    "vessels_expected_24h": 6,
+    "vessels_departing_24h": 3,
+    "active_conflicts": 18,
+    "critical_conflicts": 1,
+    "pilots_available": 3,
+    "tugs_available": 4
+  },
+  "vessels": [
+    {
+      "id": "V001",
+      "name": "Pacific Topaz",
+      "imo": "9982762",
+      "vessel_type": "Tanker",
+      "flag": "Singapore",
+      "loa": 183.0,
+      "draught": 11.0,
+      "cargo_type": "Crude Oil",
+      "status": "berthed",
+      "berth_id": "B01",
+      "eta": "2026-05-19T16:04:24Z",
+      "etd": "2026-05-20T14:04:24Z",
+      "ata": "2026-05-19T16:04:24Z",
+      "atd": null,
+      "pilotage_required": true,
+      "towage_required": true,
+      "agent": "Gulf Agency Australia PTY LTD",
+      "notes": null,
+      "lat": -37.84276406500343,
+      "lon": 144.9246348455024
+    },
+    {
+      "id": "V002",
+      "name": "Tian Shun He",
+      "imo": "9831660",
+      "vessel_type": "Container",
+      "flag": "Marshall Islands",
+      "loa": 228.0,
+      "draught": 11.5,
+      "cargo_type": "Containers",
+      "status": "berthed",
+      "berth_id": "B02",
+      "eta": "2026-05-20T04:04:24Z",
+      "etd": "2026-05-20T18:04:24Z",
+      "ata": "2026-05-20T04:04:24Z",
+      "atd": null,
+      "pilotage_required": true,
+      "towage_required": true,
+      "agent": "Gulf Agency Company (Australia)",
+      "notes": null,
+      "lat": -37.81805293659876,
+      "lon": 144.93120475165944
+    },
+    {
+      "id": "V003",
+      "name": "Olivia Maersk",
+      "imo": "9460865",
+      "vessel_type": "Container",
+      "flag": "Norway",
+      "loa": 347.0,
+      "draught": 14.0,
+      "cargo_type": "Containers",
+      "status": "berthed",
+      "berth_id": "B06",
+      "eta": "2026-05-19T22:04:24Z",
+      "etd": "2026-05-20T16:04:24Z",
+      "ata": "2026-05-19T22:04:24Z",
+      "atd": null,
+      "pilotage_required": true,
+      "towage_required": true,
+      "agent": "Inchcape Shipping - Melbourne",
+      "notes": null,
+      "lat": -37.82566877546349,
+      "lon": 144.91771746395057
+    },
+    {
+      "id": "V004",
+      "name": "Salvia Island",
+      "imo": "9550008",
+      "vessel_type": "Bulk Carrier",
+      "flag": "Panama",
+      "loa": 190.0,
+      "draught": 10.0,
+      "cargo_type": "Grain",
+      "status": "confirmed",
+      "berth_id": "B03",
+      "eta": "2026-05-20T13:04:24Z",
+      "etd": "2026-05-21T05:04:24Z",
+      "ata": null,
+      "atd": null,
+      "pilotage_required": true,
+      "towage_required": true,
+      "agent": "Inchcape Shipping - Geelong",
+      "notes": null,
+      "lat": -38.20284946211948,
+      "lon": 144.65026345464253
+    },
+    {
+      "id": "V005",
+      "name": "Cosco Aden",
+      "imo": "9854161",
+      "vessel_type": "Container",
+      "flag": "Bahamas",
+      "loa": 261.0,
+      "draught": 12.0,
+      "cargo_type": "Containers",
+      "status": "confirmed",
+      "berth_id": "B04",
+      "eta": "2026-05-20T15:04:24Z",
+      "etd": "2026-05-21T03:04:24Z",
+      "ata": null,
+      "atd": null,
+      "pilotage_required": true,
+      "towage_required": true,
+      "agent": "COSCO Shipping Lines (Oceania)",
+      "notes": null,
+      "lat": -38.203041237506675,
+      "lon": 144.6514112993057
+    },
+    {
+      "id": "V006",
+      "name": "APL Savannah",
+      "imo": "9336128",
+      "vessel_type": "Container",
+      "flag": "Marshall Islands",
+      "loa": 261.0,
+      "draught": 12.0,
+      "cargo_type": "Containers",
+      "status": "scheduled",
+      "berth_id": "B01",
+      "eta": "2026-05-20T17:04:24Z",
+      "etd": "2026-05-21T13:04:24Z",
+      "ata": null,
+      "atd": null,
+      "pilotage_required": true,
+      "towage_required": true,
+      "agent": "Inchcape Shipping - Melbourne",
+      "notes": null,
+      "lat": -38.20072308690013,
+      "lon": 144.65566722362095
+    },
+    {
+      "id": "V007",
+      "name": "OOCL Panama",
+      "imo": "9042216",
+      "vessel_type": "Container",
+      "flag": "Liberia",
+      "loa": 294.0,
+      "draught": 13.5,
+      "cargo_type": "Containers",
+      "status": "at_risk",
+      "berth_id": "B04",
+      "eta": "2026-05-20T12:04:24Z",
+      "etd": "2026-05-20T20:04:24Z",
+      "ata": null,
+      "atd": null,
+      "pilotage_required": true,
+      "towage_required": true,
+      "agent": "Inchcape Shipping - Melbourne",
+      "notes": "ETA variance +2.5h reported by agent",
+      "lat": -38.30315985351339,
+      "lon": 144.54448854810406
+    },
+    {
+      "id": "V008",
+      "name": "NPDL Tahiti",
+      "imo": "9222047",
+      "vessel_type": "Container",
+      "flag": "Singapore",
+      "loa": 200.0,
+      "draught": 10.5,
+      "cargo_type": "Containers",
+      "status": "scheduled",
+      "berth_id": "B06",
+      "eta": "2026-05-20T20:04:24Z",
+      "etd": "2026-05-21T14:04:24Z",
+      "ata": null,
+      "atd": null,
+      "pilotage_required": true,
+      "towage_required": true,
+      "agent": "Gulf Agency Company (Australia)",
+      "notes": null,
+      "lat": -38.10352660410468,
+      "lon": 144.76107258716715
+    },
+    {
+      "id": "V009",
+      "name": "GSL Vinia",
+      "imo": "9694517",
+      "vessel_type": "Container",
+      "flag": "Marshall Islands",
+      "loa": 294.0,
+      "draught": 13.5,
+      "cargo_type": "Containers",
+      "status": "scheduled",
+      "berth_id": "B02",
+      "eta": "2026-05-20T22:04:24Z",
+      "etd": "2026-05-21T22:04:24Z",
+      "ata": null,
+      "atd": null,
+      "pilotage_required": true,
+      "towage_required": true,
+      "agent": "Inchcape Shipping - Melbourne",
+      "notes": null,
+      "lat": -38.10302952620737,
+      "lon": 144.76039630731668
+    }
+  ],
+  "berths": [
+    {
+      "id": "B01",
+      "name": "Webb Dock 1 East",
+      "terminal": "Webb Dock 1 East",
+      "max_loa": 350,
+      "max_draught": 14.0,
+      "lat_depth_m": 13.5,
+      "status": "occupied",
+      "crane_count": 4,
+      "readiness_time": "2026-05-20T14:04:24Z",
+      "lat": -37.8428,
+      "lon": 144.9248
+    },
+    {
+      "id": "B02",
+      "name": "Swanson East 3",
+      "terminal": "Swanson East 3",
+      "max_loa": 300,
+      "max_draught": 13.0,
+      "lat_depth_m": 13.0,
+      "status": "occupied",
+      "crane_count": 4,
+      "readiness_time": "2026-05-20T18:04:24Z",
+      "lat": -37.8182,
+      "lon": 144.9308
+    },
+    {
+      "id": "B03",
+      "name": "Webb Dock 4 East",
+      "terminal": "Webb Dock 4 East",
+      "max_loa": 280,
+      "max_draught": 12.5,
+      "lat_depth_m": 13.5,
+      "status": "available",
+      "crane_count": 2,
+      "readiness_time": null,
+      "lat": -37.8442,
+      "lon": 144.9258
+    },
+    {
+      "id": "B04",
+      "name": "Swanson West 2",
+      "terminal": "Swanson West 2",
+      "max_loa": 320,
+      "max_draught": 14.0,
+      "lat_depth_m": 12.5,
+      "status": "reserved",
+      "crane_count": 3,
+      "readiness_time": "2026-05-20T13:04:24Z",
+      "lat": -37.8195,
+      "lon": 144.9268
+    },
+    {
+      "id": "B05",
+      "name": "Webb Dock 2 East",
+      "terminal": "Webb Dock 2 East",
+      "max_loa": 260,
+      "max_draught": 11.5,
+      "lat_depth_m": 13.5,
+      "status": "available",
+      "crane_count": 2,
+      "readiness_time": null,
+      "lat": -37.8435,
+      "lon": 144.9252
+    },
+    {
+      "id": "B06",
+      "name": "Appleton Dock F",
+      "terminal": "Appleton Dock F",
+      "max_loa": 220,
+      "max_draught": 10.0,
+      "lat_depth_m": 10.0,
+      "status": "maintenance",
+      "crane_count": 0,
+      "readiness_time": "2026-05-21T08:04:24Z",
+      "lat": -37.8258,
+      "lon": 144.9178
+    }
+  ],
+  "pilotage": [
+    {
+      "id": "PIL-V004-IN",
+      "vessel_id": "V004",
+      "vessel_name": "Salvia Island",
+      "pilot_name": "PILOT_MEL_PSP_03",
+      "scheduled_time": "2026-05-20T11:34:24Z",
+      "boarding_station": "Point Lonsdale Pilot Station",
+      "direction": "inbound",
+      "status": "confirmed"
+    },
+    {
+      "id": "PIL-V005-IN",
+      "vessel_id": "V005",
+      "vessel_name": "Cosco Aden",
+      "pilot_name": "PILOT_MEL_PSP_01",
+      "scheduled_time": "2026-05-20T13:34:24Z",
+      "boarding_station": "Point Lonsdale Pilot Station",
+      "direction": "inbound",
+      "status": "confirmed"
+    },
+    {
+      "id": "PIL-V006-IN",
+      "vessel_id": "V006",
+      "vessel_name": "APL Savannah",
+      "pilot_name": "PILOT_MEL_PSP_01",
+      "scheduled_time": "2026-05-20T15:34:24Z",
+      "boarding_station": "Point Lonsdale Pilot Station",
+      "direction": "inbound",
+      "status": "scheduled"
+    },
+    {
+      "id": "PIL-V007-IN",
+      "vessel_id": "V007",
+      "vessel_name": "OOCL Panama",
+      "pilot_name": "PILOT_MEL_PSP_01",
+      "scheduled_time": "2026-05-20T10:34:24Z",
+      "boarding_station": "Point Lonsdale Pilot Station",
+      "direction": "inbound",
+      "status": "scheduled"
+    },
+    {
+      "id": "PIL-V008-IN",
+      "vessel_id": "V008",
+      "vessel_name": "NPDL Tahiti",
+      "pilot_name": "PILOT_MEL_PSP_03",
+      "scheduled_time": "2026-05-20T18:34:24Z",
+      "boarding_station": "Point Lonsdale Pilot Station",
+      "direction": "inbound",
+      "status": "scheduled"
+    },
+    {
+      "id": "PIL-V009-IN",
+      "vessel_id": "V009",
+      "vessel_name": "GSL Vinia",
+      "pilot_name": "PILOT_MEL_PSP_03",
+      "scheduled_time": "2026-05-20T20:34:24Z",
+      "boarding_station": "Point Lonsdale Pilot Station",
+      "direction": "inbound",
+      "status": "scheduled"
+    },
+    {
+      "id": "PIL-V001-OUT",
+      "vessel_id": "V001",
+      "vessel_name": "Pacific Topaz",
+      "pilot_name": "PILOT_MEL_PSP_04",
+      "scheduled_time": "2026-05-20T13:04:24Z",
+      "boarding_station": "South Channel Anchorage",
+      "direction": "outbound",
+      "status": "scheduled"
+    },
+    {
+      "id": "PIL-V002-OUT",
+      "vessel_id": "V002",
+      "vessel_name": "Tian Shun He",
+      "pilot_name": "PILOT_MEL_PSP_01",
+      "scheduled_time": "2026-05-20T17:04:24Z",
+      "boarding_station": "Point Lonsdale Pilot Station",
+      "direction": "outbound",
+      "status": "scheduled"
+    },
+    {
+      "id": "PIL-V003-OUT",
+      "vessel_id": "V003",
+      "vessel_name": "Olivia Maersk",
+      "pilot_name": "PILOT_MEL_PSP_04",
+      "scheduled_time": "2026-05-20T15:04:24Z",
+      "boarding_station": "South Channel Anchorage",
+      "direction": "outbound",
+      "status": "scheduled"
+    }
+  ],
+  "towage": [
+    {
+      "id": "TOW-V001-DEP",
+      "vessel_id": "V001",
+      "vessel_name": "Pacific Topaz",
+      "tugs": [
+        {
+          "tug_id": "SVR-MERCURY",
+          "tug_name": "SVR Mercury"
+        }
+      ],
+      "scheduled_time": "2026-05-20T13:19:24Z",
+      "direction": "departure",
+      "status": "scheduled"
+    },
+    {
+      "id": "TOW-V002-DEP",
+      "vessel_id": "V002",
+      "vessel_name": "Tian Shun He",
+      "tugs": [
+        {
+          "tug_id": "SVR-MERCURY",
+          "tug_name": "SVR Mercury"
+        },
+        {
+          "tug_id": "SVR-ORION",
+          "tug_name": "SVR Orion"
+        }
+      ],
+      "scheduled_time": "2026-05-20T17:19:24Z",
+      "direction": "departure",
+      "status": "scheduled"
+    },
+    {
+      "id": "TOW-V003-DEP",
+      "vessel_id": "V003",
+      "vessel_name": "Olivia Maersk",
+      "tugs": [
+        {
+          "tug_id": "SVR-APEX",
+          "tug_name": "SVR Apex"
+        },
+        {
+          "tug_id": "SVR-MERCURY",
+          "tug_name": "SVR Mercury"
+        }
+      ],
+      "scheduled_time": "2026-05-20T15:19:24Z",
+      "direction": "departure",
+      "status": "scheduled"
+    },
+    {
+      "id": "TOW-V004-ARR",
+      "vessel_id": "V004",
+      "vessel_name": "Salvia Island",
+      "tugs": [
+        {
+          "tug_id": "SVR-APEX",
+          "tug_name": "SVR Apex"
+        }
+      ],
+      "scheduled_time": "2026-05-20T12:34:24Z",
+      "direction": "arrival",
+      "status": "confirmed"
+    },
+    {
+      "id": "TOW-V005-ARR",
+      "vessel_id": "V005",
+      "vessel_name": "Cosco Aden",
+      "tugs": [
+        {
+          "tug_id": "SVR-APEX",
+          "tug_name": "SVR Apex"
+        },
+        {
+          "tug_id": "SVR-MERCURY",
+          "tug_name": "SVR Mercury"
+        }
+      ],
+      "scheduled_time": "2026-05-20T14:34:24Z",
+      "direction": "arrival",
+      "status": "confirmed"
+    },
+    {
+      "id": "TOW-V006-ARR",
+      "vessel_id": "V006",
+      "vessel_name": "APL Savannah",
+      "tugs": [
+        {
+          "tug_id": "SVR-ORION",
+          "tug_name": "SVR Orion"
+        },
+        {
+          "tug_id": "SVR-ATLAS",
+          "tug_name": "SVR Atlas"
+        }
+      ],
+      "scheduled_time": "2026-05-20T16:34:24Z",
+      "direction": "arrival",
+      "status": "scheduled"
+    },
+    {
+      "id": "TOW-V007-ARR",
+      "vessel_id": "V007",
+      "vessel_name": "OOCL Panama",
+      "tugs": [
+        {
+          "tug_id": "SVR-TITAN",
+          "tug_name": "SVR Titan"
+        },
+        {
+          "tug_id": "SVR-APEX",
+          "tug_name": "SVR Apex"
+        }
+      ],
+      "scheduled_time": "2026-05-20T11:34:24Z",
+      "direction": "arrival",
+      "status": "scheduled"
+    },
+    {
+      "id": "TOW-V008-ARR",
+      "vessel_id": "V008",
+      "vessel_name": "NPDL Tahiti",
+      "tugs": [
+        {
+          "tug_id": "SVR-TITAN",
+          "tug_name": "SVR Titan"
+        }
+      ],
+      "scheduled_time": "2026-05-20T19:34:24Z",
+      "direction": "arrival",
+      "status": "scheduled"
+    },
+    {
+      "id": "TOW-V009-ARR",
+      "vessel_id": "V009",
+      "vessel_name": "GSL Vinia",
+      "tugs": [
+        {
+          "tug_id": "SVR-MERCURY",
+          "tug_name": "SVR Mercury"
+        },
+        {
+          "tug_id": "SVR-ORION",
+          "tug_name": "SVR Orion"
+        }
+      ],
+      "scheduled_time": "2026-05-20T21:34:24Z",
+      "direction": "arrival",
+      "status": "scheduled"
+    }
+  ],
+  "port_tugs": [
+    {
+      "name": "SVR Apex",
+      "bollard_pull_t": 72
+    },
+    {
+      "name": "SVR Mercury",
+      "bollard_pull_t": 65
+    },
+    {
+      "name": "SVR Orion",
+      "bollard_pull_t": 80
+    },
+    {
+      "name": "SVR Atlas",
+      "bollard_pull_t": 58
+    },
+    {
+      "name": "SVR Titan",
+      "bollard_pull_t": 70
+    }
+  ],
+  "port_gangs": [
+    {
+      "name": "Gang 1",
+      "linesmen": 4
+    },
+    {
+      "name": "Gang 2",
+      "linesmen": 4
+    },
+    {
+      "name": "Gang 3",
+      "linesmen": 3
+    },
+    {
+      "name": "Gang 4",
+      "linesmen": 4
+    },
+    {
+      "name": "Gang 5",
+      "linesmen": 3
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "10f47e7a",
+      "conflict_type": "berth_overlap",
+      "signal_type": "CONFLICT",
+      "severity": "critical",
+      "vessel_ids": [
+        "V007",
+        "V005"
+      ],
+      "vessel_names": [
+        "OOCL Panama",
+        "Cosco Aden"
+      ],
+      "berth_id": "B04",
+      "berth_name": "Swanson West 2",
+      "conflict_time": "2026-05-20T15:04:24Z",
+      "description": "Cosco Aden is scheduled to arrive at Swanson West 2 while OOCL Panama is still berthed (overlap: 300min). Minimum clearance required: 60min.",
+      "resolution_options": [
+        "Delay Cosco Aden arrival by 375min",
+        "Bring forward OOCL Panama departure",
+        "Reassign Cosco Aden to an alternative berth"
+      ],
+      "sequencing_alternatives": [
+        {
+          "id": "SEQ-B04-1",
+          "strategy": "delay_arrival",
+          "label": "Hold OOCL Panama at outer anchorage (+90min)",
+          "description": "Delay OOCL Panama ETA by 90min. B04 opens after Cosco Aden departs with full clearance window. Pilot notice is restored.",
+          "affected_vessels": [
+            "OOCL Panama"
+          ],
+          "cascade_impact": "Outbound towage for OOCL Panama delayed 90min. Pilot rescheduled to +3.5h. Terminal gang start pushed back.",
+          "feasibility": "high",
+          "time_saving_hours": 0,
+          "cost_usd": 3800,
+          "cost_label": "~$3,800 anchorage + delay fees",
+          "delay_mins": 90,
+          "cascade_count": 1,
+          "risk": "low",
+          "recommended": true
+        },
+        {
+          "id": "SEQ-B04-2",
+          "strategy": "advance_departure",
+          "label": "Accelerate Cosco Aden departure (−3h)",
+          "description": "Advance Cosco Aden ETD by 3h by accelerating cargo operations. B04 clears before OOCL Panama arrives.",
+          "affected_vessels": [
+            "Cosco Aden"
+          ],
+          "cascade_impact": "Terminal must accelerate crane gang — likely overtime. Shipping line cargo cut-off advanced by 3h.",
+          "feasibility": "medium",
+          "time_saving_hours": 3,
+          "cost_usd": 11200,
+          "cost_label": "~$11,200 overtime + terminal",
+          "delay_mins": 0,
+          "cascade_count": 2,
+          "risk": "medium",
+          "recommended": false
+        },
+        {
+          "id": "SEQ-B04-3",
+          "strategy": "reassign_berth",
+          "label": "Reassign OOCL Panama to Berth 2",
+          "description": "B02 becomes available +8h. OOCL Panama (RoRo, LOA 185m) is within B02 dimensional limits (max LOA 300m).",
+          "affected_vessels": [
+            "OOCL Panama"
+          ],
+          "cascade_impact": "Pilot boarding route unchanged. Towage approach changes to North Terminal. Terminal gang reassigned to B02.",
+          "feasibility": "high",
+          "time_saving_hours": 0,
+          "cost_usd": 2400,
+          "cost_label": "~$2,400 repositioning",
+          "delay_mins": 30,
+          "cascade_count": 0,
+          "risk": "low",
+          "recommended": false
+        }
+      ],
+      "decision_support": {
+        "recommended_option_id": "SEQ-B04-1",
+        "recommended_reasoning": "Lowest cost option with minimal cascade impact. Anchorage capacity is available and pilot can be rescheduled with adequate notice.",
+        "confidence": "high",
+        "decision_deadline": "2026-05-20T13:04:24Z",
+        "options": [
+          {
+            "id": "SEQ-B04-1",
+            "strategy": "delay_arrival",
+            "label": "Hold OOCL Panama at outer anchorage (+90min)",
+            "description": "Delay OOCL Panama ETA by 90min. B04 opens after Cosco Aden departs with full clearance window. Pilot notice is restored.",
+            "affected_vessels": [
+              "OOCL Panama"
+            ],
+            "cascade_impact": "Outbound towage for OOCL Panama delayed 90min. Pilot rescheduled to +3.5h. Terminal gang start pushed back.",
+            "feasibility": "high",
+            "time_saving_hours": 0,
+            "cost_usd": 3800,
+            "cost_label": "~$3,800 anchorage + delay fees",
+            "delay_mins": 90,
+            "cascade_count": 1,
+            "risk": "low",
+            "recommended": true
+          },
+          {
+            "id": "SEQ-B04-2",
+            "strategy": "advance_departure",
+            "label": "Accelerate Cosco Aden departure (−3h)",
+            "description": "Advance Cosco Aden ETD by 3h by accelerating cargo operations. B04 clears before OOCL Panama arrives.",
+            "affected_vessels": [
+              "Cosco Aden"
+            ],
+            "cascade_impact": "Terminal must accelerate crane gang — likely overtime. Shipping line cargo cut-off advanced by 3h.",
+            "feasibility": "medium",
+            "time_saving_hours": 3,
+            "cost_usd": 11200,
+            "cost_label": "~$11,200 overtime + terminal",
+            "delay_mins": 0,
+            "cascade_count": 2,
+            "risk": "medium",
+            "recommended": false
+          },
+          {
+            "id": "SEQ-B04-3",
+            "strategy": "reassign_berth",
+            "label": "Reassign OOCL Panama to Berth 2",
+            "description": "B02 becomes available +8h. OOCL Panama (RoRo, LOA 185m) is within B02 dimensional limits (max LOA 300m).",
+            "affected_vessels": [
+              "OOCL Panama"
+            ],
+            "cascade_impact": "Pilot boarding route unchanged. Towage approach changes to North Terminal. Terminal gang reassigned to B02.",
+            "feasibility": "high",
+            "time_saving_hours": 0,
+            "cost_usd": 2400,
+            "cost_label": "~$2,400 repositioning",
+            "delay_mins": 30,
+            "cascade_count": 0,
+            "risk": "low",
+            "recommended": false
+          }
+        ]
+      },
+      "data_source": "simulated",
+      "safety_score": "medium"
+    },
+    {
+      "id": "06d71a2f",
+      "conflict_type": "bridge_restriction",
+      "signal_type": "WARNING",
+      "severity": "high",
+      "vessel_ids": [
+        "V001"
+      ],
+      "vessel_names": [
+        "Pacific Topaz"
+      ],
+      "berth_id": null,
+      "berth_name": "Bolte Bridge",
+      "conflict_time": "2026-05-20T10:04:24Z",
+      "description": "Pacific Topaz estimated air draught 30m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "medium"
+    },
+    {
+      "id": "384a376c",
+      "conflict_type": "bridge_restriction",
+      "signal_type": "WARNING",
+      "severity": "high",
+      "vessel_ids": [
+        "V002"
+      ],
+      "vessel_names": [
+        "Tian Shun He"
+      ],
+      "berth_id": null,
+      "berth_name": "Bolte Bridge",
+      "conflict_time": "2026-05-20T10:04:24Z",
+      "description": "Tian Shun He estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "medium"
+    },
+    {
+      "id": "85cd04e4",
+      "conflict_type": "bridge_restriction",
+      "signal_type": "WARNING",
+      "severity": "high",
+      "vessel_ids": [
+        "V003"
+      ],
+      "vessel_names": [
+        "Olivia Maersk"
+      ],
+      "berth_id": null,
+      "berth_name": "Bolte Bridge",
+      "conflict_time": "2026-05-20T10:04:24Z",
+      "description": "Olivia Maersk estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "medium"
+    },
+    {
+      "id": "5d362cbe",
+      "conflict_type": "bridge_restriction",
+      "signal_type": "WARNING",
+      "severity": "high",
+      "vessel_ids": [
+        "V004"
+      ],
+      "vessel_names": [
+        "Salvia Island"
+      ],
+      "berth_id": null,
+      "berth_name": "Bolte Bridge",
+      "conflict_time": "2026-05-20T10:04:24Z",
+      "description": "Salvia Island estimated air draught 35m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "medium"
+    },
+    {
+      "id": "006bca33",
+      "conflict_type": "bridge_restriction",
+      "signal_type": "WARNING",
+      "severity": "high",
+      "vessel_ids": [
+        "V005"
+      ],
+      "vessel_names": [
+        "Cosco Aden"
+      ],
+      "berth_id": null,
+      "berth_name": "Bolte Bridge",
+      "conflict_time": "2026-05-20T10:04:24Z",
+      "description": "Cosco Aden estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "medium"
+    },
+    {
+      "id": "14469498",
+      "conflict_type": "bridge_restriction",
+      "signal_type": "WARNING",
+      "severity": "high",
+      "vessel_ids": [
+        "V006"
+      ],
+      "vessel_names": [
+        "APL Savannah"
+      ],
+      "berth_id": null,
+      "berth_name": "Bolte Bridge",
+      "conflict_time": "2026-05-20T10:04:24Z",
+      "description": "APL Savannah estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "medium"
+    },
+    {
+      "id": "8f3342ce",
+      "conflict_type": "bridge_restriction",
+      "signal_type": "WARNING",
+      "severity": "high",
+      "vessel_ids": [
+        "V007"
+      ],
+      "vessel_names": [
+        "OOCL Panama"
+      ],
+      "berth_id": null,
+      "berth_name": "Bolte Bridge",
+      "conflict_time": "2026-05-20T10:04:24Z",
+      "description": "OOCL Panama estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "medium"
+    },
+    {
+      "id": "260e9769",
+      "conflict_type": "bridge_restriction",
+      "signal_type": "WARNING",
+      "severity": "high",
+      "vessel_ids": [
+        "V008"
+      ],
+      "vessel_names": [
+        "NPDL Tahiti"
+      ],
+      "berth_id": null,
+      "berth_name": "Bolte Bridge",
+      "conflict_time": "2026-05-20T10:04:24Z",
+      "description": "NPDL Tahiti estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "medium"
+    },
+    {
+      "id": "73cf8330",
+      "conflict_type": "bridge_restriction",
+      "signal_type": "WARNING",
+      "severity": "high",
+      "vessel_ids": [
+        "V009"
+      ],
+      "vessel_names": [
+        "GSL Vinia"
+      ],
+      "berth_id": null,
+      "berth_name": "Bolte Bridge",
+      "conflict_time": "2026-05-20T10:04:24Z",
+      "description": "GSL Vinia estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "medium"
+    },
+    {
+      "id": "9adc6ecc",
+      "conflict_type": "pilotage_window",
+      "signal_type": "WARNING",
+      "severity": "high",
+      "vessel_ids": [
+        "V007"
+      ],
+      "vessel_names": [
+        "OOCL Panama"
+      ],
+      "berth_id": null,
+      "berth_name": null,
+      "conflict_time": "2026-05-20T10:34:24Z",
+      "description": "Pilotage for OOCL Panama is in 0.5h — below the 2h minimum notice. Pilot: PILOT_MEL_PSP_01.",
+      "resolution_options": [
+        "Confirm availability with PILOT_MEL_PSP_01 immediately",
+        "Request stand-by pilot cover",
+        "Delay OOCL Panama ETA to restore notice period"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "medium"
+    },
+    {
+      "id": "90049bbb",
+      "conflict_type": "berth_not_ready",
+      "signal_type": "WARNING",
+      "severity": "high",
+      "vessel_ids": [
+        "V008"
+      ],
+      "vessel_names": [
+        "NPDL Tahiti"
+      ],
+      "berth_id": "B06",
+      "berth_name": "Appleton Dock F",
+      "conflict_time": "2026-05-20T20:04:24Z",
+      "description": "NPDL Tahiti ETA is 20:04 UTC but Appleton Dock F will not be ready until 08:04 UTC (gap: 720min).",
+      "resolution_options": [
+        "Hold NPDL Tahiti at anchorage for 720min",
+        "Accelerate departure of current occupant",
+        "Assign NPDL Tahiti to an alternative berth"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "medium"
+    },
+    {
+      "id": "e14a5d38",
+      "conflict_type": "towage_resource",
+      "signal_type": "WARNING",
+      "severity": "medium",
+      "vessel_ids": [
+        "V004",
+        "V007"
+      ],
+      "vessel_names": [
+        "Salvia Island",
+        "OOCL Panama"
+      ],
+      "berth_id": null,
+      "berth_name": null,
+      "conflict_time": "2026-05-20T11:34:24Z",
+      "description": "SVR Apex is assigned to Salvia Island (arrival) at 12:34 and OOCL Panama (arrival) at 11:34 — operations overlap.",
+      "resolution_options": [
+        "Reassign a spare tug to the later operation",
+        "Adjust one operation time to avoid overlap",
+        "Confirm tug availability with tug operator"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "low"
+    },
+    {
+      "id": "dfab5439",
+      "conflict_type": "berth_not_ready",
+      "signal_type": "WARNING",
+      "severity": "medium",
+      "vessel_ids": [
+        "V007"
+      ],
+      "vessel_names": [
+        "OOCL Panama"
+      ],
+      "berth_id": "B04",
+      "berth_name": "Swanson West 2",
+      "conflict_time": "2026-05-20T12:04:24Z",
+      "description": "OOCL Panama ETA is 12:04 UTC but Swanson West 2 will not be ready until 13:04 UTC (gap: 60min).",
+      "resolution_options": [
+        "Hold OOCL Panama at anchorage for 60min",
+        "Accelerate departure of current occupant",
+        "Assign OOCL Panama to an alternative berth"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "low"
+    },
+    {
+      "id": "bb337929",
+      "conflict_type": "eta_variance",
+      "signal_type": "ADVISORY",
+      "severity": "medium",
+      "vessel_ids": [
+        "V007"
+      ],
+      "vessel_names": [
+        "OOCL Panama"
+      ],
+      "berth_id": "B04",
+      "berth_name": "B04",
+      "conflict_time": "2026-05-20T12:04:24Z",
+      "description": "OOCL Panama has reported significant ETA variance. Scheduled ETA 20 May 12:04 UTC may not be reliable. ETA variance +2.5h reported by agent",
+      "resolution_options": [
+        "Request updated ETA from ship's agent",
+        "Place pilotage and towage on standby",
+        "Notify berth terminal of potential schedule shift"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "low"
+    },
+    {
+      "id": "35304399",
+      "conflict_type": "towage_resource",
+      "signal_type": "WARNING",
+      "severity": "medium",
+      "vessel_ids": [
+        "V001",
+        "V005"
+      ],
+      "vessel_names": [
+        "Pacific Topaz",
+        "Cosco Aden"
+      ],
+      "berth_id": null,
+      "berth_name": null,
+      "conflict_time": "2026-05-20T14:34:24Z",
+      "description": "SVR Mercury is assigned to Pacific Topaz (departure) at 13:19 and Cosco Aden (arrival) at 14:34 — operations overlap.",
+      "resolution_options": [
+        "Reassign a spare tug to the later operation",
+        "Adjust one operation time to avoid overlap",
+        "Confirm tug availability with tug operator"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "low"
+    },
+    {
+      "id": "b7681408",
+      "conflict_type": "towage_resource",
+      "signal_type": "WARNING",
+      "severity": "medium",
+      "vessel_ids": [
+        "V003",
+        "V005"
+      ],
+      "vessel_names": [
+        "Olivia Maersk",
+        "Cosco Aden"
+      ],
+      "berth_id": null,
+      "berth_name": null,
+      "conflict_time": "2026-05-20T14:34:24Z",
+      "description": "SVR Mercury is assigned to Olivia Maersk (departure) at 15:19 and Cosco Aden (arrival) at 14:34 — operations overlap.",
+      "resolution_options": [
+        "Reassign a spare tug to the later operation",
+        "Adjust one operation time to avoid overlap",
+        "Confirm tug availability with tug operator"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "low"
+    },
+    {
+      "id": "eb3e20a6",
+      "conflict_type": "towage_resource",
+      "signal_type": "WARNING",
+      "severity": "medium",
+      "vessel_ids": [
+        "V002",
+        "V006"
+      ],
+      "vessel_names": [
+        "Tian Shun He",
+        "APL Savannah"
+      ],
+      "berth_id": null,
+      "berth_name": null,
+      "conflict_time": "2026-05-20T16:34:24Z",
+      "description": "SVR Orion is assigned to Tian Shun He (departure) at 17:19 and APL Savannah (arrival) at 16:34 — operations overlap.",
+      "resolution_options": [
+        "Reassign a spare tug to the later operation",
+        "Adjust one operation time to avoid overlap",
+        "Confirm tug availability with tug operator"
+      ],
+      "sequencing_alternatives": [],
+      "decision_support": null,
+      "data_source": "simulated",
+      "safety_score": "low"
+    }
+  ],
+  "guidance": [
+    {
+      "id": "a30c5788",
+      "priority": "critical",
+      "message": "Berth conflict: OOCL Panama / Cosco Aden",
+      "detail": "Cosco Aden is scheduled to arrive at Swanson West 2 while OOCL Panama is still berthed (overlap: 300min). Minimum clearance required: 60min.",
+      "resolution_options": [
+        "Delay Cosco Aden arrival by 375min",
+        "Bring forward OOCL Panama departure",
+        "Reassign Cosco Aden to an alternative berth"
+      ],
+      "vessel_id": "V007",
+      "vessel_name": "OOCL Panama",
+      "action_required": true,
+      "deadline": "2026-05-20T14:04:24Z"
+    },
+    {
+      "id": "ff17ebd6",
+      "priority": "high",
+      "message": "Pacific Topaz estimated air draught 30m exceeds Bolte Bridge",
+      "detail": "Pacific Topaz estimated air draught 30m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "vessel_id": "V001",
+      "vessel_name": "Pacific Topaz",
+      "action_required": true,
+      "deadline": null
+    },
+    {
+      "id": "b64c1d53",
+      "priority": "high",
+      "message": "Tian Shun He estimated air draught 45m exceeds Bolte Bridge ",
+      "detail": "Tian Shun He estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "vessel_id": "V002",
+      "vessel_name": "Tian Shun He",
+      "action_required": true,
+      "deadline": null
+    },
+    {
+      "id": "21d1a260",
+      "priority": "high",
+      "message": "Olivia Maersk estimated air draught 45m exceeds Bolte Bridge",
+      "detail": "Olivia Maersk estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "vessel_id": "V003",
+      "vessel_name": "Olivia Maersk",
+      "action_required": true,
+      "deadline": null
+    },
+    {
+      "id": "5cfe26bf",
+      "priority": "high",
+      "message": "Salvia Island estimated air draught 35m exceeds Bolte Bridge",
+      "detail": "Salvia Island estimated air draught 35m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "vessel_id": "V004",
+      "vessel_name": "Salvia Island",
+      "action_required": true,
+      "deadline": null
+    },
+    {
+      "id": "70009f0b",
+      "priority": "high",
+      "message": "Cosco Aden estimated air draught 45m exceeds Bolte Bridge li",
+      "detail": "Cosco Aden estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "vessel_id": "V005",
+      "vessel_name": "Cosco Aden",
+      "action_required": true,
+      "deadline": null
+    },
+    {
+      "id": "b5ba25f3",
+      "priority": "high",
+      "message": "APL Savannah estimated air draught 45m exceeds Bolte Bridge ",
+      "detail": "APL Savannah estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "vessel_id": "V006",
+      "vessel_name": "APL Savannah",
+      "action_required": true,
+      "deadline": null
+    },
+    {
+      "id": "1a355b0a",
+      "priority": "high",
+      "message": "OOCL Panama estimated air draught 45m exceeds Bolte Bridge l",
+      "detail": "OOCL Panama estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "vessel_id": "V007",
+      "vessel_name": "OOCL Panama",
+      "action_required": true,
+      "deadline": null
+    },
+    {
+      "id": "b5106aba",
+      "priority": "high",
+      "message": "NPDL Tahiti estimated air draught 45m exceeds Bolte Bridge l",
+      "detail": "NPDL Tahiti estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "vessel_id": "V008",
+      "vessel_name": "NPDL Tahiti",
+      "action_required": true,
+      "deadline": null
+    },
+    {
+      "id": "e6cb048f",
+      "priority": "high",
+      "message": "GSL Vinia estimated air draught 45m exceeds Bolte Bridge lim",
+      "detail": "GSL Vinia estimated air draught 45m exceeds Bolte Bridge limit of 28.2m. Vessels >24.36m air draught must obtain CityLink permission 24h prior",
+      "resolution_options": [
+        "Confirm actual air draught with master before authorising transit",
+        "Check current tidal state — clearance varies with tide height",
+        "Contact CityLink Operations +61 3 9674 2001 if clearance required",
+        "Consider alternative berth below Bolte Bridge if transit cannot be authorised"
+      ],
+      "vessel_id": "V009",
+      "vessel_name": "GSL Vinia",
+      "action_required": true,
+      "deadline": null
+    },
+    {
+      "id": "7ab36818",
+      "priority": "high",
+      "message": "Short pilot notice: OOCL Panama",
+      "detail": "Pilotage for OOCL Panama is in 0.5h — below the 2h minimum notice. Pilot: PILOT_MEL_PSP_01.",
+      "resolution_options": [
+        "Confirm availability with PILOT_MEL_PSP_01 immediately",
+        "Request stand-by pilot cover",
+        "Delay OOCL Panama ETA to restore notice period"
+      ],
+      "vessel_id": "V007",
+      "vessel_name": "OOCL Panama",
+      "action_required": true,
+      "deadline": null
+    },
+    {
+      "id": "11c35384",
+      "priority": "high",
+      "message": "Berth not ready for NPDL Tahiti",
+      "detail": "NPDL Tahiti ETA is 20:04 UTC but Appleton Dock F will not be ready until 08:04 UTC (gap: 720min).",
+      "resolution_options": [
+        "Hold NPDL Tahiti at anchorage for 720min",
+        "Accelerate departure of current occupant",
+        "Assign NPDL Tahiti to an alternative berth"
+      ],
+      "vessel_id": "V008",
+      "vessel_name": "NPDL Tahiti",
+      "action_required": true,
+      "deadline": null
+    },
+    {
+      "id": "2c98500b",
+      "priority": "medium",
+      "message": "Tug double-booked: Salvia Island & OOCL Panama",
+      "detail": "SVR Apex is assigned to Salvia Island (arrival) at 12:34 and OOCL Panama (arrival) at 11:34 — operations overlap.",
+      "resolution_options": [
+        "Reassign a spare tug to the later operation",
+        "Adjust one operation time to avoid overlap",
+        "Confirm tug availability with tug operator"
+      ],
+      "vessel_id": "V004",
+      "vessel_name": "Salvia Island",
+      "action_required": false,
+      "deadline": null
+    },
+    {
+      "id": "767b47ba",
+      "priority": "medium",
+      "message": "Berth not ready for OOCL Panama",
+      "detail": "OOCL Panama ETA is 12:04 UTC but Swanson West 2 will not be ready until 13:04 UTC (gap: 60min).",
+      "resolution_options": [
+        "Hold OOCL Panama at anchorage for 60min",
+        "Accelerate departure of current occupant",
+        "Assign OOCL Panama to an alternative berth"
+      ],
+      "vessel_id": "V007",
+      "vessel_name": "OOCL Panama",
+      "action_required": false,
+      "deadline": null
+    },
+    {
+      "id": "aaee4cf8",
+      "priority": "medium",
+      "message": "ETA uncertainty: OOCL Panama",
+      "detail": "OOCL Panama has reported significant ETA variance. Scheduled ETA 20 May 12:04 UTC may not be reliable. ETA variance +2.5h reported by agent",
+      "resolution_options": [
+        "Request updated ETA from ship's agent",
+        "Place pilotage and towage on standby",
+        "Notify berth terminal of potential schedule shift"
+      ],
+      "vessel_id": "V007",
+      "vessel_name": "OOCL Panama",
+      "action_required": false,
+      "deadline": null
+    },
+    {
+      "id": "531652ec",
+      "priority": "medium",
+      "message": "Tug double-booked: Pacific Topaz & Cosco Aden",
+      "detail": "SVR Mercury is assigned to Pacific Topaz (departure) at 13:19 and Cosco Aden (arrival) at 14:34 — operations overlap.",
+      "resolution_options": [
+        "Reassign a spare tug to the later operation",
+        "Adjust one operation time to avoid overlap",
+        "Confirm tug availability with tug operator"
+      ],
+      "vessel_id": "V001",
+      "vessel_name": "Pacific Topaz",
+      "action_required": false,
+      "deadline": null
+    },
+    {
+      "id": "256fc1a3",
+      "priority": "medium",
+      "message": "Tug double-booked: Olivia Maersk & Cosco Aden",
+      "detail": "SVR Mercury is assigned to Olivia Maersk (departure) at 15:19 and Cosco Aden (arrival) at 14:34 — operations overlap.",
+      "resolution_options": [
+        "Reassign a spare tug to the later operation",
+        "Adjust one operation time to avoid overlap",
+        "Confirm tug availability with tug operator"
+      ],
+      "vessel_id": "V003",
+      "vessel_name": "Olivia Maersk",
+      "action_required": false,
+      "deadline": null
+    },
+    {
+      "id": "c1ba44fd",
+      "priority": "medium",
+      "message": "Tug double-booked: Tian Shun He & APL Savannah",
+      "detail": "SVR Orion is assigned to Tian Shun He (departure) at 17:19 and APL Savannah (arrival) at 16:34 — operations overlap.",
+      "resolution_options": [
+        "Reassign a spare tug to the later operation",
+        "Adjust one operation time to avoid overlap",
+        "Confirm tug availability with tug operator"
+      ],
+      "vessel_id": "V002",
+      "vessel_name": "Tian Shun He",
+      "action_required": false,
+      "deadline": null
+    },
+    {
+      "id": "36934735",
+      "priority": "medium",
+      "message": "Salvia Island arriving in 3.0h",
+      "detail": "Salvia Island (Bulk Carrier, LOA 190.0m) expected 13:04 UTC. Berth: B03. Pilot: required. Towage: required.",
+      "resolution_options": [],
+      "vessel_id": "V004",
+      "vessel_name": "Salvia Island",
+      "action_required": false,
+      "deadline": "2026-05-20T12:04:24Z"
+    },
+    {
+      "id": "7037d55a",
+      "priority": "medium",
+      "message": "OOCL Panama arriving in 2.0h",
+      "detail": "OOCL Panama (Container, LOA 294.0m) expected 12:04 UTC. Berth: B04. Pilot: required. Towage: required.",
+      "resolution_options": [],
+      "vessel_id": "V007",
+      "vessel_name": "OOCL Panama",
+      "action_required": false,
+      "deadline": "2026-05-20T11:04:24Z"
+    }
+  ],
+  "port_geo": {
+    "center": {
+      "lat": -38.05,
+      "lon": 144.9
+    },
+    "zoom": 10,
+    "berths": {
+      "B01": {
+        "lat": -37.8428,
+        "lon": 144.9248,
+        "terminal": "Webb Dock 1 East",
+        "heading": 355,
+        "depth_m": 13.5
+      },
+      "B02": {
+        "lat": -37.8182,
+        "lon": 144.9308,
+        "terminal": "Swanson East 3",
+        "heading": 270,
+        "depth_m": 13.0
+      },
+      "B03": {
+        "lat": -37.8442,
+        "lon": 144.9258,
+        "terminal": "Webb Dock 4 East",
+        "heading": 355,
+        "depth_m": 13.5
+      },
+      "B04": {
+        "lat": -37.8195,
+        "lon": 144.9268,
+        "terminal": "Swanson West 2",
+        "heading": 270,
+        "depth_m": 12.5
+      },
+      "B05": {
+        "lat": -37.8435,
+        "lon": 144.9252,
+        "terminal": "Webb Dock 2 East",
+        "heading": 355,
+        "depth_m": 13.5
+      },
+      "B06": {
+        "lat": -37.8258,
+        "lon": 144.9178,
+        "terminal": "Appleton Dock F",
+        "heading": 90,
+        "depth_m": 10.0
+      }
+    },
+    "anchorage": {
+      "lat": -38.1,
+      "lon": 144.76,
+      "radius_km": 6.0,
+      "label": "Port Phillip Bay Anchorage"
+    },
+    "pilot_boarding_ground": {
+      "lat": -38.305,
+      "lon": 144.545,
+      "label": "Pilot Boarding Ground (5 NM SW Point Lonsdale)"
+    },
+    "channel_waypoints": [
+      {
+        "lat": -38.295,
+        "lon": 144.615
+      },
+      {
+        "lat": -38.245,
+        "lon": 144.66
+      },
+      {
+        "lat": -38.16,
+        "lon": 144.71
+      },
+      {
+        "lat": -38.06,
+        "lon": 144.755
+      },
+      {
+        "lat": -37.96,
+        "lon": 144.815
+      },
+      {
+        "lat": -37.88,
+        "lon": 144.87
+      },
+      {
+        "lat": -37.84,
+        "lon": 144.91
+      },
+      {
+        "lat": -37.822,
+        "lon": 144.923
+      }
+    ]
+  },
+  "weather": {
+    "wind_speed_kts": 4,
+    "wind_direction_deg": 256,
+    "wind_direction_label": "WSW",
+    "wind_beaufort": 2,
+    "swell_height_m": 0.6,
+    "swell_period_s": 4,
+    "swell_direction_label": "SSW",
+    "visibility_nm": 23.4,
+    "pressure_hpa": 1026,
+    "conditions": "Excellent",
+    "precipitation_mm": 0.0,
+    "weather_code": 3,
+    "source": "live"
+  },
+  "tides": {
+    "current_height_m": 0.58,
+    "state": "Slack",
+    "next_event_type": "HW",
+    "next_event_time": "2026-05-20T12:04:24Z",
+    "next_event_height_m": 0.7,
+    "mean_height_m": 0.44,
+    "amplitude_m": 0.25,
+    "berth_restrictions": [
+      "B03",
+      "B06"
+    ],
+    "data_source": "bom"
+  },
+  "berth_utilisation": [
+    {
+      "berth_id": "B01",
+      "berth_name": "Webb Dock 1 East",
+      "terminal": "Webb Dock 1 East",
+      "utilisation_pct": 54,
+      "current_status": "occupied",
+      "slots": [
+        {
+          "slot": 0,
+          "start": "2026-05-20T10:04:24Z",
+          "end": "2026-05-20T12:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Pacific Topaz"
+          ]
+        },
+        {
+          "slot": 1,
+          "start": "2026-05-20T12:04:24Z",
+          "end": "2026-05-20T14:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Pacific Topaz"
+          ]
+        },
+        {
+          "slot": 2,
+          "start": "2026-05-20T14:04:24Z",
+          "end": "2026-05-20T16:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 3,
+          "start": "2026-05-20T16:04:24Z",
+          "end": "2026-05-20T18:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "APL Savannah"
+          ]
+        },
+        {
+          "slot": 4,
+          "start": "2026-05-20T18:04:24Z",
+          "end": "2026-05-20T20:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "APL Savannah"
+          ]
+        },
+        {
+          "slot": 5,
+          "start": "2026-05-20T20:04:24Z",
+          "end": "2026-05-20T22:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "APL Savannah"
+          ]
+        },
+        {
+          "slot": 6,
+          "start": "2026-05-20T22:04:24Z",
+          "end": "2026-05-21T00:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "APL Savannah"
+          ]
+        },
+        {
+          "slot": 7,
+          "start": "2026-05-21T00:04:24Z",
+          "end": "2026-05-21T02:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "APL Savannah"
+          ]
+        },
+        {
+          "slot": 8,
+          "start": "2026-05-21T02:04:24Z",
+          "end": "2026-05-21T04:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "APL Savannah"
+          ]
+        },
+        {
+          "slot": 9,
+          "start": "2026-05-21T04:04:24Z",
+          "end": "2026-05-21T06:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "APL Savannah"
+          ]
+        },
+        {
+          "slot": 10,
+          "start": "2026-05-21T06:04:24Z",
+          "end": "2026-05-21T08:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "APL Savannah"
+          ]
+        },
+        {
+          "slot": 11,
+          "start": "2026-05-21T08:04:24Z",
+          "end": "2026-05-21T10:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "APL Savannah"
+          ]
+        },
+        {
+          "slot": 12,
+          "start": "2026-05-21T10:04:24Z",
+          "end": "2026-05-21T12:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "APL Savannah"
+          ]
+        },
+        {
+          "slot": 13,
+          "start": "2026-05-21T12:04:24Z",
+          "end": "2026-05-21T14:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "APL Savannah"
+          ]
+        },
+        {
+          "slot": 14,
+          "start": "2026-05-21T14:04:24Z",
+          "end": "2026-05-21T16:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 15,
+          "start": "2026-05-21T16:04:24Z",
+          "end": "2026-05-21T18:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 16,
+          "start": "2026-05-21T18:04:24Z",
+          "end": "2026-05-21T20:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 17,
+          "start": "2026-05-21T20:04:24Z",
+          "end": "2026-05-21T22:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 18,
+          "start": "2026-05-21T22:04:24Z",
+          "end": "2026-05-22T00:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 19,
+          "start": "2026-05-22T00:04:24Z",
+          "end": "2026-05-22T02:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 20,
+          "start": "2026-05-22T02:04:24Z",
+          "end": "2026-05-22T04:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 21,
+          "start": "2026-05-22T04:04:24Z",
+          "end": "2026-05-22T06:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 22,
+          "start": "2026-05-22T06:04:24Z",
+          "end": "2026-05-22T08:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 23,
+          "start": "2026-05-22T08:04:24Z",
+          "end": "2026-05-22T10:04:24Z",
+          "status": "free",
+          "occupants": []
+        }
+      ]
+    },
+    {
+      "berth_id": "B02",
+      "berth_name": "Swanson East 3",
+      "terminal": "Swanson East 3",
+      "utilisation_pct": 67,
+      "current_status": "occupied",
+      "slots": [
+        {
+          "slot": 0,
+          "start": "2026-05-20T10:04:24Z",
+          "end": "2026-05-20T12:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Tian Shun He"
+          ]
+        },
+        {
+          "slot": 1,
+          "start": "2026-05-20T12:04:24Z",
+          "end": "2026-05-20T14:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Tian Shun He"
+          ]
+        },
+        {
+          "slot": 2,
+          "start": "2026-05-20T14:04:24Z",
+          "end": "2026-05-20T16:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Tian Shun He"
+          ]
+        },
+        {
+          "slot": 3,
+          "start": "2026-05-20T16:04:24Z",
+          "end": "2026-05-20T18:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Tian Shun He"
+          ]
+        },
+        {
+          "slot": 4,
+          "start": "2026-05-20T18:04:24Z",
+          "end": "2026-05-20T20:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 5,
+          "start": "2026-05-20T20:04:24Z",
+          "end": "2026-05-20T22:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 6,
+          "start": "2026-05-20T22:04:24Z",
+          "end": "2026-05-21T00:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "GSL Vinia"
+          ]
+        },
+        {
+          "slot": 7,
+          "start": "2026-05-21T00:04:24Z",
+          "end": "2026-05-21T02:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "GSL Vinia"
+          ]
+        },
+        {
+          "slot": 8,
+          "start": "2026-05-21T02:04:24Z",
+          "end": "2026-05-21T04:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "GSL Vinia"
+          ]
+        },
+        {
+          "slot": 9,
+          "start": "2026-05-21T04:04:24Z",
+          "end": "2026-05-21T06:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "GSL Vinia"
+          ]
+        },
+        {
+          "slot": 10,
+          "start": "2026-05-21T06:04:24Z",
+          "end": "2026-05-21T08:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "GSL Vinia"
+          ]
+        },
+        {
+          "slot": 11,
+          "start": "2026-05-21T08:04:24Z",
+          "end": "2026-05-21T10:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "GSL Vinia"
+          ]
+        },
+        {
+          "slot": 12,
+          "start": "2026-05-21T10:04:24Z",
+          "end": "2026-05-21T12:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "GSL Vinia"
+          ]
+        },
+        {
+          "slot": 13,
+          "start": "2026-05-21T12:04:24Z",
+          "end": "2026-05-21T14:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "GSL Vinia"
+          ]
+        },
+        {
+          "slot": 14,
+          "start": "2026-05-21T14:04:24Z",
+          "end": "2026-05-21T16:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "GSL Vinia"
+          ]
+        },
+        {
+          "slot": 15,
+          "start": "2026-05-21T16:04:24Z",
+          "end": "2026-05-21T18:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "GSL Vinia"
+          ]
+        },
+        {
+          "slot": 16,
+          "start": "2026-05-21T18:04:24Z",
+          "end": "2026-05-21T20:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "GSL Vinia"
+          ]
+        },
+        {
+          "slot": 17,
+          "start": "2026-05-21T20:04:24Z",
+          "end": "2026-05-21T22:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "GSL Vinia"
+          ]
+        },
+        {
+          "slot": 18,
+          "start": "2026-05-21T22:04:24Z",
+          "end": "2026-05-22T00:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 19,
+          "start": "2026-05-22T00:04:24Z",
+          "end": "2026-05-22T02:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 20,
+          "start": "2026-05-22T02:04:24Z",
+          "end": "2026-05-22T04:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 21,
+          "start": "2026-05-22T04:04:24Z",
+          "end": "2026-05-22T06:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 22,
+          "start": "2026-05-22T06:04:24Z",
+          "end": "2026-05-22T08:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 23,
+          "start": "2026-05-22T08:04:24Z",
+          "end": "2026-05-22T10:04:24Z",
+          "status": "free",
+          "occupants": []
+        }
+      ]
+    },
+    {
+      "berth_id": "B03",
+      "berth_name": "Webb Dock 4 East",
+      "terminal": "Webb Dock 4 East",
+      "utilisation_pct": 38,
+      "current_status": "available",
+      "slots": [
+        {
+          "slot": 0,
+          "start": "2026-05-20T10:04:24Z",
+          "end": "2026-05-20T12:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 1,
+          "start": "2026-05-20T12:04:24Z",
+          "end": "2026-05-20T14:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Salvia Island"
+          ]
+        },
+        {
+          "slot": 2,
+          "start": "2026-05-20T14:04:24Z",
+          "end": "2026-05-20T16:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Salvia Island"
+          ]
+        },
+        {
+          "slot": 3,
+          "start": "2026-05-20T16:04:24Z",
+          "end": "2026-05-20T18:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Salvia Island"
+          ]
+        },
+        {
+          "slot": 4,
+          "start": "2026-05-20T18:04:24Z",
+          "end": "2026-05-20T20:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Salvia Island"
+          ]
+        },
+        {
+          "slot": 5,
+          "start": "2026-05-20T20:04:24Z",
+          "end": "2026-05-20T22:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Salvia Island"
+          ]
+        },
+        {
+          "slot": 6,
+          "start": "2026-05-20T22:04:24Z",
+          "end": "2026-05-21T00:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Salvia Island"
+          ]
+        },
+        {
+          "slot": 7,
+          "start": "2026-05-21T00:04:24Z",
+          "end": "2026-05-21T02:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Salvia Island"
+          ]
+        },
+        {
+          "slot": 8,
+          "start": "2026-05-21T02:04:24Z",
+          "end": "2026-05-21T04:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Salvia Island"
+          ]
+        },
+        {
+          "slot": 9,
+          "start": "2026-05-21T04:04:24Z",
+          "end": "2026-05-21T06:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Salvia Island"
+          ]
+        },
+        {
+          "slot": 10,
+          "start": "2026-05-21T06:04:24Z",
+          "end": "2026-05-21T08:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 11,
+          "start": "2026-05-21T08:04:24Z",
+          "end": "2026-05-21T10:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 12,
+          "start": "2026-05-21T10:04:24Z",
+          "end": "2026-05-21T12:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 13,
+          "start": "2026-05-21T12:04:24Z",
+          "end": "2026-05-21T14:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 14,
+          "start": "2026-05-21T14:04:24Z",
+          "end": "2026-05-21T16:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 15,
+          "start": "2026-05-21T16:04:24Z",
+          "end": "2026-05-21T18:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 16,
+          "start": "2026-05-21T18:04:24Z",
+          "end": "2026-05-21T20:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 17,
+          "start": "2026-05-21T20:04:24Z",
+          "end": "2026-05-21T22:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 18,
+          "start": "2026-05-21T22:04:24Z",
+          "end": "2026-05-22T00:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 19,
+          "start": "2026-05-22T00:04:24Z",
+          "end": "2026-05-22T02:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 20,
+          "start": "2026-05-22T02:04:24Z",
+          "end": "2026-05-22T04:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 21,
+          "start": "2026-05-22T04:04:24Z",
+          "end": "2026-05-22T06:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 22,
+          "start": "2026-05-22T06:04:24Z",
+          "end": "2026-05-22T08:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 23,
+          "start": "2026-05-22T08:04:24Z",
+          "end": "2026-05-22T10:04:24Z",
+          "status": "free",
+          "occupants": []
+        }
+      ]
+    },
+    {
+      "berth_id": "B04",
+      "berth_name": "Swanson West 2",
+      "terminal": "Swanson West 2",
+      "utilisation_pct": 33,
+      "current_status": "reserved",
+      "slots": [
+        {
+          "slot": 0,
+          "start": "2026-05-20T10:04:24Z",
+          "end": "2026-05-20T12:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 1,
+          "start": "2026-05-20T12:04:24Z",
+          "end": "2026-05-20T14:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "OOCL Panama"
+          ]
+        },
+        {
+          "slot": 2,
+          "start": "2026-05-20T14:04:24Z",
+          "end": "2026-05-20T16:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Cosco Aden",
+            "OOCL Panama"
+          ]
+        },
+        {
+          "slot": 3,
+          "start": "2026-05-20T16:04:24Z",
+          "end": "2026-05-20T18:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Cosco Aden",
+            "OOCL Panama"
+          ]
+        },
+        {
+          "slot": 4,
+          "start": "2026-05-20T18:04:24Z",
+          "end": "2026-05-20T20:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Cosco Aden",
+            "OOCL Panama"
+          ]
+        },
+        {
+          "slot": 5,
+          "start": "2026-05-20T20:04:24Z",
+          "end": "2026-05-20T22:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Cosco Aden"
+          ]
+        },
+        {
+          "slot": 6,
+          "start": "2026-05-20T22:04:24Z",
+          "end": "2026-05-21T00:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Cosco Aden"
+          ]
+        },
+        {
+          "slot": 7,
+          "start": "2026-05-21T00:04:24Z",
+          "end": "2026-05-21T02:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Cosco Aden"
+          ]
+        },
+        {
+          "slot": 8,
+          "start": "2026-05-21T02:04:24Z",
+          "end": "2026-05-21T04:04:24Z",
+          "status": "occupied",
+          "occupants": [
+            "Cosco Aden"
+          ]
+        },
+        {
+          "slot": 9,
+          "start": "2026-05-21T04:04:24Z",
+          "end": "2026-05-21T06:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 10,
+          "start": "2026-05-21T06:04:24Z",
+          "end": "2026-05-21T08:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 11,
+          "start": "2026-05-21T08:04:24Z",
+          "end": "2026-05-21T10:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 12,
+          "start": "2026-05-21T10:04:24Z",
+          "end": "2026-05-21T12:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 13,
+          "start": "2026-05-21T12:04:24Z",
+          "end": "2026-05-21T14:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 14,
+          "start": "2026-05-21T14:04:24Z",
+          "end": "2026-05-21T16:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 15,
+          "start": "2026-05-21T16:04:24Z",
+          "end": "2026-05-21T18:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 16,
+          "start": "2026-05-21T18:04:24Z",
+          "end": "2026-05-21T20:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 17,
+          "start": "2026-05-21T20:04:24Z",
+          "end": "2026-05-21T22:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 18,
+          "start": "2026-05-21T22:04:24Z",
+          "end": "2026-05-22T00:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 19,
+          "start": "2026-05-22T00:04:24Z",
+          "end": "2026-05-22T02:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 20,
+          "start": "2026-05-22T02:04:24Z",
+          "end": "2026-05-22T04:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 21,
+          "start": "2026-05-22T04:04:24Z",
+          "end": "2026-05-22T06:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 22,
+          "start": "2026-05-22T06:04:24Z",
+          "end": "2026-05-22T08:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 23,
+          "start": "2026-05-22T08:04:24Z",
+          "end": "2026-05-22T10:04:24Z",
+          "status": "free",
+          "occupants": []
+        }
+      ]
+    },
+    {
+      "berth_id": "B05",
+      "berth_name": "Webb Dock 2 East",
+      "terminal": "Webb Dock 2 East",
+      "utilisation_pct": 0,
+      "current_status": "available",
+      "slots": [
+        {
+          "slot": 0,
+          "start": "2026-05-20T10:04:24Z",
+          "end": "2026-05-20T12:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 1,
+          "start": "2026-05-20T12:04:24Z",
+          "end": "2026-05-20T14:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 2,
+          "start": "2026-05-20T14:04:24Z",
+          "end": "2026-05-20T16:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 3,
+          "start": "2026-05-20T16:04:24Z",
+          "end": "2026-05-20T18:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 4,
+          "start": "2026-05-20T18:04:24Z",
+          "end": "2026-05-20T20:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 5,
+          "start": "2026-05-20T20:04:24Z",
+          "end": "2026-05-20T22:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 6,
+          "start": "2026-05-20T22:04:24Z",
+          "end": "2026-05-21T00:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 7,
+          "start": "2026-05-21T00:04:24Z",
+          "end": "2026-05-21T02:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 8,
+          "start": "2026-05-21T02:04:24Z",
+          "end": "2026-05-21T04:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 9,
+          "start": "2026-05-21T04:04:24Z",
+          "end": "2026-05-21T06:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 10,
+          "start": "2026-05-21T06:04:24Z",
+          "end": "2026-05-21T08:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 11,
+          "start": "2026-05-21T08:04:24Z",
+          "end": "2026-05-21T10:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 12,
+          "start": "2026-05-21T10:04:24Z",
+          "end": "2026-05-21T12:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 13,
+          "start": "2026-05-21T12:04:24Z",
+          "end": "2026-05-21T14:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 14,
+          "start": "2026-05-21T14:04:24Z",
+          "end": "2026-05-21T16:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 15,
+          "start": "2026-05-21T16:04:24Z",
+          "end": "2026-05-21T18:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 16,
+          "start": "2026-05-21T18:04:24Z",
+          "end": "2026-05-21T20:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 17,
+          "start": "2026-05-21T20:04:24Z",
+          "end": "2026-05-21T22:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 18,
+          "start": "2026-05-21T22:04:24Z",
+          "end": "2026-05-22T00:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 19,
+          "start": "2026-05-22T00:04:24Z",
+          "end": "2026-05-22T02:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 20,
+          "start": "2026-05-22T02:04:24Z",
+          "end": "2026-05-22T04:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 21,
+          "start": "2026-05-22T04:04:24Z",
+          "end": "2026-05-22T06:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 22,
+          "start": "2026-05-22T06:04:24Z",
+          "end": "2026-05-22T08:04:24Z",
+          "status": "free",
+          "occupants": []
+        },
+        {
+          "slot": 23,
+          "start": "2026-05-22T08:04:24Z",
+          "end": "2026-05-22T10:04:24Z",
+          "status": "free",
+          "occupants": []
+        }
+      ]
+    },
+    {
+      "berth_id": "B06",
+      "berth_name": "Appleton Dock F",
+      "terminal": "Appleton Dock F",
+      "utilisation_pct": 0,
+      "current_status": "maintenance",
+      "slots": [
+        {
+          "slot": 0,
+          "start": "2026-05-20T10:04:24Z",
+          "end": "2026-05-20T12:04:24Z",
+          "status": "maintenance",
+          "occupants": [
+            "Olivia Maersk"
+          ]
+        },
+        {
+          "slot": 1,
+          "start": "2026-05-20T12:04:24Z",
+          "end": "2026-05-20T14:04:24Z",
+          "status": "maintenance",
+          "occupants": [
+            "Olivia Maersk"
+          ]
+        },
+        {
+          "slot": 2,
+          "start": "2026-05-20T14:04:24Z",
+          "end": "2026-05-20T16:04:24Z",
+          "status": "maintenance",
+          "occupants": [
+            "Olivia Maersk"
+          ]
+        },
+        {
+          "slot": 3,
+          "start": "2026-05-20T16:04:24Z",
+          "end": "2026-05-20T18:04:24Z",
+          "status": "maintenance",
+          "occupants": []
+        },
+        {
+          "slot": 4,
+          "start": "2026-05-20T18:04:24Z",
+          "end": "2026-05-20T20:04:24Z",
+          "status": "maintenance",
+          "occupants": []
+        },
+        {
+          "slot": 5,
+          "start": "2026-05-20T20:04:24Z",
+          "end": "2026-05-20T22:04:24Z",
+          "status": "maintenance",
+          "occupants": [
+            "NPDL Tahiti"
+          ]
+        },
+        {
+          "slot": 6,
+          "start": "2026-05-20T22:04:24Z",
+          "end": "2026-05-21T00:04:24Z",
+          "status": "maintenance",
+          "occupants": [
+            "NPDL Tahiti"
+          ]
+        },
+        {
+          "slot": 7,
+          "start": "2026-05-21T00:04:24Z",
+          "end": "2026-05-21T02:04:24Z",
+          "status": "maintenance",
+          "occupants": [
+            "NPDL Tahiti"
+          ]
+        },
+        {
+          "slot": 8,
+          "start": "2026-05-21T02:04:24Z",
+          "end": "2026-05-21T04:04:24Z",
+          "status": "maintenance",
+          "occupants": [
+            "NPDL Tahiti"
+          ]
+        },
+        {
+          "slot": 9,
+          "start": "2026-05-21T04:04:24Z",
+          "end": "2026-05-21T06:04:24Z",
+          "status": "maintenance",
+          "occupants": [
+            "NPDL Tahiti"
+          ]
+        },
+        {
+          "slot": 10,
+          "start": "2026-05-21T06:04:24Z",
+          "end": "2026-05-21T08:04:24Z",
+          "status": "maintenance",
+          "occupants": [
+            "NPDL Tahiti"
+          ]
+        },
+        {
+          "slot": 11,
+          "start": "2026-05-21T08:04:24Z",
+          "end": "2026-05-21T10:04:24Z",
+          "status": "maintenance",
+          "occupants": [
+            "NPDL Tahiti"
+          ]
+        },
+        {
+          "slot": 12,
+          "start": "2026-05-21T10:04:24Z",
+          "end": "2026-05-21T12:04:24Z",
+          "status": "maintenance",
+          "occupants": [
+            "NPDL Tahiti"
+          ]
+        },
+        {
+          "slot": 13,
+          "start": "2026-05-21T12:04:24Z",
+          "end": "2026-05-21T14:04:24Z",
+          "status": "maintenance",
+          "occupants": [
+            "NPDL Tahiti"
+          ]
+        },
+        {
+          "slot": 14,
+          "start": "2026-05-21T14:04:24Z",
+          "end": "2026-05-21T16:04:24Z",
+          "status": "maintenance",
+          "occupants": []
+        },
+        {
+          "slot": 15,
+          "start": "2026-05-21T16:04:24Z",
+          "end": "2026-05-21T18:04:24Z",
+          "status": "maintenance",
+          "occupants": []
+        },
+        {
+          "slot": 16,
+          "start": "2026-05-21T18:04:24Z",
+          "end": "2026-05-21T20:04:24Z",
+          "status": "maintenance",
+          "occupants": []
+        },
+        {
+          "slot": 17,
+          "start": "2026-05-21T20:04:24Z",
+          "end": "2026-05-21T22:04:24Z",
+          "status": "maintenance",
+          "occupants": []
+        },
+        {
+          "slot": 18,
+          "start": "2026-05-21T22:04:24Z",
+          "end": "2026-05-22T00:04:24Z",
+          "status": "maintenance",
+          "occupants": []
+        },
+        {
+          "slot": 19,
+          "start": "2026-05-22T00:04:24Z",
+          "end": "2026-05-22T02:04:24Z",
+          "status": "maintenance",
+          "occupants": []
+        },
+        {
+          "slot": 20,
+          "start": "2026-05-22T02:04:24Z",
+          "end": "2026-05-22T04:04:24Z",
+          "status": "maintenance",
+          "occupants": []
+        },
+        {
+          "slot": 21,
+          "start": "2026-05-22T04:04:24Z",
+          "end": "2026-05-22T06:04:24Z",
+          "status": "maintenance",
+          "occupants": []
+        },
+        {
+          "slot": 22,
+          "start": "2026-05-22T06:04:24Z",
+          "end": "2026-05-22T08:04:24Z",
+          "status": "maintenance",
+          "occupants": []
+        },
+        {
+          "slot": 23,
+          "start": "2026-05-22T08:04:24Z",
+          "end": "2026-05-22T10:04:24Z",
+          "status": "maintenance",
+          "occupants": []
+        }
+      ]
+    }
+  ],
+  "etd_risk": [
+    {
+      "vessel_id": "V007",
+      "vessel_name": "OOCL Panama",
+      "risk_score": 80,
+      "risk_level": "critical",
+      "risk_factors": [
+        "Active conflict",
+        "ETA variance reported",
+        "Large vessel"
+      ]
+    },
+    {
+      "vessel_id": "V004",
+      "vessel_name": "Salvia Island",
+      "risk_score": 52,
+      "risk_level": "high",
+      "risk_factors": [
+        "Active conflict",
+        "Tidal restriction"
+      ]
+    },
+    {
+      "vessel_id": "V003",
+      "vessel_name": "Olivia Maersk",
+      "risk_score": 47,
+      "risk_level": "high",
+      "risk_factors": [
+        "Active conflict",
+        "Tidal restriction",
+        "Large vessel"
+      ]
+    },
+    {
+      "vessel_id": "V005",
+      "vessel_name": "Cosco Aden",
+      "risk_score": 45,
+      "risk_level": "high",
+      "risk_factors": [
+        "Active conflict",
+        "Large vessel"
+      ]
+    },
+    {
+      "vessel_id": "V008",
+      "vessel_name": "NPDL Tahiti",
+      "risk_score": 45,
+      "risk_level": "high",
+      "risk_factors": [
+        "Active conflict",
+        "Tidal restriction"
+      ]
+    },
+    {
+      "vessel_id": "V006",
+      "vessel_name": "APL Savannah",
+      "risk_score": 38,
+      "risk_level": "medium",
+      "risk_factors": [
+        "Active conflict",
+        "Large vessel"
+      ]
+    },
+    {
+      "vessel_id": "V009",
+      "vessel_name": "GSL Vinia",
+      "risk_score": 38,
+      "risk_level": "medium",
+      "risk_factors": [
+        "Active conflict",
+        "Large vessel"
+      ]
+    },
+    {
+      "vessel_id": "V002",
+      "vessel_name": "Tian Shun He",
+      "risk_score": 35,
+      "risk_level": "medium",
+      "risk_factors": [
+        "Active conflict",
+        "Large vessel"
+      ]
+    },
+    {
+      "vessel_id": "V001",
+      "vessel_name": "Pacific Topaz",
+      "risk_score": 30,
+      "risk_level": "medium",
+      "risk_factors": [
+        "Active conflict"
+      ]
+    }
+  ],
+  "dashboard": {
+    "berth_utilisation_pct": 60,
+    "forecast_utilisation_48h": 32,
+    "on_time_departure_pct": 67,
+    "avg_dwell_hours": 18.0,
+    "vessels_at_risk": 5,
+    "active_conflicts": 18,
+    "critical_conflicts": 1,
+    "pilot_ops_12h": 9,
+    "tug_ops_12h": 9,
+    "vessels_in_port": 3,
+    "vessels_expected_24h": 6
+  },
+  "ukc": {
+    "min_ukc_m": -3.42,
+    "critical_vessel": "Olivia Maersk",
+    "critical_berth": "B06",
+    "status": "critical",
+    "all": [
+      {
+        "vessel_id": "V003",
+        "vessel_name": "Olivia Maersk",
+        "berth_id": "B06",
+        "ukc_m": -3.42,
+        "available_depth_m": 10.58,
+        "vessel_draught_m": 14.0
+      },
+      {
+        "vessel_id": "V002",
+        "vessel_name": "Tian Shun He",
+        "berth_id": "B02",
+        "ukc_m": 2.08,
+        "available_depth_m": 13.58,
+        "vessel_draught_m": 11.5
+      },
+      {
+        "vessel_id": "V001",
+        "vessel_name": "Pacific Topaz",
+        "berth_id": "B01",
+        "ukc_m": 3.08,
+        "available_depth_m": 14.08,
+        "vessel_draught_m": 11.0
+      }
+    ]
+  },
+  "arrival_ukc": {
+    "min_ukc_m": -0.3,
+    "critical_vessel": "OOCL Panama",
+    "critical_berth": "B04",
+    "critical_eta": "2026-05-20T12:04:24Z",
+    "hrs_to_eta": 2.0,
+    "status": "critical",
+    "all": [
+      {
+        "vessel_id": "V007",
+        "vessel_name": "OOCL Panama",
+        "berth_id": "B04",
+        "eta": "2026-05-20T12:04:24Z",
+        "hrs_to_eta": 2.0,
+        "ukc_m": -0.3,
+        "predicted_tide_m": 0.7,
+        "available_depth_m": 13.2,
+        "vessel_draught_m": 13.5
+      },
+      {
+        "vessel_id": "V008",
+        "vessel_name": "NPDL Tahiti",
+        "berth_id": "B06",
+        "eta": "2026-05-20T20:04:24Z",
+        "hrs_to_eta": 10.0,
+        "ukc_m": -0.2,
+        "predicted_tide_m": 0.3,
+        "available_depth_m": 10.3,
+        "vessel_draught_m": 10.5
+      },
+      {
+        "vessel_id": "V009",
+        "vessel_name": "GSL Vinia",
+        "berth_id": "B02",
+        "eta": "2026-05-20T22:04:24Z",
+        "hrs_to_eta": 12.0,
+        "ukc_m": 0.04,
+        "predicted_tide_m": 0.54,
+        "available_depth_m": 13.54,
+        "vessel_draught_m": 13.5
+      },
+      {
+        "vessel_id": "V005",
+        "vessel_name": "Cosco Aden",
+        "berth_id": "B04",
+        "eta": "2026-05-20T15:04:24Z",
+        "hrs_to_eta": 5.0,
+        "ukc_m": 0.96,
+        "predicted_tide_m": 0.46,
+        "available_depth_m": 12.96,
+        "vessel_draught_m": 12.0
+      },
+      {
+        "vessel_id": "V006",
+        "vessel_name": "APL Savannah",
+        "berth_id": "B01",
+        "eta": "2026-05-20T17:04:24Z",
+        "hrs_to_eta": 7.0,
+        "ukc_m": 1.74,
+        "predicted_tide_m": 0.24,
+        "available_depth_m": 13.74,
+        "vessel_draught_m": 12.0
+      },
+      {
+        "vessel_id": "V004",
+        "vessel_name": "Salvia Island",
+        "berth_id": "B03",
+        "eta": "2026-05-20T13:04:24Z",
+        "hrs_to_eta": 3.0,
+        "ukc_m": 4.17,
+        "predicted_tide_m": 0.67,
+        "available_depth_m": 14.17,
+        "vessel_draught_m": 10.0
+      }
+    ]
+  },
+  "dukc": {
+    "channel_depth_m": 14.0,
+    "max_vessel_draught_m": 14.0,
+    "tide_series": [
+      {
+        "h": 0,
+        "t": "2026-05-20T10:04:27Z",
+        "tide": 0.58
+      },
+      {
+        "h": 1,
+        "t": "2026-05-20T11:04:27Z",
+        "tide": 0.67
+      },
+      {
+        "h": 2,
+        "t": "2026-05-20T12:04:27Z",
+        "tide": 0.7
+      },
+      {
+        "h": 3,
+        "t": "2026-05-20T13:04:27Z",
+        "tide": 0.67
+      },
+      {
+        "h": 4,
+        "t": "2026-05-20T14:04:27Z",
+        "tide": 0.58
+      },
+      {
+        "h": 5,
+        "t": "2026-05-20T15:04:27Z",
+        "tide": 0.46
+      },
+      {
+        "h": 6,
+        "t": "2026-05-20T16:04:27Z",
+        "tide": 0.34
+      },
+      {
+        "h": 7,
+        "t": "2026-05-20T17:04:27Z",
+        "tide": 0.24
+      },
+      {
+        "h": 8,
+        "t": "2026-05-20T18:04:27Z",
+        "tide": 0.2
+      },
+      {
+        "h": 9,
+        "t": "2026-05-20T19:04:27Z",
+        "tide": 0.22
+      },
+      {
+        "h": 10,
+        "t": "2026-05-20T20:04:27Z",
+        "tide": 0.3
+      },
+      {
+        "h": 11,
+        "t": "2026-05-20T21:04:27Z",
+        "tide": 0.41
+      },
+      {
+        "h": 12,
+        "t": "2026-05-20T22:04:27Z",
+        "tide": 0.54
+      },
+      {
+        "h": 13,
+        "t": "2026-05-20T23:04:27Z",
+        "tide": 0.64
+      },
+      {
+        "h": 14,
+        "t": "2026-05-21T00:04:27Z",
+        "tide": 0.47
+      },
+      {
+        "h": 15,
+        "t": "2026-05-21T01:04:27Z",
+        "tide": 0.59
+      },
+      {
+        "h": 16,
+        "t": "2026-05-21T02:04:27Z",
+        "tide": 0.67
+      },
+      {
+        "h": 17,
+        "t": "2026-05-21T03:04:27Z",
+        "tide": 0.7
+      },
+      {
+        "h": 18,
+        "t": "2026-05-21T04:04:27Z",
+        "tide": 0.66
+      },
+      {
+        "h": 19,
+        "t": "2026-05-21T05:04:27Z",
+        "tide": 0.58
+      },
+      {
+        "h": 20,
+        "t": "2026-05-21T06:04:27Z",
+        "tide": 0.45
+      },
+      {
+        "h": 21,
+        "t": "2026-05-21T07:04:27Z",
+        "tide": 0.33
+      },
+      {
+        "h": 22,
+        "t": "2026-05-21T08:04:27Z",
+        "tide": 0.24
+      },
+      {
+        "h": 23,
+        "t": "2026-05-21T09:04:27Z",
+        "tide": 0.2
+      },
+      {
+        "h": 24,
+        "t": "2026-05-21T10:04:27Z",
+        "tide": 0.22
+      },
+      {
+        "h": 25,
+        "t": "2026-05-21T11:04:27Z",
+        "tide": 0.3
+      },
+      {
+        "h": 26,
+        "t": "2026-05-21T12:04:27Z",
+        "tide": 0.42
+      },
+      {
+        "h": 27,
+        "t": "2026-05-21T13:04:27Z",
+        "tide": 0.54
+      },
+      {
+        "h": 28,
+        "t": "2026-05-21T14:04:27Z",
+        "tide": 0.64
+      },
+      {
+        "h": 29,
+        "t": "2026-05-21T15:04:27Z",
+        "tide": 0.7
+      },
+      {
+        "h": 30,
+        "t": "2026-05-21T16:04:27Z",
+        "tide": 0.69
+      },
+      {
+        "h": 31,
+        "t": "2026-05-21T17:04:27Z",
+        "tide": 0.62
+      },
+      {
+        "h": 32,
+        "t": "2026-05-21T18:04:27Z",
+        "tide": 0.51
+      },
+      {
+        "h": 33,
+        "t": "2026-05-21T19:04:27Z",
+        "tide": 0.38
+      },
+      {
+        "h": 34,
+        "t": "2026-05-21T20:04:27Z",
+        "tide": 0.27
+      },
+      {
+        "h": 35,
+        "t": "2026-05-21T21:04:27Z",
+        "tide": 0.21
+      },
+      {
+        "h": 36,
+        "t": "2026-05-21T22:04:27Z",
+        "tide": 0.21
+      },
+      {
+        "h": 37,
+        "t": "2026-05-21T23:04:27Z",
+        "tide": 0.26
+      },
+      {
+        "h": 38,
+        "t": "2026-05-22T00:04:27Z",
+        "tide": 0.22
+      },
+      {
+        "h": 39,
+        "t": "2026-05-22T01:04:27Z",
+        "tide": 0.2
+      },
+      {
+        "h": 40,
+        "t": "2026-05-22T02:04:27Z",
+        "tide": 0.24
+      },
+      {
+        "h": 41,
+        "t": "2026-05-22T03:04:27Z",
+        "tide": 0.34
+      },
+      {
+        "h": 42,
+        "t": "2026-05-22T04:04:27Z",
+        "tide": 0.46
+      },
+      {
+        "h": 43,
+        "t": "2026-05-22T05:04:27Z",
+        "tide": 0.58
+      },
+      {
+        "h": 44,
+        "t": "2026-05-22T06:04:27Z",
+        "tide": 0.67
+      },
+      {
+        "h": 45,
+        "t": "2026-05-22T07:04:27Z",
+        "tide": 0.7
+      },
+      {
+        "h": 46,
+        "t": "2026-05-22T08:04:27Z",
+        "tide": 0.67
+      },
+      {
+        "h": 47,
+        "t": "2026-05-22T09:04:27Z",
+        "tide": 0.59
+      },
+      {
+        "h": 48,
+        "t": "2026-05-22T10:04:27Z",
+        "tide": 0.47
+      }
+    ],
+    "channel_points": [
+      {
+        "h": 0,
+        "t": "2026-05-20T10:04:27Z",
+        "tide": 0.58,
+        "ukc": 0.58,
+        "safe": true
+      },
+      {
+        "h": 1,
+        "t": "2026-05-20T11:04:27Z",
+        "tide": 0.67,
+        "ukc": 0.67,
+        "safe": true
+      },
+      {
+        "h": 2,
+        "t": "2026-05-20T12:04:27Z",
+        "tide": 0.7,
+        "ukc": 0.7,
+        "safe": true
+      },
+      {
+        "h": 3,
+        "t": "2026-05-20T13:04:27Z",
+        "tide": 0.67,
+        "ukc": 0.67,
+        "safe": true
+      },
+      {
+        "h": 4,
+        "t": "2026-05-20T14:04:27Z",
+        "tide": 0.58,
+        "ukc": 0.58,
+        "safe": true
+      },
+      {
+        "h": 5,
+        "t": "2026-05-20T15:04:27Z",
+        "tide": 0.46,
+        "ukc": 0.46,
+        "safe": false
+      },
+      {
+        "h": 6,
+        "t": "2026-05-20T16:04:27Z",
+        "tide": 0.34,
+        "ukc": 0.34,
+        "safe": false
+      },
+      {
+        "h": 7,
+        "t": "2026-05-20T17:04:27Z",
+        "tide": 0.24,
+        "ukc": 0.24,
+        "safe": false
+      },
+      {
+        "h": 8,
+        "t": "2026-05-20T18:04:27Z",
+        "tide": 0.2,
+        "ukc": 0.2,
+        "safe": false
+      },
+      {
+        "h": 9,
+        "t": "2026-05-20T19:04:27Z",
+        "tide": 0.22,
+        "ukc": 0.22,
+        "safe": false
+      },
+      {
+        "h": 10,
+        "t": "2026-05-20T20:04:27Z",
+        "tide": 0.3,
+        "ukc": 0.3,
+        "safe": false
+      },
+      {
+        "h": 11,
+        "t": "2026-05-20T21:04:27Z",
+        "tide": 0.41,
+        "ukc": 0.41,
+        "safe": false
+      },
+      {
+        "h": 12,
+        "t": "2026-05-20T22:04:27Z",
+        "tide": 0.54,
+        "ukc": 0.54,
+        "safe": true
+      },
+      {
+        "h": 13,
+        "t": "2026-05-20T23:04:27Z",
+        "tide": 0.64,
+        "ukc": 0.64,
+        "safe": true
+      },
+      {
+        "h": 14,
+        "t": "2026-05-21T00:04:27Z",
+        "tide": 0.47,
+        "ukc": 0.47,
+        "safe": false
+      },
+      {
+        "h": 15,
+        "t": "2026-05-21T01:04:27Z",
+        "tide": 0.59,
+        "ukc": 0.59,
+        "safe": true
+      },
+      {
+        "h": 16,
+        "t": "2026-05-21T02:04:27Z",
+        "tide": 0.67,
+        "ukc": 0.67,
+        "safe": true
+      },
+      {
+        "h": 17,
+        "t": "2026-05-21T03:04:27Z",
+        "tide": 0.7,
+        "ukc": 0.7,
+        "safe": true
+      },
+      {
+        "h": 18,
+        "t": "2026-05-21T04:04:27Z",
+        "tide": 0.66,
+        "ukc": 0.66,
+        "safe": true
+      },
+      {
+        "h": 19,
+        "t": "2026-05-21T05:04:27Z",
+        "tide": 0.58,
+        "ukc": 0.58,
+        "safe": true
+      },
+      {
+        "h": 20,
+        "t": "2026-05-21T06:04:27Z",
+        "tide": 0.45,
+        "ukc": 0.45,
+        "safe": false
+      },
+      {
+        "h": 21,
+        "t": "2026-05-21T07:04:27Z",
+        "tide": 0.33,
+        "ukc": 0.33,
+        "safe": false
+      },
+      {
+        "h": 22,
+        "t": "2026-05-21T08:04:27Z",
+        "tide": 0.24,
+        "ukc": 0.24,
+        "safe": false
+      },
+      {
+        "h": 23,
+        "t": "2026-05-21T09:04:27Z",
+        "tide": 0.2,
+        "ukc": 0.2,
+        "safe": false
+      },
+      {
+        "h": 24,
+        "t": "2026-05-21T10:04:27Z",
+        "tide": 0.22,
+        "ukc": 0.22,
+        "safe": false
+      },
+      {
+        "h": 25,
+        "t": "2026-05-21T11:04:27Z",
+        "tide": 0.3,
+        "ukc": 0.3,
+        "safe": false
+      },
+      {
+        "h": 26,
+        "t": "2026-05-21T12:04:27Z",
+        "tide": 0.42,
+        "ukc": 0.42,
+        "safe": false
+      },
+      {
+        "h": 27,
+        "t": "2026-05-21T13:04:27Z",
+        "tide": 0.54,
+        "ukc": 0.54,
+        "safe": true
+      },
+      {
+        "h": 28,
+        "t": "2026-05-21T14:04:27Z",
+        "tide": 0.64,
+        "ukc": 0.64,
+        "safe": true
+      },
+      {
+        "h": 29,
+        "t": "2026-05-21T15:04:27Z",
+        "tide": 0.7,
+        "ukc": 0.7,
+        "safe": true
+      },
+      {
+        "h": 30,
+        "t": "2026-05-21T16:04:27Z",
+        "tide": 0.69,
+        "ukc": 0.69,
+        "safe": true
+      },
+      {
+        "h": 31,
+        "t": "2026-05-21T17:04:27Z",
+        "tide": 0.62,
+        "ukc": 0.62,
+        "safe": true
+      },
+      {
+        "h": 32,
+        "t": "2026-05-21T18:04:27Z",
+        "tide": 0.51,
+        "ukc": 0.51,
+        "safe": true
+      },
+      {
+        "h": 33,
+        "t": "2026-05-21T19:04:27Z",
+        "tide": 0.38,
+        "ukc": 0.38,
+        "safe": false
+      },
+      {
+        "h": 34,
+        "t": "2026-05-21T20:04:27Z",
+        "tide": 0.27,
+        "ukc": 0.27,
+        "safe": false
+      },
+      {
+        "h": 35,
+        "t": "2026-05-21T21:04:27Z",
+        "tide": 0.21,
+        "ukc": 0.21,
+        "safe": false
+      },
+      {
+        "h": 36,
+        "t": "2026-05-21T22:04:27Z",
+        "tide": 0.21,
+        "ukc": 0.21,
+        "safe": false
+      },
+      {
+        "h": 37,
+        "t": "2026-05-21T23:04:27Z",
+        "tide": 0.26,
+        "ukc": 0.26,
+        "safe": false
+      },
+      {
+        "h": 38,
+        "t": "2026-05-22T00:04:27Z",
+        "tide": 0.22,
+        "ukc": 0.22,
+        "safe": false
+      },
+      {
+        "h": 39,
+        "t": "2026-05-22T01:04:27Z",
+        "tide": 0.2,
+        "ukc": 0.2,
+        "safe": false
+      },
+      {
+        "h": 40,
+        "t": "2026-05-22T02:04:27Z",
+        "tide": 0.24,
+        "ukc": 0.24,
+        "safe": false
+      },
+      {
+        "h": 41,
+        "t": "2026-05-22T03:04:27Z",
+        "tide": 0.34,
+        "ukc": 0.34,
+        "safe": false
+      },
+      {
+        "h": 42,
+        "t": "2026-05-22T04:04:27Z",
+        "tide": 0.46,
+        "ukc": 0.46,
+        "safe": false
+      },
+      {
+        "h": 43,
+        "t": "2026-05-22T05:04:27Z",
+        "tide": 0.58,
+        "ukc": 0.58,
+        "safe": true
+      },
+      {
+        "h": 44,
+        "t": "2026-05-22T06:04:27Z",
+        "tide": 0.67,
+        "ukc": 0.67,
+        "safe": true
+      },
+      {
+        "h": 45,
+        "t": "2026-05-22T07:04:27Z",
+        "tide": 0.7,
+        "ukc": 0.7,
+        "safe": true
+      },
+      {
+        "h": 46,
+        "t": "2026-05-22T08:04:27Z",
+        "tide": 0.67,
+        "ukc": 0.67,
+        "safe": true
+      },
+      {
+        "h": 47,
+        "t": "2026-05-22T09:04:27Z",
+        "tide": 0.59,
+        "ukc": 0.59,
+        "safe": true
+      },
+      {
+        "h": 48,
+        "t": "2026-05-22T10:04:27Z",
+        "tide": 0.47,
+        "ukc": 0.47,
+        "safe": false
+      }
+    ],
+    "vessels": [
+      {
+        "vessel_id": "V001",
+        "vessel_name": "Pacific Topaz",
+        "vessel_type": "Tanker",
+        "draught_m": 11.0,
+        "berth_id": "B01",
+        "berth_depth_m": 13.5,
+        "min_ukc_m": 2.7,
+        "tide_restricted": false,
+        "safe_windows": [
+          {
+            "start": "2026-05-20T10:04:27Z",
+            "end": "2026-05-22T10:04:27Z"
+          }
+        ],
+        "points": [
+          {
+            "h": 0,
+            "t": "2026-05-20T10:04:27Z",
+            "tide": 0.58,
+            "ukc": 3.08,
+            "safe": true
+          },
+          {
+            "h": 1,
+            "t": "2026-05-20T11:04:27Z",
+            "tide": 0.67,
+            "ukc": 3.17,
+            "safe": true
+          },
+          {
+            "h": 2,
+            "t": "2026-05-20T12:04:27Z",
+            "tide": 0.7,
+            "ukc": 3.2,
+            "safe": true
+          },
+          {
+            "h": 3,
+            "t": "2026-05-20T13:04:27Z",
+            "tide": 0.67,
+            "ukc": 3.17,
+            "safe": true
+          },
+          {
+            "h": 4,
+            "t": "2026-05-20T14:04:27Z",
+            "tide": 0.58,
+            "ukc": 3.08,
+            "safe": true
+          },
+          {
+            "h": 5,
+            "t": "2026-05-20T15:04:27Z",
+            "tide": 0.46,
+            "ukc": 2.96,
+            "safe": true
+          },
+          {
+            "h": 6,
+            "t": "2026-05-20T16:04:27Z",
+            "tide": 0.34,
+            "ukc": 2.84,
+            "safe": true
+          },
+          {
+            "h": 7,
+            "t": "2026-05-20T17:04:27Z",
+            "tide": 0.24,
+            "ukc": 2.74,
+            "safe": true
+          },
+          {
+            "h": 8,
+            "t": "2026-05-20T18:04:27Z",
+            "tide": 0.2,
+            "ukc": 2.7,
+            "safe": true
+          },
+          {
+            "h": 9,
+            "t": "2026-05-20T19:04:27Z",
+            "tide": 0.22,
+            "ukc": 2.72,
+            "safe": true
+          },
+          {
+            "h": 10,
+            "t": "2026-05-20T20:04:27Z",
+            "tide": 0.3,
+            "ukc": 2.8,
+            "safe": true
+          },
+          {
+            "h": 11,
+            "t": "2026-05-20T21:04:27Z",
+            "tide": 0.41,
+            "ukc": 2.91,
+            "safe": true
+          },
+          {
+            "h": 12,
+            "t": "2026-05-20T22:04:27Z",
+            "tide": 0.54,
+            "ukc": 3.04,
+            "safe": true
+          },
+          {
+            "h": 13,
+            "t": "2026-05-20T23:04:27Z",
+            "tide": 0.64,
+            "ukc": 3.14,
+            "safe": true
+          },
+          {
+            "h": 14,
+            "t": "2026-05-21T00:04:27Z",
+            "tide": 0.47,
+            "ukc": 2.97,
+            "safe": true
+          },
+          {
+            "h": 15,
+            "t": "2026-05-21T01:04:27Z",
+            "tide": 0.59,
+            "ukc": 3.09,
+            "safe": true
+          },
+          {
+            "h": 16,
+            "t": "2026-05-21T02:04:27Z",
+            "tide": 0.67,
+            "ukc": 3.17,
+            "safe": true
+          },
+          {
+            "h": 17,
+            "t": "2026-05-21T03:04:27Z",
+            "tide": 0.7,
+            "ukc": 3.2,
+            "safe": true
+          },
+          {
+            "h": 18,
+            "t": "2026-05-21T04:04:27Z",
+            "tide": 0.66,
+            "ukc": 3.16,
+            "safe": true
+          },
+          {
+            "h": 19,
+            "t": "2026-05-21T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 3.08,
+            "safe": true
+          },
+          {
+            "h": 20,
+            "t": "2026-05-21T06:04:27Z",
+            "tide": 0.45,
+            "ukc": 2.95,
+            "safe": true
+          },
+          {
+            "h": 21,
+            "t": "2026-05-21T07:04:27Z",
+            "tide": 0.33,
+            "ukc": 2.83,
+            "safe": true
+          },
+          {
+            "h": 22,
+            "t": "2026-05-21T08:04:27Z",
+            "tide": 0.24,
+            "ukc": 2.74,
+            "safe": true
+          },
+          {
+            "h": 23,
+            "t": "2026-05-21T09:04:27Z",
+            "tide": 0.2,
+            "ukc": 2.7,
+            "safe": true
+          },
+          {
+            "h": 24,
+            "t": "2026-05-21T10:04:27Z",
+            "tide": 0.22,
+            "ukc": 2.72,
+            "safe": true
+          },
+          {
+            "h": 25,
+            "t": "2026-05-21T11:04:27Z",
+            "tide": 0.3,
+            "ukc": 2.8,
+            "safe": true
+          },
+          {
+            "h": 26,
+            "t": "2026-05-21T12:04:27Z",
+            "tide": 0.42,
+            "ukc": 2.92,
+            "safe": true
+          },
+          {
+            "h": 27,
+            "t": "2026-05-21T13:04:27Z",
+            "tide": 0.54,
+            "ukc": 3.04,
+            "safe": true
+          },
+          {
+            "h": 28,
+            "t": "2026-05-21T14:04:27Z",
+            "tide": 0.64,
+            "ukc": 3.14,
+            "safe": true
+          },
+          {
+            "h": 29,
+            "t": "2026-05-21T15:04:27Z",
+            "tide": 0.7,
+            "ukc": 3.2,
+            "safe": true
+          },
+          {
+            "h": 30,
+            "t": "2026-05-21T16:04:27Z",
+            "tide": 0.69,
+            "ukc": 3.19,
+            "safe": true
+          },
+          {
+            "h": 31,
+            "t": "2026-05-21T17:04:27Z",
+            "tide": 0.62,
+            "ukc": 3.12,
+            "safe": true
+          },
+          {
+            "h": 32,
+            "t": "2026-05-21T18:04:27Z",
+            "tide": 0.51,
+            "ukc": 3.01,
+            "safe": true
+          },
+          {
+            "h": 33,
+            "t": "2026-05-21T19:04:27Z",
+            "tide": 0.38,
+            "ukc": 2.88,
+            "safe": true
+          },
+          {
+            "h": 34,
+            "t": "2026-05-21T20:04:27Z",
+            "tide": 0.27,
+            "ukc": 2.77,
+            "safe": true
+          },
+          {
+            "h": 35,
+            "t": "2026-05-21T21:04:27Z",
+            "tide": 0.21,
+            "ukc": 2.71,
+            "safe": true
+          },
+          {
+            "h": 36,
+            "t": "2026-05-21T22:04:27Z",
+            "tide": 0.21,
+            "ukc": 2.71,
+            "safe": true
+          },
+          {
+            "h": 37,
+            "t": "2026-05-21T23:04:27Z",
+            "tide": 0.26,
+            "ukc": 2.76,
+            "safe": true
+          },
+          {
+            "h": 38,
+            "t": "2026-05-22T00:04:27Z",
+            "tide": 0.22,
+            "ukc": 2.72,
+            "safe": true
+          },
+          {
+            "h": 39,
+            "t": "2026-05-22T01:04:27Z",
+            "tide": 0.2,
+            "ukc": 2.7,
+            "safe": true
+          },
+          {
+            "h": 40,
+            "t": "2026-05-22T02:04:27Z",
+            "tide": 0.24,
+            "ukc": 2.74,
+            "safe": true
+          },
+          {
+            "h": 41,
+            "t": "2026-05-22T03:04:27Z",
+            "tide": 0.34,
+            "ukc": 2.84,
+            "safe": true
+          },
+          {
+            "h": 42,
+            "t": "2026-05-22T04:04:27Z",
+            "tide": 0.46,
+            "ukc": 2.96,
+            "safe": true
+          },
+          {
+            "h": 43,
+            "t": "2026-05-22T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 3.08,
+            "safe": true
+          },
+          {
+            "h": 44,
+            "t": "2026-05-22T06:04:27Z",
+            "tide": 0.67,
+            "ukc": 3.17,
+            "safe": true
+          },
+          {
+            "h": 45,
+            "t": "2026-05-22T07:04:27Z",
+            "tide": 0.7,
+            "ukc": 3.2,
+            "safe": true
+          },
+          {
+            "h": 46,
+            "t": "2026-05-22T08:04:27Z",
+            "tide": 0.67,
+            "ukc": 3.17,
+            "safe": true
+          },
+          {
+            "h": 47,
+            "t": "2026-05-22T09:04:27Z",
+            "tide": 0.59,
+            "ukc": 3.09,
+            "safe": true
+          },
+          {
+            "h": 48,
+            "t": "2026-05-22T10:04:27Z",
+            "tide": 0.47,
+            "ukc": 2.97,
+            "safe": true
+          }
+        ]
+      },
+      {
+        "vessel_id": "V002",
+        "vessel_name": "Tian Shun He",
+        "vessel_type": "Container",
+        "draught_m": 11.5,
+        "berth_id": "B02",
+        "berth_depth_m": 13.0,
+        "min_ukc_m": 1.7,
+        "tide_restricted": false,
+        "safe_windows": [
+          {
+            "start": "2026-05-20T10:04:27Z",
+            "end": "2026-05-22T10:04:27Z"
+          }
+        ],
+        "points": [
+          {
+            "h": 0,
+            "t": "2026-05-20T10:04:27Z",
+            "tide": 0.58,
+            "ukc": 2.08,
+            "safe": true
+          },
+          {
+            "h": 1,
+            "t": "2026-05-20T11:04:27Z",
+            "tide": 0.67,
+            "ukc": 2.17,
+            "safe": true
+          },
+          {
+            "h": 2,
+            "t": "2026-05-20T12:04:27Z",
+            "tide": 0.7,
+            "ukc": 2.2,
+            "safe": true
+          },
+          {
+            "h": 3,
+            "t": "2026-05-20T13:04:27Z",
+            "tide": 0.67,
+            "ukc": 2.17,
+            "safe": true
+          },
+          {
+            "h": 4,
+            "t": "2026-05-20T14:04:27Z",
+            "tide": 0.58,
+            "ukc": 2.08,
+            "safe": true
+          },
+          {
+            "h": 5,
+            "t": "2026-05-20T15:04:27Z",
+            "tide": 0.46,
+            "ukc": 1.96,
+            "safe": true
+          },
+          {
+            "h": 6,
+            "t": "2026-05-20T16:04:27Z",
+            "tide": 0.34,
+            "ukc": 1.84,
+            "safe": true
+          },
+          {
+            "h": 7,
+            "t": "2026-05-20T17:04:27Z",
+            "tide": 0.24,
+            "ukc": 1.74,
+            "safe": true
+          },
+          {
+            "h": 8,
+            "t": "2026-05-20T18:04:27Z",
+            "tide": 0.2,
+            "ukc": 1.7,
+            "safe": true
+          },
+          {
+            "h": 9,
+            "t": "2026-05-20T19:04:27Z",
+            "tide": 0.22,
+            "ukc": 1.72,
+            "safe": true
+          },
+          {
+            "h": 10,
+            "t": "2026-05-20T20:04:27Z",
+            "tide": 0.3,
+            "ukc": 1.8,
+            "safe": true
+          },
+          {
+            "h": 11,
+            "t": "2026-05-20T21:04:27Z",
+            "tide": 0.41,
+            "ukc": 1.91,
+            "safe": true
+          },
+          {
+            "h": 12,
+            "t": "2026-05-20T22:04:27Z",
+            "tide": 0.54,
+            "ukc": 2.04,
+            "safe": true
+          },
+          {
+            "h": 13,
+            "t": "2026-05-20T23:04:27Z",
+            "tide": 0.64,
+            "ukc": 2.14,
+            "safe": true
+          },
+          {
+            "h": 14,
+            "t": "2026-05-21T00:04:27Z",
+            "tide": 0.47,
+            "ukc": 1.97,
+            "safe": true
+          },
+          {
+            "h": 15,
+            "t": "2026-05-21T01:04:27Z",
+            "tide": 0.59,
+            "ukc": 2.09,
+            "safe": true
+          },
+          {
+            "h": 16,
+            "t": "2026-05-21T02:04:27Z",
+            "tide": 0.67,
+            "ukc": 2.17,
+            "safe": true
+          },
+          {
+            "h": 17,
+            "t": "2026-05-21T03:04:27Z",
+            "tide": 0.7,
+            "ukc": 2.2,
+            "safe": true
+          },
+          {
+            "h": 18,
+            "t": "2026-05-21T04:04:27Z",
+            "tide": 0.66,
+            "ukc": 2.16,
+            "safe": true
+          },
+          {
+            "h": 19,
+            "t": "2026-05-21T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 2.08,
+            "safe": true
+          },
+          {
+            "h": 20,
+            "t": "2026-05-21T06:04:27Z",
+            "tide": 0.45,
+            "ukc": 1.95,
+            "safe": true
+          },
+          {
+            "h": 21,
+            "t": "2026-05-21T07:04:27Z",
+            "tide": 0.33,
+            "ukc": 1.83,
+            "safe": true
+          },
+          {
+            "h": 22,
+            "t": "2026-05-21T08:04:27Z",
+            "tide": 0.24,
+            "ukc": 1.74,
+            "safe": true
+          },
+          {
+            "h": 23,
+            "t": "2026-05-21T09:04:27Z",
+            "tide": 0.2,
+            "ukc": 1.7,
+            "safe": true
+          },
+          {
+            "h": 24,
+            "t": "2026-05-21T10:04:27Z",
+            "tide": 0.22,
+            "ukc": 1.72,
+            "safe": true
+          },
+          {
+            "h": 25,
+            "t": "2026-05-21T11:04:27Z",
+            "tide": 0.3,
+            "ukc": 1.8,
+            "safe": true
+          },
+          {
+            "h": 26,
+            "t": "2026-05-21T12:04:27Z",
+            "tide": 0.42,
+            "ukc": 1.92,
+            "safe": true
+          },
+          {
+            "h": 27,
+            "t": "2026-05-21T13:04:27Z",
+            "tide": 0.54,
+            "ukc": 2.04,
+            "safe": true
+          },
+          {
+            "h": 28,
+            "t": "2026-05-21T14:04:27Z",
+            "tide": 0.64,
+            "ukc": 2.14,
+            "safe": true
+          },
+          {
+            "h": 29,
+            "t": "2026-05-21T15:04:27Z",
+            "tide": 0.7,
+            "ukc": 2.2,
+            "safe": true
+          },
+          {
+            "h": 30,
+            "t": "2026-05-21T16:04:27Z",
+            "tide": 0.69,
+            "ukc": 2.19,
+            "safe": true
+          },
+          {
+            "h": 31,
+            "t": "2026-05-21T17:04:27Z",
+            "tide": 0.62,
+            "ukc": 2.12,
+            "safe": true
+          },
+          {
+            "h": 32,
+            "t": "2026-05-21T18:04:27Z",
+            "tide": 0.51,
+            "ukc": 2.01,
+            "safe": true
+          },
+          {
+            "h": 33,
+            "t": "2026-05-21T19:04:27Z",
+            "tide": 0.38,
+            "ukc": 1.88,
+            "safe": true
+          },
+          {
+            "h": 34,
+            "t": "2026-05-21T20:04:27Z",
+            "tide": 0.27,
+            "ukc": 1.77,
+            "safe": true
+          },
+          {
+            "h": 35,
+            "t": "2026-05-21T21:04:27Z",
+            "tide": 0.21,
+            "ukc": 1.71,
+            "safe": true
+          },
+          {
+            "h": 36,
+            "t": "2026-05-21T22:04:27Z",
+            "tide": 0.21,
+            "ukc": 1.71,
+            "safe": true
+          },
+          {
+            "h": 37,
+            "t": "2026-05-21T23:04:27Z",
+            "tide": 0.26,
+            "ukc": 1.76,
+            "safe": true
+          },
+          {
+            "h": 38,
+            "t": "2026-05-22T00:04:27Z",
+            "tide": 0.22,
+            "ukc": 1.72,
+            "safe": true
+          },
+          {
+            "h": 39,
+            "t": "2026-05-22T01:04:27Z",
+            "tide": 0.2,
+            "ukc": 1.7,
+            "safe": true
+          },
+          {
+            "h": 40,
+            "t": "2026-05-22T02:04:27Z",
+            "tide": 0.24,
+            "ukc": 1.74,
+            "safe": true
+          },
+          {
+            "h": 41,
+            "t": "2026-05-22T03:04:27Z",
+            "tide": 0.34,
+            "ukc": 1.84,
+            "safe": true
+          },
+          {
+            "h": 42,
+            "t": "2026-05-22T04:04:27Z",
+            "tide": 0.46,
+            "ukc": 1.96,
+            "safe": true
+          },
+          {
+            "h": 43,
+            "t": "2026-05-22T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 2.08,
+            "safe": true
+          },
+          {
+            "h": 44,
+            "t": "2026-05-22T06:04:27Z",
+            "tide": 0.67,
+            "ukc": 2.17,
+            "safe": true
+          },
+          {
+            "h": 45,
+            "t": "2026-05-22T07:04:27Z",
+            "tide": 0.7,
+            "ukc": 2.2,
+            "safe": true
+          },
+          {
+            "h": 46,
+            "t": "2026-05-22T08:04:27Z",
+            "tide": 0.67,
+            "ukc": 2.17,
+            "safe": true
+          },
+          {
+            "h": 47,
+            "t": "2026-05-22T09:04:27Z",
+            "tide": 0.59,
+            "ukc": 2.09,
+            "safe": true
+          },
+          {
+            "h": 48,
+            "t": "2026-05-22T10:04:27Z",
+            "tide": 0.47,
+            "ukc": 1.97,
+            "safe": true
+          }
+        ]
+      },
+      {
+        "vessel_id": "V003",
+        "vessel_name": "Olivia Maersk",
+        "vessel_type": "Container",
+        "draught_m": 14.0,
+        "berth_id": "B06",
+        "berth_depth_m": 10.0,
+        "min_ukc_m": -3.8,
+        "tide_restricted": true,
+        "safe_windows": [],
+        "points": [
+          {
+            "h": 0,
+            "t": "2026-05-20T10:04:27Z",
+            "tide": 0.58,
+            "ukc": -3.42,
+            "safe": false
+          },
+          {
+            "h": 1,
+            "t": "2026-05-20T11:04:27Z",
+            "tide": 0.67,
+            "ukc": -3.33,
+            "safe": false
+          },
+          {
+            "h": 2,
+            "t": "2026-05-20T12:04:27Z",
+            "tide": 0.7,
+            "ukc": -3.3,
+            "safe": false
+          },
+          {
+            "h": 3,
+            "t": "2026-05-20T13:04:27Z",
+            "tide": 0.67,
+            "ukc": -3.33,
+            "safe": false
+          },
+          {
+            "h": 4,
+            "t": "2026-05-20T14:04:27Z",
+            "tide": 0.58,
+            "ukc": -3.42,
+            "safe": false
+          },
+          {
+            "h": 5,
+            "t": "2026-05-20T15:04:27Z",
+            "tide": 0.46,
+            "ukc": -3.54,
+            "safe": false
+          },
+          {
+            "h": 6,
+            "t": "2026-05-20T16:04:27Z",
+            "tide": 0.34,
+            "ukc": -3.66,
+            "safe": false
+          },
+          {
+            "h": 7,
+            "t": "2026-05-20T17:04:27Z",
+            "tide": 0.24,
+            "ukc": -3.76,
+            "safe": false
+          },
+          {
+            "h": 8,
+            "t": "2026-05-20T18:04:27Z",
+            "tide": 0.2,
+            "ukc": -3.8,
+            "safe": false
+          },
+          {
+            "h": 9,
+            "t": "2026-05-20T19:04:27Z",
+            "tide": 0.22,
+            "ukc": -3.78,
+            "safe": false
+          },
+          {
+            "h": 10,
+            "t": "2026-05-20T20:04:27Z",
+            "tide": 0.3,
+            "ukc": -3.7,
+            "safe": false
+          },
+          {
+            "h": 11,
+            "t": "2026-05-20T21:04:27Z",
+            "tide": 0.41,
+            "ukc": -3.59,
+            "safe": false
+          },
+          {
+            "h": 12,
+            "t": "2026-05-20T22:04:27Z",
+            "tide": 0.54,
+            "ukc": -3.46,
+            "safe": false
+          },
+          {
+            "h": 13,
+            "t": "2026-05-20T23:04:27Z",
+            "tide": 0.64,
+            "ukc": -3.36,
+            "safe": false
+          },
+          {
+            "h": 14,
+            "t": "2026-05-21T00:04:27Z",
+            "tide": 0.47,
+            "ukc": -3.53,
+            "safe": false
+          },
+          {
+            "h": 15,
+            "t": "2026-05-21T01:04:27Z",
+            "tide": 0.59,
+            "ukc": -3.41,
+            "safe": false
+          },
+          {
+            "h": 16,
+            "t": "2026-05-21T02:04:27Z",
+            "tide": 0.67,
+            "ukc": -3.33,
+            "safe": false
+          },
+          {
+            "h": 17,
+            "t": "2026-05-21T03:04:27Z",
+            "tide": 0.7,
+            "ukc": -3.3,
+            "safe": false
+          },
+          {
+            "h": 18,
+            "t": "2026-05-21T04:04:27Z",
+            "tide": 0.66,
+            "ukc": -3.34,
+            "safe": false
+          },
+          {
+            "h": 19,
+            "t": "2026-05-21T05:04:27Z",
+            "tide": 0.58,
+            "ukc": -3.42,
+            "safe": false
+          },
+          {
+            "h": 20,
+            "t": "2026-05-21T06:04:27Z",
+            "tide": 0.45,
+            "ukc": -3.55,
+            "safe": false
+          },
+          {
+            "h": 21,
+            "t": "2026-05-21T07:04:27Z",
+            "tide": 0.33,
+            "ukc": -3.67,
+            "safe": false
+          },
+          {
+            "h": 22,
+            "t": "2026-05-21T08:04:27Z",
+            "tide": 0.24,
+            "ukc": -3.76,
+            "safe": false
+          },
+          {
+            "h": 23,
+            "t": "2026-05-21T09:04:27Z",
+            "tide": 0.2,
+            "ukc": -3.8,
+            "safe": false
+          },
+          {
+            "h": 24,
+            "t": "2026-05-21T10:04:27Z",
+            "tide": 0.22,
+            "ukc": -3.78,
+            "safe": false
+          },
+          {
+            "h": 25,
+            "t": "2026-05-21T11:04:27Z",
+            "tide": 0.3,
+            "ukc": -3.7,
+            "safe": false
+          },
+          {
+            "h": 26,
+            "t": "2026-05-21T12:04:27Z",
+            "tide": 0.42,
+            "ukc": -3.58,
+            "safe": false
+          },
+          {
+            "h": 27,
+            "t": "2026-05-21T13:04:27Z",
+            "tide": 0.54,
+            "ukc": -3.46,
+            "safe": false
+          },
+          {
+            "h": 28,
+            "t": "2026-05-21T14:04:27Z",
+            "tide": 0.64,
+            "ukc": -3.36,
+            "safe": false
+          },
+          {
+            "h": 29,
+            "t": "2026-05-21T15:04:27Z",
+            "tide": 0.7,
+            "ukc": -3.3,
+            "safe": false
+          },
+          {
+            "h": 30,
+            "t": "2026-05-21T16:04:27Z",
+            "tide": 0.69,
+            "ukc": -3.31,
+            "safe": false
+          },
+          {
+            "h": 31,
+            "t": "2026-05-21T17:04:27Z",
+            "tide": 0.62,
+            "ukc": -3.38,
+            "safe": false
+          },
+          {
+            "h": 32,
+            "t": "2026-05-21T18:04:27Z",
+            "tide": 0.51,
+            "ukc": -3.49,
+            "safe": false
+          },
+          {
+            "h": 33,
+            "t": "2026-05-21T19:04:27Z",
+            "tide": 0.38,
+            "ukc": -3.62,
+            "safe": false
+          },
+          {
+            "h": 34,
+            "t": "2026-05-21T20:04:27Z",
+            "tide": 0.27,
+            "ukc": -3.73,
+            "safe": false
+          },
+          {
+            "h": 35,
+            "t": "2026-05-21T21:04:27Z",
+            "tide": 0.21,
+            "ukc": -3.79,
+            "safe": false
+          },
+          {
+            "h": 36,
+            "t": "2026-05-21T22:04:27Z",
+            "tide": 0.21,
+            "ukc": -3.79,
+            "safe": false
+          },
+          {
+            "h": 37,
+            "t": "2026-05-21T23:04:27Z",
+            "tide": 0.26,
+            "ukc": -3.74,
+            "safe": false
+          },
+          {
+            "h": 38,
+            "t": "2026-05-22T00:04:27Z",
+            "tide": 0.22,
+            "ukc": -3.78,
+            "safe": false
+          },
+          {
+            "h": 39,
+            "t": "2026-05-22T01:04:27Z",
+            "tide": 0.2,
+            "ukc": -3.8,
+            "safe": false
+          },
+          {
+            "h": 40,
+            "t": "2026-05-22T02:04:27Z",
+            "tide": 0.24,
+            "ukc": -3.76,
+            "safe": false
+          },
+          {
+            "h": 41,
+            "t": "2026-05-22T03:04:27Z",
+            "tide": 0.34,
+            "ukc": -3.66,
+            "safe": false
+          },
+          {
+            "h": 42,
+            "t": "2026-05-22T04:04:27Z",
+            "tide": 0.46,
+            "ukc": -3.54,
+            "safe": false
+          },
+          {
+            "h": 43,
+            "t": "2026-05-22T05:04:27Z",
+            "tide": 0.58,
+            "ukc": -3.42,
+            "safe": false
+          },
+          {
+            "h": 44,
+            "t": "2026-05-22T06:04:27Z",
+            "tide": 0.67,
+            "ukc": -3.33,
+            "safe": false
+          },
+          {
+            "h": 45,
+            "t": "2026-05-22T07:04:27Z",
+            "tide": 0.7,
+            "ukc": -3.3,
+            "safe": false
+          },
+          {
+            "h": 46,
+            "t": "2026-05-22T08:04:27Z",
+            "tide": 0.67,
+            "ukc": -3.33,
+            "safe": false
+          },
+          {
+            "h": 47,
+            "t": "2026-05-22T09:04:27Z",
+            "tide": 0.59,
+            "ukc": -3.41,
+            "safe": false
+          },
+          {
+            "h": 48,
+            "t": "2026-05-22T10:04:27Z",
+            "tide": 0.47,
+            "ukc": -3.53,
+            "safe": false
+          }
+        ]
+      },
+      {
+        "vessel_id": "V004",
+        "vessel_name": "Salvia Island",
+        "vessel_type": "Bulk Carrier",
+        "draught_m": 10.0,
+        "berth_id": "B03",
+        "berth_depth_m": 13.5,
+        "min_ukc_m": 3.7,
+        "tide_restricted": false,
+        "safe_windows": [
+          {
+            "start": "2026-05-20T10:04:27Z",
+            "end": "2026-05-22T10:04:27Z"
+          }
+        ],
+        "points": [
+          {
+            "h": 0,
+            "t": "2026-05-20T10:04:27Z",
+            "tide": 0.58,
+            "ukc": 4.08,
+            "safe": true
+          },
+          {
+            "h": 1,
+            "t": "2026-05-20T11:04:27Z",
+            "tide": 0.67,
+            "ukc": 4.17,
+            "safe": true
+          },
+          {
+            "h": 2,
+            "t": "2026-05-20T12:04:27Z",
+            "tide": 0.7,
+            "ukc": 4.2,
+            "safe": true
+          },
+          {
+            "h": 3,
+            "t": "2026-05-20T13:04:27Z",
+            "tide": 0.67,
+            "ukc": 4.17,
+            "safe": true
+          },
+          {
+            "h": 4,
+            "t": "2026-05-20T14:04:27Z",
+            "tide": 0.58,
+            "ukc": 4.08,
+            "safe": true
+          },
+          {
+            "h": 5,
+            "t": "2026-05-20T15:04:27Z",
+            "tide": 0.46,
+            "ukc": 3.96,
+            "safe": true
+          },
+          {
+            "h": 6,
+            "t": "2026-05-20T16:04:27Z",
+            "tide": 0.34,
+            "ukc": 3.84,
+            "safe": true
+          },
+          {
+            "h": 7,
+            "t": "2026-05-20T17:04:27Z",
+            "tide": 0.24,
+            "ukc": 3.74,
+            "safe": true
+          },
+          {
+            "h": 8,
+            "t": "2026-05-20T18:04:27Z",
+            "tide": 0.2,
+            "ukc": 3.7,
+            "safe": true
+          },
+          {
+            "h": 9,
+            "t": "2026-05-20T19:04:27Z",
+            "tide": 0.22,
+            "ukc": 3.72,
+            "safe": true
+          },
+          {
+            "h": 10,
+            "t": "2026-05-20T20:04:27Z",
+            "tide": 0.3,
+            "ukc": 3.8,
+            "safe": true
+          },
+          {
+            "h": 11,
+            "t": "2026-05-20T21:04:27Z",
+            "tide": 0.41,
+            "ukc": 3.91,
+            "safe": true
+          },
+          {
+            "h": 12,
+            "t": "2026-05-20T22:04:27Z",
+            "tide": 0.54,
+            "ukc": 4.04,
+            "safe": true
+          },
+          {
+            "h": 13,
+            "t": "2026-05-20T23:04:27Z",
+            "tide": 0.64,
+            "ukc": 4.14,
+            "safe": true
+          },
+          {
+            "h": 14,
+            "t": "2026-05-21T00:04:27Z",
+            "tide": 0.47,
+            "ukc": 3.97,
+            "safe": true
+          },
+          {
+            "h": 15,
+            "t": "2026-05-21T01:04:27Z",
+            "tide": 0.59,
+            "ukc": 4.09,
+            "safe": true
+          },
+          {
+            "h": 16,
+            "t": "2026-05-21T02:04:27Z",
+            "tide": 0.67,
+            "ukc": 4.17,
+            "safe": true
+          },
+          {
+            "h": 17,
+            "t": "2026-05-21T03:04:27Z",
+            "tide": 0.7,
+            "ukc": 4.2,
+            "safe": true
+          },
+          {
+            "h": 18,
+            "t": "2026-05-21T04:04:27Z",
+            "tide": 0.66,
+            "ukc": 4.16,
+            "safe": true
+          },
+          {
+            "h": 19,
+            "t": "2026-05-21T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 4.08,
+            "safe": true
+          },
+          {
+            "h": 20,
+            "t": "2026-05-21T06:04:27Z",
+            "tide": 0.45,
+            "ukc": 3.95,
+            "safe": true
+          },
+          {
+            "h": 21,
+            "t": "2026-05-21T07:04:27Z",
+            "tide": 0.33,
+            "ukc": 3.83,
+            "safe": true
+          },
+          {
+            "h": 22,
+            "t": "2026-05-21T08:04:27Z",
+            "tide": 0.24,
+            "ukc": 3.74,
+            "safe": true
+          },
+          {
+            "h": 23,
+            "t": "2026-05-21T09:04:27Z",
+            "tide": 0.2,
+            "ukc": 3.7,
+            "safe": true
+          },
+          {
+            "h": 24,
+            "t": "2026-05-21T10:04:27Z",
+            "tide": 0.22,
+            "ukc": 3.72,
+            "safe": true
+          },
+          {
+            "h": 25,
+            "t": "2026-05-21T11:04:27Z",
+            "tide": 0.3,
+            "ukc": 3.8,
+            "safe": true
+          },
+          {
+            "h": 26,
+            "t": "2026-05-21T12:04:27Z",
+            "tide": 0.42,
+            "ukc": 3.92,
+            "safe": true
+          },
+          {
+            "h": 27,
+            "t": "2026-05-21T13:04:27Z",
+            "tide": 0.54,
+            "ukc": 4.04,
+            "safe": true
+          },
+          {
+            "h": 28,
+            "t": "2026-05-21T14:04:27Z",
+            "tide": 0.64,
+            "ukc": 4.14,
+            "safe": true
+          },
+          {
+            "h": 29,
+            "t": "2026-05-21T15:04:27Z",
+            "tide": 0.7,
+            "ukc": 4.2,
+            "safe": true
+          },
+          {
+            "h": 30,
+            "t": "2026-05-21T16:04:27Z",
+            "tide": 0.69,
+            "ukc": 4.19,
+            "safe": true
+          },
+          {
+            "h": 31,
+            "t": "2026-05-21T17:04:27Z",
+            "tide": 0.62,
+            "ukc": 4.12,
+            "safe": true
+          },
+          {
+            "h": 32,
+            "t": "2026-05-21T18:04:27Z",
+            "tide": 0.51,
+            "ukc": 4.01,
+            "safe": true
+          },
+          {
+            "h": 33,
+            "t": "2026-05-21T19:04:27Z",
+            "tide": 0.38,
+            "ukc": 3.88,
+            "safe": true
+          },
+          {
+            "h": 34,
+            "t": "2026-05-21T20:04:27Z",
+            "tide": 0.27,
+            "ukc": 3.77,
+            "safe": true
+          },
+          {
+            "h": 35,
+            "t": "2026-05-21T21:04:27Z",
+            "tide": 0.21,
+            "ukc": 3.71,
+            "safe": true
+          },
+          {
+            "h": 36,
+            "t": "2026-05-21T22:04:27Z",
+            "tide": 0.21,
+            "ukc": 3.71,
+            "safe": true
+          },
+          {
+            "h": 37,
+            "t": "2026-05-21T23:04:27Z",
+            "tide": 0.26,
+            "ukc": 3.76,
+            "safe": true
+          },
+          {
+            "h": 38,
+            "t": "2026-05-22T00:04:27Z",
+            "tide": 0.22,
+            "ukc": 3.72,
+            "safe": true
+          },
+          {
+            "h": 39,
+            "t": "2026-05-22T01:04:27Z",
+            "tide": 0.2,
+            "ukc": 3.7,
+            "safe": true
+          },
+          {
+            "h": 40,
+            "t": "2026-05-22T02:04:27Z",
+            "tide": 0.24,
+            "ukc": 3.74,
+            "safe": true
+          },
+          {
+            "h": 41,
+            "t": "2026-05-22T03:04:27Z",
+            "tide": 0.34,
+            "ukc": 3.84,
+            "safe": true
+          },
+          {
+            "h": 42,
+            "t": "2026-05-22T04:04:27Z",
+            "tide": 0.46,
+            "ukc": 3.96,
+            "safe": true
+          },
+          {
+            "h": 43,
+            "t": "2026-05-22T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 4.08,
+            "safe": true
+          },
+          {
+            "h": 44,
+            "t": "2026-05-22T06:04:27Z",
+            "tide": 0.67,
+            "ukc": 4.17,
+            "safe": true
+          },
+          {
+            "h": 45,
+            "t": "2026-05-22T07:04:27Z",
+            "tide": 0.7,
+            "ukc": 4.2,
+            "safe": true
+          },
+          {
+            "h": 46,
+            "t": "2026-05-22T08:04:27Z",
+            "tide": 0.67,
+            "ukc": 4.17,
+            "safe": true
+          },
+          {
+            "h": 47,
+            "t": "2026-05-22T09:04:27Z",
+            "tide": 0.59,
+            "ukc": 4.09,
+            "safe": true
+          },
+          {
+            "h": 48,
+            "t": "2026-05-22T10:04:27Z",
+            "tide": 0.47,
+            "ukc": 3.97,
+            "safe": true
+          }
+        ]
+      },
+      {
+        "vessel_id": "V005",
+        "vessel_name": "Cosco Aden",
+        "vessel_type": "Container",
+        "draught_m": 12.0,
+        "berth_id": "B04",
+        "berth_depth_m": 12.5,
+        "min_ukc_m": 0.7,
+        "tide_restricted": false,
+        "safe_windows": [
+          {
+            "start": "2026-05-20T10:04:27Z",
+            "end": "2026-05-22T10:04:27Z"
+          }
+        ],
+        "points": [
+          {
+            "h": 0,
+            "t": "2026-05-20T10:04:27Z",
+            "tide": 0.58,
+            "ukc": 1.08,
+            "safe": true
+          },
+          {
+            "h": 1,
+            "t": "2026-05-20T11:04:27Z",
+            "tide": 0.67,
+            "ukc": 1.17,
+            "safe": true
+          },
+          {
+            "h": 2,
+            "t": "2026-05-20T12:04:27Z",
+            "tide": 0.7,
+            "ukc": 1.2,
+            "safe": true
+          },
+          {
+            "h": 3,
+            "t": "2026-05-20T13:04:27Z",
+            "tide": 0.67,
+            "ukc": 1.17,
+            "safe": true
+          },
+          {
+            "h": 4,
+            "t": "2026-05-20T14:04:27Z",
+            "tide": 0.58,
+            "ukc": 1.08,
+            "safe": true
+          },
+          {
+            "h": 5,
+            "t": "2026-05-20T15:04:27Z",
+            "tide": 0.46,
+            "ukc": 0.96,
+            "safe": true
+          },
+          {
+            "h": 6,
+            "t": "2026-05-20T16:04:27Z",
+            "tide": 0.34,
+            "ukc": 0.84,
+            "safe": true
+          },
+          {
+            "h": 7,
+            "t": "2026-05-20T17:04:27Z",
+            "tide": 0.24,
+            "ukc": 0.74,
+            "safe": true
+          },
+          {
+            "h": 8,
+            "t": "2026-05-20T18:04:27Z",
+            "tide": 0.2,
+            "ukc": 0.7,
+            "safe": true
+          },
+          {
+            "h": 9,
+            "t": "2026-05-20T19:04:27Z",
+            "tide": 0.22,
+            "ukc": 0.72,
+            "safe": true
+          },
+          {
+            "h": 10,
+            "t": "2026-05-20T20:04:27Z",
+            "tide": 0.3,
+            "ukc": 0.8,
+            "safe": true
+          },
+          {
+            "h": 11,
+            "t": "2026-05-20T21:04:27Z",
+            "tide": 0.41,
+            "ukc": 0.91,
+            "safe": true
+          },
+          {
+            "h": 12,
+            "t": "2026-05-20T22:04:27Z",
+            "tide": 0.54,
+            "ukc": 1.04,
+            "safe": true
+          },
+          {
+            "h": 13,
+            "t": "2026-05-20T23:04:27Z",
+            "tide": 0.64,
+            "ukc": 1.14,
+            "safe": true
+          },
+          {
+            "h": 14,
+            "t": "2026-05-21T00:04:27Z",
+            "tide": 0.47,
+            "ukc": 0.97,
+            "safe": true
+          },
+          {
+            "h": 15,
+            "t": "2026-05-21T01:04:27Z",
+            "tide": 0.59,
+            "ukc": 1.09,
+            "safe": true
+          },
+          {
+            "h": 16,
+            "t": "2026-05-21T02:04:27Z",
+            "tide": 0.67,
+            "ukc": 1.17,
+            "safe": true
+          },
+          {
+            "h": 17,
+            "t": "2026-05-21T03:04:27Z",
+            "tide": 0.7,
+            "ukc": 1.2,
+            "safe": true
+          },
+          {
+            "h": 18,
+            "t": "2026-05-21T04:04:27Z",
+            "tide": 0.66,
+            "ukc": 1.16,
+            "safe": true
+          },
+          {
+            "h": 19,
+            "t": "2026-05-21T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 1.08,
+            "safe": true
+          },
+          {
+            "h": 20,
+            "t": "2026-05-21T06:04:27Z",
+            "tide": 0.45,
+            "ukc": 0.95,
+            "safe": true
+          },
+          {
+            "h": 21,
+            "t": "2026-05-21T07:04:27Z",
+            "tide": 0.33,
+            "ukc": 0.83,
+            "safe": true
+          },
+          {
+            "h": 22,
+            "t": "2026-05-21T08:04:27Z",
+            "tide": 0.24,
+            "ukc": 0.74,
+            "safe": true
+          },
+          {
+            "h": 23,
+            "t": "2026-05-21T09:04:27Z",
+            "tide": 0.2,
+            "ukc": 0.7,
+            "safe": true
+          },
+          {
+            "h": 24,
+            "t": "2026-05-21T10:04:27Z",
+            "tide": 0.22,
+            "ukc": 0.72,
+            "safe": true
+          },
+          {
+            "h": 25,
+            "t": "2026-05-21T11:04:27Z",
+            "tide": 0.3,
+            "ukc": 0.8,
+            "safe": true
+          },
+          {
+            "h": 26,
+            "t": "2026-05-21T12:04:27Z",
+            "tide": 0.42,
+            "ukc": 0.92,
+            "safe": true
+          },
+          {
+            "h": 27,
+            "t": "2026-05-21T13:04:27Z",
+            "tide": 0.54,
+            "ukc": 1.04,
+            "safe": true
+          },
+          {
+            "h": 28,
+            "t": "2026-05-21T14:04:27Z",
+            "tide": 0.64,
+            "ukc": 1.14,
+            "safe": true
+          },
+          {
+            "h": 29,
+            "t": "2026-05-21T15:04:27Z",
+            "tide": 0.7,
+            "ukc": 1.2,
+            "safe": true
+          },
+          {
+            "h": 30,
+            "t": "2026-05-21T16:04:27Z",
+            "tide": 0.69,
+            "ukc": 1.19,
+            "safe": true
+          },
+          {
+            "h": 31,
+            "t": "2026-05-21T17:04:27Z",
+            "tide": 0.62,
+            "ukc": 1.12,
+            "safe": true
+          },
+          {
+            "h": 32,
+            "t": "2026-05-21T18:04:27Z",
+            "tide": 0.51,
+            "ukc": 1.01,
+            "safe": true
+          },
+          {
+            "h": 33,
+            "t": "2026-05-21T19:04:27Z",
+            "tide": 0.38,
+            "ukc": 0.88,
+            "safe": true
+          },
+          {
+            "h": 34,
+            "t": "2026-05-21T20:04:27Z",
+            "tide": 0.27,
+            "ukc": 0.77,
+            "safe": true
+          },
+          {
+            "h": 35,
+            "t": "2026-05-21T21:04:27Z",
+            "tide": 0.21,
+            "ukc": 0.71,
+            "safe": true
+          },
+          {
+            "h": 36,
+            "t": "2026-05-21T22:04:27Z",
+            "tide": 0.21,
+            "ukc": 0.71,
+            "safe": true
+          },
+          {
+            "h": 37,
+            "t": "2026-05-21T23:04:27Z",
+            "tide": 0.26,
+            "ukc": 0.76,
+            "safe": true
+          },
+          {
+            "h": 38,
+            "t": "2026-05-22T00:04:27Z",
+            "tide": 0.22,
+            "ukc": 0.72,
+            "safe": true
+          },
+          {
+            "h": 39,
+            "t": "2026-05-22T01:04:27Z",
+            "tide": 0.2,
+            "ukc": 0.7,
+            "safe": true
+          },
+          {
+            "h": 40,
+            "t": "2026-05-22T02:04:27Z",
+            "tide": 0.24,
+            "ukc": 0.74,
+            "safe": true
+          },
+          {
+            "h": 41,
+            "t": "2026-05-22T03:04:27Z",
+            "tide": 0.34,
+            "ukc": 0.84,
+            "safe": true
+          },
+          {
+            "h": 42,
+            "t": "2026-05-22T04:04:27Z",
+            "tide": 0.46,
+            "ukc": 0.96,
+            "safe": true
+          },
+          {
+            "h": 43,
+            "t": "2026-05-22T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 1.08,
+            "safe": true
+          },
+          {
+            "h": 44,
+            "t": "2026-05-22T06:04:27Z",
+            "tide": 0.67,
+            "ukc": 1.17,
+            "safe": true
+          },
+          {
+            "h": 45,
+            "t": "2026-05-22T07:04:27Z",
+            "tide": 0.7,
+            "ukc": 1.2,
+            "safe": true
+          },
+          {
+            "h": 46,
+            "t": "2026-05-22T08:04:27Z",
+            "tide": 0.67,
+            "ukc": 1.17,
+            "safe": true
+          },
+          {
+            "h": 47,
+            "t": "2026-05-22T09:04:27Z",
+            "tide": 0.59,
+            "ukc": 1.09,
+            "safe": true
+          },
+          {
+            "h": 48,
+            "t": "2026-05-22T10:04:27Z",
+            "tide": 0.47,
+            "ukc": 0.97,
+            "safe": true
+          }
+        ]
+      },
+      {
+        "vessel_id": "V006",
+        "vessel_name": "APL Savannah",
+        "vessel_type": "Container",
+        "draught_m": 12.0,
+        "berth_id": "B01",
+        "berth_depth_m": 13.5,
+        "min_ukc_m": 1.7,
+        "tide_restricted": false,
+        "safe_windows": [
+          {
+            "start": "2026-05-20T10:04:27Z",
+            "end": "2026-05-22T10:04:27Z"
+          }
+        ],
+        "points": [
+          {
+            "h": 0,
+            "t": "2026-05-20T10:04:27Z",
+            "tide": 0.58,
+            "ukc": 2.08,
+            "safe": true
+          },
+          {
+            "h": 1,
+            "t": "2026-05-20T11:04:27Z",
+            "tide": 0.67,
+            "ukc": 2.17,
+            "safe": true
+          },
+          {
+            "h": 2,
+            "t": "2026-05-20T12:04:27Z",
+            "tide": 0.7,
+            "ukc": 2.2,
+            "safe": true
+          },
+          {
+            "h": 3,
+            "t": "2026-05-20T13:04:27Z",
+            "tide": 0.67,
+            "ukc": 2.17,
+            "safe": true
+          },
+          {
+            "h": 4,
+            "t": "2026-05-20T14:04:27Z",
+            "tide": 0.58,
+            "ukc": 2.08,
+            "safe": true
+          },
+          {
+            "h": 5,
+            "t": "2026-05-20T15:04:27Z",
+            "tide": 0.46,
+            "ukc": 1.96,
+            "safe": true
+          },
+          {
+            "h": 6,
+            "t": "2026-05-20T16:04:27Z",
+            "tide": 0.34,
+            "ukc": 1.84,
+            "safe": true
+          },
+          {
+            "h": 7,
+            "t": "2026-05-20T17:04:27Z",
+            "tide": 0.24,
+            "ukc": 1.74,
+            "safe": true
+          },
+          {
+            "h": 8,
+            "t": "2026-05-20T18:04:27Z",
+            "tide": 0.2,
+            "ukc": 1.7,
+            "safe": true
+          },
+          {
+            "h": 9,
+            "t": "2026-05-20T19:04:27Z",
+            "tide": 0.22,
+            "ukc": 1.72,
+            "safe": true
+          },
+          {
+            "h": 10,
+            "t": "2026-05-20T20:04:27Z",
+            "tide": 0.3,
+            "ukc": 1.8,
+            "safe": true
+          },
+          {
+            "h": 11,
+            "t": "2026-05-20T21:04:27Z",
+            "tide": 0.41,
+            "ukc": 1.91,
+            "safe": true
+          },
+          {
+            "h": 12,
+            "t": "2026-05-20T22:04:27Z",
+            "tide": 0.54,
+            "ukc": 2.04,
+            "safe": true
+          },
+          {
+            "h": 13,
+            "t": "2026-05-20T23:04:27Z",
+            "tide": 0.64,
+            "ukc": 2.14,
+            "safe": true
+          },
+          {
+            "h": 14,
+            "t": "2026-05-21T00:04:27Z",
+            "tide": 0.47,
+            "ukc": 1.97,
+            "safe": true
+          },
+          {
+            "h": 15,
+            "t": "2026-05-21T01:04:27Z",
+            "tide": 0.59,
+            "ukc": 2.09,
+            "safe": true
+          },
+          {
+            "h": 16,
+            "t": "2026-05-21T02:04:27Z",
+            "tide": 0.67,
+            "ukc": 2.17,
+            "safe": true
+          },
+          {
+            "h": 17,
+            "t": "2026-05-21T03:04:27Z",
+            "tide": 0.7,
+            "ukc": 2.2,
+            "safe": true
+          },
+          {
+            "h": 18,
+            "t": "2026-05-21T04:04:27Z",
+            "tide": 0.66,
+            "ukc": 2.16,
+            "safe": true
+          },
+          {
+            "h": 19,
+            "t": "2026-05-21T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 2.08,
+            "safe": true
+          },
+          {
+            "h": 20,
+            "t": "2026-05-21T06:04:27Z",
+            "tide": 0.45,
+            "ukc": 1.95,
+            "safe": true
+          },
+          {
+            "h": 21,
+            "t": "2026-05-21T07:04:27Z",
+            "tide": 0.33,
+            "ukc": 1.83,
+            "safe": true
+          },
+          {
+            "h": 22,
+            "t": "2026-05-21T08:04:27Z",
+            "tide": 0.24,
+            "ukc": 1.74,
+            "safe": true
+          },
+          {
+            "h": 23,
+            "t": "2026-05-21T09:04:27Z",
+            "tide": 0.2,
+            "ukc": 1.7,
+            "safe": true
+          },
+          {
+            "h": 24,
+            "t": "2026-05-21T10:04:27Z",
+            "tide": 0.22,
+            "ukc": 1.72,
+            "safe": true
+          },
+          {
+            "h": 25,
+            "t": "2026-05-21T11:04:27Z",
+            "tide": 0.3,
+            "ukc": 1.8,
+            "safe": true
+          },
+          {
+            "h": 26,
+            "t": "2026-05-21T12:04:27Z",
+            "tide": 0.42,
+            "ukc": 1.92,
+            "safe": true
+          },
+          {
+            "h": 27,
+            "t": "2026-05-21T13:04:27Z",
+            "tide": 0.54,
+            "ukc": 2.04,
+            "safe": true
+          },
+          {
+            "h": 28,
+            "t": "2026-05-21T14:04:27Z",
+            "tide": 0.64,
+            "ukc": 2.14,
+            "safe": true
+          },
+          {
+            "h": 29,
+            "t": "2026-05-21T15:04:27Z",
+            "tide": 0.7,
+            "ukc": 2.2,
+            "safe": true
+          },
+          {
+            "h": 30,
+            "t": "2026-05-21T16:04:27Z",
+            "tide": 0.69,
+            "ukc": 2.19,
+            "safe": true
+          },
+          {
+            "h": 31,
+            "t": "2026-05-21T17:04:27Z",
+            "tide": 0.62,
+            "ukc": 2.12,
+            "safe": true
+          },
+          {
+            "h": 32,
+            "t": "2026-05-21T18:04:27Z",
+            "tide": 0.51,
+            "ukc": 2.01,
+            "safe": true
+          },
+          {
+            "h": 33,
+            "t": "2026-05-21T19:04:27Z",
+            "tide": 0.38,
+            "ukc": 1.88,
+            "safe": true
+          },
+          {
+            "h": 34,
+            "t": "2026-05-21T20:04:27Z",
+            "tide": 0.27,
+            "ukc": 1.77,
+            "safe": true
+          },
+          {
+            "h": 35,
+            "t": "2026-05-21T21:04:27Z",
+            "tide": 0.21,
+            "ukc": 1.71,
+            "safe": true
+          },
+          {
+            "h": 36,
+            "t": "2026-05-21T22:04:27Z",
+            "tide": 0.21,
+            "ukc": 1.71,
+            "safe": true
+          },
+          {
+            "h": 37,
+            "t": "2026-05-21T23:04:27Z",
+            "tide": 0.26,
+            "ukc": 1.76,
+            "safe": true
+          },
+          {
+            "h": 38,
+            "t": "2026-05-22T00:04:27Z",
+            "tide": 0.22,
+            "ukc": 1.72,
+            "safe": true
+          },
+          {
+            "h": 39,
+            "t": "2026-05-22T01:04:27Z",
+            "tide": 0.2,
+            "ukc": 1.7,
+            "safe": true
+          },
+          {
+            "h": 40,
+            "t": "2026-05-22T02:04:27Z",
+            "tide": 0.24,
+            "ukc": 1.74,
+            "safe": true
+          },
+          {
+            "h": 41,
+            "t": "2026-05-22T03:04:27Z",
+            "tide": 0.34,
+            "ukc": 1.84,
+            "safe": true
+          },
+          {
+            "h": 42,
+            "t": "2026-05-22T04:04:27Z",
+            "tide": 0.46,
+            "ukc": 1.96,
+            "safe": true
+          },
+          {
+            "h": 43,
+            "t": "2026-05-22T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 2.08,
+            "safe": true
+          },
+          {
+            "h": 44,
+            "t": "2026-05-22T06:04:27Z",
+            "tide": 0.67,
+            "ukc": 2.17,
+            "safe": true
+          },
+          {
+            "h": 45,
+            "t": "2026-05-22T07:04:27Z",
+            "tide": 0.7,
+            "ukc": 2.2,
+            "safe": true
+          },
+          {
+            "h": 46,
+            "t": "2026-05-22T08:04:27Z",
+            "tide": 0.67,
+            "ukc": 2.17,
+            "safe": true
+          },
+          {
+            "h": 47,
+            "t": "2026-05-22T09:04:27Z",
+            "tide": 0.59,
+            "ukc": 2.09,
+            "safe": true
+          },
+          {
+            "h": 48,
+            "t": "2026-05-22T10:04:27Z",
+            "tide": 0.47,
+            "ukc": 1.97,
+            "safe": true
+          }
+        ]
+      },
+      {
+        "vessel_id": "V007",
+        "vessel_name": "OOCL Panama",
+        "vessel_type": "Container",
+        "draught_m": 13.5,
+        "berth_id": "B04",
+        "berth_depth_m": 12.5,
+        "min_ukc_m": -0.8,
+        "tide_restricted": true,
+        "safe_windows": [],
+        "points": [
+          {
+            "h": 0,
+            "t": "2026-05-20T10:04:27Z",
+            "tide": 0.58,
+            "ukc": -0.42,
+            "safe": false
+          },
+          {
+            "h": 1,
+            "t": "2026-05-20T11:04:27Z",
+            "tide": 0.67,
+            "ukc": -0.33,
+            "safe": false
+          },
+          {
+            "h": 2,
+            "t": "2026-05-20T12:04:27Z",
+            "tide": 0.7,
+            "ukc": -0.3,
+            "safe": false
+          },
+          {
+            "h": 3,
+            "t": "2026-05-20T13:04:27Z",
+            "tide": 0.67,
+            "ukc": -0.33,
+            "safe": false
+          },
+          {
+            "h": 4,
+            "t": "2026-05-20T14:04:27Z",
+            "tide": 0.58,
+            "ukc": -0.42,
+            "safe": false
+          },
+          {
+            "h": 5,
+            "t": "2026-05-20T15:04:27Z",
+            "tide": 0.46,
+            "ukc": -0.54,
+            "safe": false
+          },
+          {
+            "h": 6,
+            "t": "2026-05-20T16:04:27Z",
+            "tide": 0.34,
+            "ukc": -0.66,
+            "safe": false
+          },
+          {
+            "h": 7,
+            "t": "2026-05-20T17:04:27Z",
+            "tide": 0.24,
+            "ukc": -0.76,
+            "safe": false
+          },
+          {
+            "h": 8,
+            "t": "2026-05-20T18:04:27Z",
+            "tide": 0.2,
+            "ukc": -0.8,
+            "safe": false
+          },
+          {
+            "h": 9,
+            "t": "2026-05-20T19:04:27Z",
+            "tide": 0.22,
+            "ukc": -0.78,
+            "safe": false
+          },
+          {
+            "h": 10,
+            "t": "2026-05-20T20:04:27Z",
+            "tide": 0.3,
+            "ukc": -0.7,
+            "safe": false
+          },
+          {
+            "h": 11,
+            "t": "2026-05-20T21:04:27Z",
+            "tide": 0.41,
+            "ukc": -0.59,
+            "safe": false
+          },
+          {
+            "h": 12,
+            "t": "2026-05-20T22:04:27Z",
+            "tide": 0.54,
+            "ukc": -0.46,
+            "safe": false
+          },
+          {
+            "h": 13,
+            "t": "2026-05-20T23:04:27Z",
+            "tide": 0.64,
+            "ukc": -0.36,
+            "safe": false
+          },
+          {
+            "h": 14,
+            "t": "2026-05-21T00:04:27Z",
+            "tide": 0.47,
+            "ukc": -0.53,
+            "safe": false
+          },
+          {
+            "h": 15,
+            "t": "2026-05-21T01:04:27Z",
+            "tide": 0.59,
+            "ukc": -0.41,
+            "safe": false
+          },
+          {
+            "h": 16,
+            "t": "2026-05-21T02:04:27Z",
+            "tide": 0.67,
+            "ukc": -0.33,
+            "safe": false
+          },
+          {
+            "h": 17,
+            "t": "2026-05-21T03:04:27Z",
+            "tide": 0.7,
+            "ukc": -0.3,
+            "safe": false
+          },
+          {
+            "h": 18,
+            "t": "2026-05-21T04:04:27Z",
+            "tide": 0.66,
+            "ukc": -0.34,
+            "safe": false
+          },
+          {
+            "h": 19,
+            "t": "2026-05-21T05:04:27Z",
+            "tide": 0.58,
+            "ukc": -0.42,
+            "safe": false
+          },
+          {
+            "h": 20,
+            "t": "2026-05-21T06:04:27Z",
+            "tide": 0.45,
+            "ukc": -0.55,
+            "safe": false
+          },
+          {
+            "h": 21,
+            "t": "2026-05-21T07:04:27Z",
+            "tide": 0.33,
+            "ukc": -0.67,
+            "safe": false
+          },
+          {
+            "h": 22,
+            "t": "2026-05-21T08:04:27Z",
+            "tide": 0.24,
+            "ukc": -0.76,
+            "safe": false
+          },
+          {
+            "h": 23,
+            "t": "2026-05-21T09:04:27Z",
+            "tide": 0.2,
+            "ukc": -0.8,
+            "safe": false
+          },
+          {
+            "h": 24,
+            "t": "2026-05-21T10:04:27Z",
+            "tide": 0.22,
+            "ukc": -0.78,
+            "safe": false
+          },
+          {
+            "h": 25,
+            "t": "2026-05-21T11:04:27Z",
+            "tide": 0.3,
+            "ukc": -0.7,
+            "safe": false
+          },
+          {
+            "h": 26,
+            "t": "2026-05-21T12:04:27Z",
+            "tide": 0.42,
+            "ukc": -0.58,
+            "safe": false
+          },
+          {
+            "h": 27,
+            "t": "2026-05-21T13:04:27Z",
+            "tide": 0.54,
+            "ukc": -0.46,
+            "safe": false
+          },
+          {
+            "h": 28,
+            "t": "2026-05-21T14:04:27Z",
+            "tide": 0.64,
+            "ukc": -0.36,
+            "safe": false
+          },
+          {
+            "h": 29,
+            "t": "2026-05-21T15:04:27Z",
+            "tide": 0.7,
+            "ukc": -0.3,
+            "safe": false
+          },
+          {
+            "h": 30,
+            "t": "2026-05-21T16:04:27Z",
+            "tide": 0.69,
+            "ukc": -0.31,
+            "safe": false
+          },
+          {
+            "h": 31,
+            "t": "2026-05-21T17:04:27Z",
+            "tide": 0.62,
+            "ukc": -0.38,
+            "safe": false
+          },
+          {
+            "h": 32,
+            "t": "2026-05-21T18:04:27Z",
+            "tide": 0.51,
+            "ukc": -0.49,
+            "safe": false
+          },
+          {
+            "h": 33,
+            "t": "2026-05-21T19:04:27Z",
+            "tide": 0.38,
+            "ukc": -0.62,
+            "safe": false
+          },
+          {
+            "h": 34,
+            "t": "2026-05-21T20:04:27Z",
+            "tide": 0.27,
+            "ukc": -0.73,
+            "safe": false
+          },
+          {
+            "h": 35,
+            "t": "2026-05-21T21:04:27Z",
+            "tide": 0.21,
+            "ukc": -0.79,
+            "safe": false
+          },
+          {
+            "h": 36,
+            "t": "2026-05-21T22:04:27Z",
+            "tide": 0.21,
+            "ukc": -0.79,
+            "safe": false
+          },
+          {
+            "h": 37,
+            "t": "2026-05-21T23:04:27Z",
+            "tide": 0.26,
+            "ukc": -0.74,
+            "safe": false
+          },
+          {
+            "h": 38,
+            "t": "2026-05-22T00:04:27Z",
+            "tide": 0.22,
+            "ukc": -0.78,
+            "safe": false
+          },
+          {
+            "h": 39,
+            "t": "2026-05-22T01:04:27Z",
+            "tide": 0.2,
+            "ukc": -0.8,
+            "safe": false
+          },
+          {
+            "h": 40,
+            "t": "2026-05-22T02:04:27Z",
+            "tide": 0.24,
+            "ukc": -0.76,
+            "safe": false
+          },
+          {
+            "h": 41,
+            "t": "2026-05-22T03:04:27Z",
+            "tide": 0.34,
+            "ukc": -0.66,
+            "safe": false
+          },
+          {
+            "h": 42,
+            "t": "2026-05-22T04:04:27Z",
+            "tide": 0.46,
+            "ukc": -0.54,
+            "safe": false
+          },
+          {
+            "h": 43,
+            "t": "2026-05-22T05:04:27Z",
+            "tide": 0.58,
+            "ukc": -0.42,
+            "safe": false
+          },
+          {
+            "h": 44,
+            "t": "2026-05-22T06:04:27Z",
+            "tide": 0.67,
+            "ukc": -0.33,
+            "safe": false
+          },
+          {
+            "h": 45,
+            "t": "2026-05-22T07:04:27Z",
+            "tide": 0.7,
+            "ukc": -0.3,
+            "safe": false
+          },
+          {
+            "h": 46,
+            "t": "2026-05-22T08:04:27Z",
+            "tide": 0.67,
+            "ukc": -0.33,
+            "safe": false
+          },
+          {
+            "h": 47,
+            "t": "2026-05-22T09:04:27Z",
+            "tide": 0.59,
+            "ukc": -0.41,
+            "safe": false
+          },
+          {
+            "h": 48,
+            "t": "2026-05-22T10:04:27Z",
+            "tide": 0.47,
+            "ukc": -0.53,
+            "safe": false
+          }
+        ]
+      },
+      {
+        "vessel_id": "V008",
+        "vessel_name": "NPDL Tahiti",
+        "vessel_type": "Container",
+        "draught_m": 10.5,
+        "berth_id": "B06",
+        "berth_depth_m": 10.0,
+        "min_ukc_m": -0.3,
+        "tide_restricted": true,
+        "safe_windows": [],
+        "points": [
+          {
+            "h": 0,
+            "t": "2026-05-20T10:04:27Z",
+            "tide": 0.58,
+            "ukc": 0.08,
+            "safe": false
+          },
+          {
+            "h": 1,
+            "t": "2026-05-20T11:04:27Z",
+            "tide": 0.67,
+            "ukc": 0.17,
+            "safe": false
+          },
+          {
+            "h": 2,
+            "t": "2026-05-20T12:04:27Z",
+            "tide": 0.7,
+            "ukc": 0.2,
+            "safe": false
+          },
+          {
+            "h": 3,
+            "t": "2026-05-20T13:04:27Z",
+            "tide": 0.67,
+            "ukc": 0.17,
+            "safe": false
+          },
+          {
+            "h": 4,
+            "t": "2026-05-20T14:04:27Z",
+            "tide": 0.58,
+            "ukc": 0.08,
+            "safe": false
+          },
+          {
+            "h": 5,
+            "t": "2026-05-20T15:04:27Z",
+            "tide": 0.46,
+            "ukc": -0.04,
+            "safe": false
+          },
+          {
+            "h": 6,
+            "t": "2026-05-20T16:04:27Z",
+            "tide": 0.34,
+            "ukc": -0.16,
+            "safe": false
+          },
+          {
+            "h": 7,
+            "t": "2026-05-20T17:04:27Z",
+            "tide": 0.24,
+            "ukc": -0.26,
+            "safe": false
+          },
+          {
+            "h": 8,
+            "t": "2026-05-20T18:04:27Z",
+            "tide": 0.2,
+            "ukc": -0.3,
+            "safe": false
+          },
+          {
+            "h": 9,
+            "t": "2026-05-20T19:04:27Z",
+            "tide": 0.22,
+            "ukc": -0.28,
+            "safe": false
+          },
+          {
+            "h": 10,
+            "t": "2026-05-20T20:04:27Z",
+            "tide": 0.3,
+            "ukc": -0.2,
+            "safe": false
+          },
+          {
+            "h": 11,
+            "t": "2026-05-20T21:04:27Z",
+            "tide": 0.41,
+            "ukc": -0.09,
+            "safe": false
+          },
+          {
+            "h": 12,
+            "t": "2026-05-20T22:04:27Z",
+            "tide": 0.54,
+            "ukc": 0.04,
+            "safe": false
+          },
+          {
+            "h": 13,
+            "t": "2026-05-20T23:04:27Z",
+            "tide": 0.64,
+            "ukc": 0.14,
+            "safe": false
+          },
+          {
+            "h": 14,
+            "t": "2026-05-21T00:04:27Z",
+            "tide": 0.47,
+            "ukc": -0.03,
+            "safe": false
+          },
+          {
+            "h": 15,
+            "t": "2026-05-21T01:04:27Z",
+            "tide": 0.59,
+            "ukc": 0.09,
+            "safe": false
+          },
+          {
+            "h": 16,
+            "t": "2026-05-21T02:04:27Z",
+            "tide": 0.67,
+            "ukc": 0.17,
+            "safe": false
+          },
+          {
+            "h": 17,
+            "t": "2026-05-21T03:04:27Z",
+            "tide": 0.7,
+            "ukc": 0.2,
+            "safe": false
+          },
+          {
+            "h": 18,
+            "t": "2026-05-21T04:04:27Z",
+            "tide": 0.66,
+            "ukc": 0.16,
+            "safe": false
+          },
+          {
+            "h": 19,
+            "t": "2026-05-21T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 0.08,
+            "safe": false
+          },
+          {
+            "h": 20,
+            "t": "2026-05-21T06:04:27Z",
+            "tide": 0.45,
+            "ukc": -0.05,
+            "safe": false
+          },
+          {
+            "h": 21,
+            "t": "2026-05-21T07:04:27Z",
+            "tide": 0.33,
+            "ukc": -0.17,
+            "safe": false
+          },
+          {
+            "h": 22,
+            "t": "2026-05-21T08:04:27Z",
+            "tide": 0.24,
+            "ukc": -0.26,
+            "safe": false
+          },
+          {
+            "h": 23,
+            "t": "2026-05-21T09:04:27Z",
+            "tide": 0.2,
+            "ukc": -0.3,
+            "safe": false
+          },
+          {
+            "h": 24,
+            "t": "2026-05-21T10:04:27Z",
+            "tide": 0.22,
+            "ukc": -0.28,
+            "safe": false
+          },
+          {
+            "h": 25,
+            "t": "2026-05-21T11:04:27Z",
+            "tide": 0.3,
+            "ukc": -0.2,
+            "safe": false
+          },
+          {
+            "h": 26,
+            "t": "2026-05-21T12:04:27Z",
+            "tide": 0.42,
+            "ukc": -0.08,
+            "safe": false
+          },
+          {
+            "h": 27,
+            "t": "2026-05-21T13:04:27Z",
+            "tide": 0.54,
+            "ukc": 0.04,
+            "safe": false
+          },
+          {
+            "h": 28,
+            "t": "2026-05-21T14:04:27Z",
+            "tide": 0.64,
+            "ukc": 0.14,
+            "safe": false
+          },
+          {
+            "h": 29,
+            "t": "2026-05-21T15:04:27Z",
+            "tide": 0.7,
+            "ukc": 0.2,
+            "safe": false
+          },
+          {
+            "h": 30,
+            "t": "2026-05-21T16:04:27Z",
+            "tide": 0.69,
+            "ukc": 0.19,
+            "safe": false
+          },
+          {
+            "h": 31,
+            "t": "2026-05-21T17:04:27Z",
+            "tide": 0.62,
+            "ukc": 0.12,
+            "safe": false
+          },
+          {
+            "h": 32,
+            "t": "2026-05-21T18:04:27Z",
+            "tide": 0.51,
+            "ukc": 0.01,
+            "safe": false
+          },
+          {
+            "h": 33,
+            "t": "2026-05-21T19:04:27Z",
+            "tide": 0.38,
+            "ukc": -0.12,
+            "safe": false
+          },
+          {
+            "h": 34,
+            "t": "2026-05-21T20:04:27Z",
+            "tide": 0.27,
+            "ukc": -0.23,
+            "safe": false
+          },
+          {
+            "h": 35,
+            "t": "2026-05-21T21:04:27Z",
+            "tide": 0.21,
+            "ukc": -0.29,
+            "safe": false
+          },
+          {
+            "h": 36,
+            "t": "2026-05-21T22:04:27Z",
+            "tide": 0.21,
+            "ukc": -0.29,
+            "safe": false
+          },
+          {
+            "h": 37,
+            "t": "2026-05-21T23:04:27Z",
+            "tide": 0.26,
+            "ukc": -0.24,
+            "safe": false
+          },
+          {
+            "h": 38,
+            "t": "2026-05-22T00:04:27Z",
+            "tide": 0.22,
+            "ukc": -0.28,
+            "safe": false
+          },
+          {
+            "h": 39,
+            "t": "2026-05-22T01:04:27Z",
+            "tide": 0.2,
+            "ukc": -0.3,
+            "safe": false
+          },
+          {
+            "h": 40,
+            "t": "2026-05-22T02:04:27Z",
+            "tide": 0.24,
+            "ukc": -0.26,
+            "safe": false
+          },
+          {
+            "h": 41,
+            "t": "2026-05-22T03:04:27Z",
+            "tide": 0.34,
+            "ukc": -0.16,
+            "safe": false
+          },
+          {
+            "h": 42,
+            "t": "2026-05-22T04:04:27Z",
+            "tide": 0.46,
+            "ukc": -0.04,
+            "safe": false
+          },
+          {
+            "h": 43,
+            "t": "2026-05-22T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 0.08,
+            "safe": false
+          },
+          {
+            "h": 44,
+            "t": "2026-05-22T06:04:27Z",
+            "tide": 0.67,
+            "ukc": 0.17,
+            "safe": false
+          },
+          {
+            "h": 45,
+            "t": "2026-05-22T07:04:27Z",
+            "tide": 0.7,
+            "ukc": 0.2,
+            "safe": false
+          },
+          {
+            "h": 46,
+            "t": "2026-05-22T08:04:27Z",
+            "tide": 0.67,
+            "ukc": 0.17,
+            "safe": false
+          },
+          {
+            "h": 47,
+            "t": "2026-05-22T09:04:27Z",
+            "tide": 0.59,
+            "ukc": 0.09,
+            "safe": false
+          },
+          {
+            "h": 48,
+            "t": "2026-05-22T10:04:27Z",
+            "tide": 0.47,
+            "ukc": -0.03,
+            "safe": false
+          }
+        ]
+      },
+      {
+        "vessel_id": "V009",
+        "vessel_name": "GSL Vinia",
+        "vessel_type": "Container",
+        "draught_m": 13.5,
+        "berth_id": "B02",
+        "berth_depth_m": 13.0,
+        "min_ukc_m": -0.3,
+        "tide_restricted": true,
+        "safe_windows": [],
+        "points": [
+          {
+            "h": 0,
+            "t": "2026-05-20T10:04:27Z",
+            "tide": 0.58,
+            "ukc": 0.08,
+            "safe": false
+          },
+          {
+            "h": 1,
+            "t": "2026-05-20T11:04:27Z",
+            "tide": 0.67,
+            "ukc": 0.17,
+            "safe": false
+          },
+          {
+            "h": 2,
+            "t": "2026-05-20T12:04:27Z",
+            "tide": 0.7,
+            "ukc": 0.2,
+            "safe": false
+          },
+          {
+            "h": 3,
+            "t": "2026-05-20T13:04:27Z",
+            "tide": 0.67,
+            "ukc": 0.17,
+            "safe": false
+          },
+          {
+            "h": 4,
+            "t": "2026-05-20T14:04:27Z",
+            "tide": 0.58,
+            "ukc": 0.08,
+            "safe": false
+          },
+          {
+            "h": 5,
+            "t": "2026-05-20T15:04:27Z",
+            "tide": 0.46,
+            "ukc": -0.04,
+            "safe": false
+          },
+          {
+            "h": 6,
+            "t": "2026-05-20T16:04:27Z",
+            "tide": 0.34,
+            "ukc": -0.16,
+            "safe": false
+          },
+          {
+            "h": 7,
+            "t": "2026-05-20T17:04:27Z",
+            "tide": 0.24,
+            "ukc": -0.26,
+            "safe": false
+          },
+          {
+            "h": 8,
+            "t": "2026-05-20T18:04:27Z",
+            "tide": 0.2,
+            "ukc": -0.3,
+            "safe": false
+          },
+          {
+            "h": 9,
+            "t": "2026-05-20T19:04:27Z",
+            "tide": 0.22,
+            "ukc": -0.28,
+            "safe": false
+          },
+          {
+            "h": 10,
+            "t": "2026-05-20T20:04:27Z",
+            "tide": 0.3,
+            "ukc": -0.2,
+            "safe": false
+          },
+          {
+            "h": 11,
+            "t": "2026-05-20T21:04:27Z",
+            "tide": 0.41,
+            "ukc": -0.09,
+            "safe": false
+          },
+          {
+            "h": 12,
+            "t": "2026-05-20T22:04:27Z",
+            "tide": 0.54,
+            "ukc": 0.04,
+            "safe": false
+          },
+          {
+            "h": 13,
+            "t": "2026-05-20T23:04:27Z",
+            "tide": 0.64,
+            "ukc": 0.14,
+            "safe": false
+          },
+          {
+            "h": 14,
+            "t": "2026-05-21T00:04:27Z",
+            "tide": 0.47,
+            "ukc": -0.03,
+            "safe": false
+          },
+          {
+            "h": 15,
+            "t": "2026-05-21T01:04:27Z",
+            "tide": 0.59,
+            "ukc": 0.09,
+            "safe": false
+          },
+          {
+            "h": 16,
+            "t": "2026-05-21T02:04:27Z",
+            "tide": 0.67,
+            "ukc": 0.17,
+            "safe": false
+          },
+          {
+            "h": 17,
+            "t": "2026-05-21T03:04:27Z",
+            "tide": 0.7,
+            "ukc": 0.2,
+            "safe": false
+          },
+          {
+            "h": 18,
+            "t": "2026-05-21T04:04:27Z",
+            "tide": 0.66,
+            "ukc": 0.16,
+            "safe": false
+          },
+          {
+            "h": 19,
+            "t": "2026-05-21T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 0.08,
+            "safe": false
+          },
+          {
+            "h": 20,
+            "t": "2026-05-21T06:04:27Z",
+            "tide": 0.45,
+            "ukc": -0.05,
+            "safe": false
+          },
+          {
+            "h": 21,
+            "t": "2026-05-21T07:04:27Z",
+            "tide": 0.33,
+            "ukc": -0.17,
+            "safe": false
+          },
+          {
+            "h": 22,
+            "t": "2026-05-21T08:04:27Z",
+            "tide": 0.24,
+            "ukc": -0.26,
+            "safe": false
+          },
+          {
+            "h": 23,
+            "t": "2026-05-21T09:04:27Z",
+            "tide": 0.2,
+            "ukc": -0.3,
+            "safe": false
+          },
+          {
+            "h": 24,
+            "t": "2026-05-21T10:04:27Z",
+            "tide": 0.22,
+            "ukc": -0.28,
+            "safe": false
+          },
+          {
+            "h": 25,
+            "t": "2026-05-21T11:04:27Z",
+            "tide": 0.3,
+            "ukc": -0.2,
+            "safe": false
+          },
+          {
+            "h": 26,
+            "t": "2026-05-21T12:04:27Z",
+            "tide": 0.42,
+            "ukc": -0.08,
+            "safe": false
+          },
+          {
+            "h": 27,
+            "t": "2026-05-21T13:04:27Z",
+            "tide": 0.54,
+            "ukc": 0.04,
+            "safe": false
+          },
+          {
+            "h": 28,
+            "t": "2026-05-21T14:04:27Z",
+            "tide": 0.64,
+            "ukc": 0.14,
+            "safe": false
+          },
+          {
+            "h": 29,
+            "t": "2026-05-21T15:04:27Z",
+            "tide": 0.7,
+            "ukc": 0.2,
+            "safe": false
+          },
+          {
+            "h": 30,
+            "t": "2026-05-21T16:04:27Z",
+            "tide": 0.69,
+            "ukc": 0.19,
+            "safe": false
+          },
+          {
+            "h": 31,
+            "t": "2026-05-21T17:04:27Z",
+            "tide": 0.62,
+            "ukc": 0.12,
+            "safe": false
+          },
+          {
+            "h": 32,
+            "t": "2026-05-21T18:04:27Z",
+            "tide": 0.51,
+            "ukc": 0.01,
+            "safe": false
+          },
+          {
+            "h": 33,
+            "t": "2026-05-21T19:04:27Z",
+            "tide": 0.38,
+            "ukc": -0.12,
+            "safe": false
+          },
+          {
+            "h": 34,
+            "t": "2026-05-21T20:04:27Z",
+            "tide": 0.27,
+            "ukc": -0.23,
+            "safe": false
+          },
+          {
+            "h": 35,
+            "t": "2026-05-21T21:04:27Z",
+            "tide": 0.21,
+            "ukc": -0.29,
+            "safe": false
+          },
+          {
+            "h": 36,
+            "t": "2026-05-21T22:04:27Z",
+            "tide": 0.21,
+            "ukc": -0.29,
+            "safe": false
+          },
+          {
+            "h": 37,
+            "t": "2026-05-21T23:04:27Z",
+            "tide": 0.26,
+            "ukc": -0.24,
+            "safe": false
+          },
+          {
+            "h": 38,
+            "t": "2026-05-22T00:04:27Z",
+            "tide": 0.22,
+            "ukc": -0.28,
+            "safe": false
+          },
+          {
+            "h": 39,
+            "t": "2026-05-22T01:04:27Z",
+            "tide": 0.2,
+            "ukc": -0.3,
+            "safe": false
+          },
+          {
+            "h": 40,
+            "t": "2026-05-22T02:04:27Z",
+            "tide": 0.24,
+            "ukc": -0.26,
+            "safe": false
+          },
+          {
+            "h": 41,
+            "t": "2026-05-22T03:04:27Z",
+            "tide": 0.34,
+            "ukc": -0.16,
+            "safe": false
+          },
+          {
+            "h": 42,
+            "t": "2026-05-22T04:04:27Z",
+            "tide": 0.46,
+            "ukc": -0.04,
+            "safe": false
+          },
+          {
+            "h": 43,
+            "t": "2026-05-22T05:04:27Z",
+            "tide": 0.58,
+            "ukc": 0.08,
+            "safe": false
+          },
+          {
+            "h": 44,
+            "t": "2026-05-22T06:04:27Z",
+            "tide": 0.67,
+            "ukc": 0.17,
+            "safe": false
+          },
+          {
+            "h": 45,
+            "t": "2026-05-22T07:04:27Z",
+            "tide": 0.7,
+            "ukc": 0.2,
+            "safe": false
+          },
+          {
+            "h": 46,
+            "t": "2026-05-22T08:04:27Z",
+            "tide": 0.67,
+            "ukc": 0.17,
+            "safe": false
+          },
+          {
+            "h": 47,
+            "t": "2026-05-22T09:04:27Z",
+            "tide": 0.59,
+            "ukc": 0.09,
+            "safe": false
+          },
+          {
+            "h": 48,
+            "t": "2026-05-22T10:04:27Z",
+            "tide": 0.47,
+            "ukc": -0.03,
+            "safe": false
+          }
+        ]
+      }
+    ]
+  },
+  "esg": {
+    "vessels": [
+      {
+        "vessel_id": "V001",
+        "vessel_name": "Pacific Topaz",
+        "vessel_type": "Tanker",
+        "loa_m": 183.0,
+        "optimised": true,
+        "arrival_adj_mins": 21,
+        "fuel_saving_t": 2.7,
+        "co2_saving_t": 8.5,
+        "cost_saving_usd": 1755,
+        "optimisation_reason": "Tide window alignment — delay optimises flood-tide UKC margin"
+      },
+      {
+        "vessel_id": "V002",
+        "vessel_name": "Tian Shun He",
+        "vessel_type": "Container",
+        "loa_m": 228.0,
+        "optimised": true,
+        "arrival_adj_mins": 26,
+        "fuel_saving_t": 3.5,
+        "co2_saving_t": 11.0,
+        "cost_saving_usd": 2275,
+        "optimisation_reason": "Tide window alignment — delay optimises flood-tide UKC margin"
+      },
+      {
+        "vessel_id": "V003",
+        "vessel_name": "Olivia Maersk",
+        "vessel_type": "Container",
+        "loa_m": 347.0,
+        "optimised": true,
+        "arrival_adj_mins": 57,
+        "fuel_saving_t": 4.5,
+        "co2_saving_t": 14.1,
+        "cost_saving_usd": 2925,
+        "optimisation_reason": "Favourable SE current — advance arrival captures tide-assisted approach"
+      },
+      {
+        "vessel_id": "V004",
+        "vessel_name": "Salvia Island",
+        "vessel_type": "Bulk Carrier",
+        "loa_m": 190.0,
+        "optimised": true,
+        "arrival_adj_mins": 85,
+        "fuel_saving_t": 3.2,
+        "co2_saving_t": 10.0,
+        "cost_saving_usd": 2080,
+        "optimisation_reason": "Favourable SE current — advance arrival captures tide-assisted approach"
+      },
+      {
+        "vessel_id": "V005",
+        "vessel_name": "Cosco Aden",
+        "vessel_type": "Container",
+        "loa_m": 261.0,
+        "optimised": false,
+        "arrival_adj_mins": 0,
+        "fuel_saving_t": 0.0,
+        "co2_saving_t": 0.0,
+        "cost_saving_usd": 0,
+        "optimisation_reason": "No optimisation required for this voyage"
+      },
+      {
+        "vessel_id": "V006",
+        "vessel_name": "APL Savannah",
+        "vessel_type": "Container",
+        "loa_m": 261.0,
+        "optimised": false,
+        "arrival_adj_mins": 0,
+        "fuel_saving_t": 0.0,
+        "co2_saving_t": 0.0,
+        "cost_saving_usd": 0,
+        "optimisation_reason": "No optimisation required for this voyage"
+      },
+      {
+        "vessel_id": "V007",
+        "vessel_name": "OOCL Panama",
+        "vessel_type": "Container",
+        "loa_m": 294.0,
+        "optimised": false,
+        "arrival_adj_mins": 0,
+        "fuel_saving_t": 0.0,
+        "co2_saving_t": 0.0,
+        "cost_saving_usd": 0,
+        "optimisation_reason": "No optimisation required for this voyage"
+      },
+      {
+        "vessel_id": "V008",
+        "vessel_name": "NPDL Tahiti",
+        "vessel_type": "Container",
+        "loa_m": 200.0,
+        "optimised": true,
+        "arrival_adj_mins": 29,
+        "fuel_saving_t": 2.9,
+        "co2_saving_t": 9.1,
+        "cost_saving_usd": 1885,
+        "optimisation_reason": "Tidal gate optimisation — realigned ETA achieves maximum depth window"
+      },
+      {
+        "vessel_id": "V009",
+        "vessel_name": "GSL Vinia",
+        "vessel_type": "Container",
+        "loa_m": 294.0,
+        "optimised": true,
+        "arrival_adj_mins": 57,
+        "fuel_saving_t": 4.1,
+        "co2_saving_t": 12.9,
+        "cost_saving_usd": 2664,
+        "optimisation_reason": "Tide window alignment — delay optimises flood-tide UKC margin"
+      }
+    ],
+    "summary": {
+      "calls_this_period": 9,
+      "calls_optimised": 6,
+      "co2_saved_t": 65.6,
+      "fuel_saved_t": 20.9,
+      "cost_saved_usd": 13584,
+      "monthly_co2_proj_t": 874,
+      "monthly_fuel_proj_t": 278,
+      "monthly_cost_proj_usd": 181120
+    }
+  },
+  "port_profile": {
+    "id": "MELBOURNE",
+    "display_name": "Port of Melbourne",
+    "short_name": "Melbourne",
+    "timezone": "Australia/Melbourne",
+    "vts_callsign": "Melbourne VTS",
+    "harbour_master": "Andrew Hays — Ports Victoria",
+    "using_live_vessel_data": false,
+    "using_live_tidal_data": false,
+    "using_live_weather_data": true,
+    "bom_station_id": "IDO71001",
+    "data_last_refreshed": "2026-05-20T10:04:24Z",
+    "available_ports": [
+      {
+        "id": "BRISBANE",
+        "display_name": "Port of Brisbane",
+        "short_name": "Brisbane"
+      },
+      {
+        "id": "MELBOURNE",
+        "display_name": "Port of Melbourne",
+        "short_name": "Melbourne"
+      },
+      {
+        "id": "DARWIN",
+        "display_name": "Port of Darwin",
+        "short_name": "Darwin"
+      },
+      {
+        "id": "GEELONG",
+        "display_name": "Port of Geelong",
+        "short_name": "Geelong"
+      }
+    ]
+  }
+}
