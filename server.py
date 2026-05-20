@@ -2292,8 +2292,16 @@ def build_summary():
     using_live_vessel = False
     using_live_tidal  = False
 
+    # Demo simulation lock — per-port flag (currently DARWIN only).
+    # When True, skip AISStream + MST live vessel paths so the deterministic
+    # simulation drives the conflict generator. See port_profiles.py for the
+    # rationale. Does not affect tidal data, QShips fallback, or other ports.
+    demo_force_simulation = bool(profile.get("demo_force_simulation"))
+
     # ── AISStream connector — preferred live source (WebSocket, real dimensions) ─
-    if aisstream_scraper.is_configured() and not aisstream_scraper.is_stale():
+    if (not demo_force_simulation
+            and aisstream_scraper.is_configured()
+            and not aisstream_scraper.is_stale()):
         unloco = profile.get("unloco")
         if unloco:
             try:
@@ -2312,7 +2320,9 @@ def build_summary():
                 log.error("AISStream vessel build failed (%s) — trying MST", exc)
 
     # ── MST AIS connector — fallback if AISStream stale/unavailable ──────────
-    if not using_live_vessel and mst_scraper.is_configured():
+    if (not demo_force_simulation
+            and not using_live_vessel
+            and mst_scraper.is_configured()):
         unloco = profile.get("unloco")
         if unloco:
             with _mst_cache_lock:
