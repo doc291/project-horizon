@@ -256,6 +256,22 @@ PORT_PROFILES = {
         # B04 berth overlap) reliably surface. Per-port flag — does not affect
         # Brisbane / Melbourne / Geelong.
         "demo_force_simulation":        True,
+        # Demo slot pinning — Darwin's roster is realistic and contains many
+        # small offshore-supply vessels (<100 m LOA). The berth_overlap
+        # generator requires ≥100 m vessels (see server.py detect_conflicts).
+        # The Decisions panel filters on signal_type=='CONFLICT' AND
+        # decision_support — both only set by berth_overlap. Pin V005 and V007
+        # (both at B04 in the slot table, with overlapping windows) to two
+        # ≥100 m roster entries that fit B04 (max LOA 160 m, max draught 8.5 m):
+        #   slot 4 (V005) → ACHILLES SEA      (104 m, 6.8 m draught)
+        #   slot 6 (V007) → Forever Assurance (119 m, 7.5 m draught)
+        # This guarantees the deterministic B04 berth_overlap CONFLICT with
+        # populated decision_support, so the Decisions panel is non-empty.
+        # No-op for any port without this field.
+        "sim_pinned_vessels": {
+            4: "ACHILLES SEA",
+            6: "Forever Assurance",
+        },
         # Simulation scenario — 7 vessels, Darwin-specific berth occupancy (2/4)
         "sim_vessel_count": 7,
         "sim_berth_slots": [
