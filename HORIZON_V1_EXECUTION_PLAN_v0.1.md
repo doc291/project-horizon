@@ -3,7 +3,7 @@
 **Status:** Engineering execution plan — V1 implementation roadmap
 **Document version:** 0.1
 **Date:** 2026-05-15
-**Authoritative inputs:**
+**Authoritative inputs (merged on `main`):**
 - The V1 design foundation on `main`:
   - `HORIZON_V1_USER_PERMISSION_MODEL_v0.1.md` (PR #30, `4c4940f`) — WHO
   - `HORIZON_V1_OPERATIONAL_WORKFLOW_MODEL_v0.1.md` (PR #31, `6d09b3d`) — HOW
@@ -11,9 +11,25 @@
   - `HORIZON_V1_INFORMATION_ARCHITECTURE_v0.1.md` (PR #33, `406de24`) — WHAT
   - `HORIZON_V1_IMPLEMENTATION_STRATEGY_v0.1.md` (PR #34, `e2284d4`) — HOW TO BUILD
 - The V1 stakeholder review pack: `HORIZON_V1_REVIEW_PACK_v0.1.md` (PR #35, open)
-- Claude Design handoff in `v1-handoff/`:
-  - `V1-Implementation-Prompt.md` — React frontend spec
+
+**Pending inputs (NOT yet authorised — referenced as planning assumptions only):**
+- Claude Design UX/UI handoff in `v1-handoff/`:
+  - `V1-Implementation-Prompt.md` — React frontend specification
   - `prototype/` — reference JSX, complete CSS, design tokens, 13 screenshots
+
+> **UX/UI handoff authorisation status — PENDING.** As of this
+> document's date, the `v1-handoff/` package has **not been formally
+> authorised by Tony** as an implementation input. Every reference to
+> the handoff in this document is a **planning assumption only**.
+> No frontend build work, no `frontend/` directory creation, no
+> `package.json`, no design-token extraction, no React component
+> scaffolding, and no `server.py` static-file routing change may
+> begin from this document until the handoff is **separately and
+> explicitly authorised**. If the handoff is later modified, replaced,
+> or rejected, the sections that reference it (notably §5, §11
+> milestones M0–M9, §13, §15) must be revised before any
+> implementation can be authorised against them.
+
 **Implementation status:** None. **This is not implementation approval.**
 **Beta 10 baseline:** `phase-0-complete @ 4ad4aae`. Unchanged.
 
@@ -34,30 +50,47 @@ The plan reconciles two inputs that arrived separately:
    design quintet establishing role-based access, structured
    operational workflows, role-specific screen surfaces,
    information-architecture substrate, and engineering strategy.
+   **Status:** merged on `main` (PR #35 open for review).
 
 2. **The Claude Design frontend handoff** (`v1-handoff/`) — a
    React frontend specification with a 4-week phased plan that
-   replaces `index.html` against the existing Beta 10 backend
+   would replace `index.html` against the existing Beta 10 backend
    (server.py untouched, /api/summary unchanged).
+   **Status:** **PENDING formal authorisation.** Referenced here
+   as a planning assumption only — not as an implementation
+   instruction.
 
-The two are **complementary, not competing**. The handoff is the
-**immediate V1.0 deliverable** — a production-grade React frontend
-replacing the Beta 10 monolithic HTML, riding on the existing API
-during the transition. The architecture foundation's broader work
-(per-user RBAC, role-scoped `/api/summary` projection, multi-tenant
+If both inputs are accepted, they are **complementary, not
+competing**. The handoff would then become the **immediate V1.0
+deliverable** — a production-grade React frontend replacing the
+Beta 10 monolithic HTML, riding on the existing API during the
+transition. The architecture foundation's broader work (per-user
+RBAC, role-scoped `/api/summary` projection, multi-tenant
 isolation, persistent operational state) is the **next phase** —
 introduced incrementally once the frontend foundation is stable.
 
-This is the **frontend-first replacement strategy** that lets V1
-start delivering customer-visible value within weeks rather than
-quarters, while keeping the backend evolution gated behind explicit
-authorisation per the Implementation Strategy §16 governance rules.
+This is the **frontend-first replacement strategy** that *would*
+let V1 start delivering customer-visible value within weeks rather
+than quarters, while keeping the backend evolution gated behind
+explicit authorisation per the Implementation Strategy §16
+governance rules. The strategy is **contingent on formal
+authorisation of the UX/UI handoff** — if that handoff is rejected
+or materially changed, §5 and the M0–M5 milestones must be revised
+before any frontend work can be authorised.
 
 **This document does not authorise implementation.** It is v0.1 of
-an evolving execution plan. The V1 foundation must be reviewed and
-accepted (per Review Pack §10) before V1.0 implementation begins;
-this execution plan then becomes the operational instruction set for
-that implementation work.
+an evolving execution plan. Two gates must close before V1.0
+implementation can begin:
+
+1. The V1 foundation must be reviewed and accepted (per Review
+   Pack §10).
+2. The Claude Design UX/UI handoff (`v1-handoff/`) must be
+   formally authorised as an implementation input by Tony.
+
+Until both gates close, this execution plan is a planning artefact
+only. It does **not** approve frontend build work, server.py
+modifications, environment provisioning, or repository structure
+changes.
 
 ---
 
@@ -355,12 +388,24 @@ it" but has prevented every silent regression in Phase 0 and Phase
 
 ## 5. Frontend Migration Strategy
 
-The React frontend introduction is the single largest V1.0
-deliverable. This section defines how it happens.
+> **Pending-input notice.** This entire section is contingent on
+> formal authorisation of the Claude Design UX/UI handoff
+> (`v1-handoff/`). Every directive below — Vite, `frontend/`
+> directory, design-token extraction, component structure, route
+> prefixes — is described as a **planning assumption** based on
+> the handoff's current content. None of it is authorised for
+> implementation. If the handoff is amended or rejected during
+> review, this section must be revised before any milestone in
+> §11 can be authorised.
+
+The React frontend introduction would be the single largest V1.0
+deliverable. This section defines, conditionally, how it would
+happen if the handoff is authorised as-is.
 
 ### 5.1 React frontend introduction
 
-Per `v1-handoff/V1-Implementation-Prompt.md`:
+Assuming the handoff is authorised, per
+`v1-handoff/V1-Implementation-Prompt.md`:
 
 - New directory `frontend/` at the repo root
 - Vite-based React app (build output to `frontend/dist/`)
@@ -409,7 +454,7 @@ routing. **No business logic in server.py changes.**
 
 The React app consumes:
 
-- `GET /api/summary` — the primary data source (per V1-Implementation-Prompt.md §2)
+- `GET /api/summary` — the primary data source (per the pending V1-Implementation-Prompt.md §2)
 - `POST /api/set_port` — port switching
 - `POST /api/whatif` / `apply-whatif` / `clear-whatif` — scenario engine
 - `GET /api/port-brief` — PDF generation
@@ -421,8 +466,9 @@ frontend.
 
 ### 5.5 CSS / design-token migration
 
-The complete design system is in `v1-handoff/prototype/Horizon V1.html`
-as a `<style>` block. Migration:
+The complete design system is provided in the pending handoff at
+`v1-handoff/prototype/Horizon V1.html` as a `<style>` block. If the
+handoff is authorised, the migration would be:
 
 1. Extract the `<style>` block to `frontend/src/styles/tokens.css`
    and `frontend/src/styles/base.css`
@@ -435,7 +481,8 @@ as a `<style>` block. Migration:
 
 ### 5.6 State management strategy
 
-Per `v1-handoff/V1-Implementation-Prompt.md`:
+Assuming the handoff is authorised, per
+`v1-handoff/V1-Implementation-Prompt.md`:
 
 - **No external state library required for V1.0.** React local state
   + `useReducer` for complex state + a custom `useSummary()` hook
@@ -1028,16 +1075,26 @@ explicit re-authorisation.
 
 ## 11. V1.0 Milestones
 
-V1.0 implementation breaks into ten concrete milestones (M0–M9).
-Each has a defined goal, dependencies, acceptance criteria, and
-rollback criteria.
+> **Pending-input notice.** Milestones M0–M5 depend on the
+> Claude Design UX/UI handoff (`v1-handoff/`) being formally
+> authorised. None of these milestones may be authorised for
+> implementation until that gate closes. M6–M9 are also
+> downstream of M0–M5 and therefore inherit the same dependency.
+
+V1.0 implementation would break into ten concrete milestones
+(M0–M9). Each has a defined goal, dependencies, acceptance
+criteria, and rollback criteria. **Each milestone requires its own
+explicit authorisation under the §10 governance workflow before
+any code may be written.**
 
 ### M0 — Frontend Scaffold + Design Tokens
 
 **Goal:** establish the React build pipeline and design system
 foundation.
 
-**Dependencies:** none beyond the V1 foundation review acceptance.
+**Dependencies:** V1 foundation review acceptance **AND** formal
+authorisation of the `v1-handoff/` UX/UI handoff as an
+implementation input.
 
 **Deliverables:**
 - New `frontend/` directory with Vite + React project
@@ -1781,6 +1838,19 @@ Questions surfaced by the execution planning that warrant explicit
 resolution before V1.0 implementation begins or during the V1.0
 phase.
 
+### 17.0 UX/UI handoff authorisation (blocking)
+
+**Question:** is the Claude Design UX/UI handoff (`v1-handoff/`)
+formally authorised as an implementation input for V1.0?
+
+**Status:** **PENDING — blocking gate.** This execution plan was
+written treating the handoff as a planning assumption only. No
+M0–M9 milestone may be authorised until this gate closes.
+
+**Decision needed:** before any V1.0 implementation work begins.
+A negative or modified decision requires §5 and §11 to be revised
+before authorisation can proceed.
+
 ### 17.1 React state library
 
 **Question:** does V1.0 use React's built-in state (local +
@@ -1901,12 +1971,16 @@ This execution plan must be reviewed by:
 The review can happen in parallel with the V1 foundation reviews
 (per Review Pack §10), since they engage different concerns.
 
-### 18.3 Begin V1.0 only after execution plan review
+### 18.3 Begin V1.0 only after execution plan review AND UX/UI handoff authorisation
 
 The V1 design foundation (PRs #30–#34 merged) plus this execution
 plan (PR open) plus the V1 review pack (PR #35) must all be
-reviewed and accepted before V1.0 code is written. No
-exceptions.
+reviewed and accepted **and** the Claude Design UX/UI handoff
+(`v1-handoff/`) must be **separately and formally authorised** by
+Tony as an implementation input before V1.0 code is written. No
+exceptions. If any of those four gates does not close, the relevant
+sections of this execution plan must be revised before
+authorisation can proceed.
 
 ### 18.4 Keep Stage E-prod paused
 
