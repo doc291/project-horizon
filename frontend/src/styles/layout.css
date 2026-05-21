@@ -466,3 +466,27 @@
   font-family: 'JetBrains Mono', monospace;
   color: var(--text-secondary);
 }
+
+/* ── Shift Log tab (M2, Canon §1.1.3 partial) ────────────────────────────── */
+.hz-sl-tab { display: flex; flex-direction: column; gap: var(--s-3); }
+.hz-sl-empty { padding: var(--s-3) 0; }
+.hz-sl-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.hz-sl-table th {
+  text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-muted); padding: var(--s-2) var(--s-2);
+  border-bottom: 1px solid var(--border);
+}
+.hz-sl-table td {
+  padding: var(--s-2) var(--s-2); border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary); vertical-align: top;
+}
+.hz-sl-cell-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.hz-sl-cell-vessel { font-weight: 600; }
+.hz-sl-cell-desc { color: var(--text-secondary); }
+.hz-sl-cell-muted { color: var(--text-muted); font-weight: 400; }
