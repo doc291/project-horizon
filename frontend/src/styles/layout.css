@@ -110,8 +110,28 @@
   padding: 0 var(--s-6);
   border-bottom: 1px solid var(--border);
   background: var(--bg-surface-2);
-  gap: var(--s-5);
+  gap: var(--s-4);
   overflow-x: auto;
+}
+/* Conditions strip — three-region layout (M2 visual remediation).
+   Anchor pill (left) | centred tile group | symmetric spacer (right).
+   The spacer matches the anchor width so the tile group is visually
+   centred within the full-width strip. */
+.hz-conditions-anchor {
+  display: flex;
+  align-items: center;
+  flex: 0 0 96px;
+}
+.hz-conditions-tiles {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
+}
+.hz-conditions-spacer {
+  flex: 0 0 96px;
 }
 .hz-cond-tile {
   display: flex;
