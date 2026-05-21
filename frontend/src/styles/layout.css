@@ -288,3 +288,41 @@
 }
 .hz-utilisation-forecast { font-size: 12px; color: var(--text-secondary); }
 .hz-utilisation-note { font-size: 11px; color: var(--text-muted); font-style: italic; }
+
+/* ── VTS tab (M2, Canon §1.1.3 partial) ───────────────────────────────────── */
+.hz-vts-tab { display: flex; flex-direction: column; gap: var(--s-3); }
+.hz-vts-empty { padding: var(--s-3) 0; }
+.hz-vts-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.hz-vts-table th {
+  text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-muted); padding: var(--s-2) var(--s-2);
+  border-bottom: 1px solid var(--border);
+}
+.hz-vts-table td {
+  padding: var(--s-2) var(--s-2); border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+.hz-vts-table td:first-child { font-weight: 600; }
+.hz-vts-cell-muted { color: var(--text-muted); }
+.hz-vts-cell-num {
+  font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums;
+}
+.hz-vts-conflicts {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: var(--s-2);
+}
+.hz-vts-conflicts-row {
+  border-top: 1px solid var(--border-subtle);
+  padding: var(--s-2) 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.hz-vts-conflicts-row:first-child { border-top: 0; }
+.hz-vts-conflicts-row-head {
+  display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap;
+}
+.hz-vts-conflicts-row-title {
+  font-size: 13px; color: var(--text-primary); font-weight: 600;
+}
+.hz-vts-conflicts-row-meta {
+  font-size: 11px; color: var(--text-secondary);
+}
