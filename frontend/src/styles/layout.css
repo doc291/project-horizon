@@ -326,3 +326,146 @@
 .hz-vts-conflicts-row-meta {
   font-size: 11px; color: var(--text-secondary);
 }
+
+/* ── Berth Timeline tab (M2, Canon §1.1.3 partial) ───────────────────────── */
+.hz-bt-tab { display: flex; flex-direction: column; gap: var(--s-3); }
+.hz-bt-empty { padding: var(--s-3) 0; }
+
+.hz-bt-grid {
+  display: flex; flex-direction: column;
+  gap: 1px;
+  background: var(--border-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  overflow: hidden;
+}
+
+.hz-bt-axis-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  background: var(--bg-surface-2);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.hz-bt-axis-spacer {
+  padding: var(--s-2);
+  border-right: 1px solid var(--border);
+}
+.hz-bt-axis-track {
+  position: relative;
+  height: 24px;
+  padding: 0;
+}
+.hz-bt-axis {
+  position: absolute;
+  inset: 0;
+}
+.hz-bt-axis-tick {
+  position: absolute;
+  top: 0; bottom: 0;
+  border-left: 1px dashed var(--border);
+}
+.hz-bt-axis-tick-label {
+  position: absolute;
+  top: 4px; left: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.hz-bt-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  background: var(--bg-surface);
+  min-height: 48px;
+}
+.hz-bt-row-label {
+  padding: var(--s-2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  gap: 2px;
+}
+.hz-bt-row-label-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.hz-bt-row-label-name {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+.hz-bt-row-label-status {
+  margin-top: 2px;
+}
+
+.hz-bt-row-lane {
+  position: relative;
+  min-height: 48px;
+  padding: 4px 0;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(100% / 12 - 1px),
+    var(--border-subtle) calc(100% / 12 - 1px),
+    var(--border-subtle) calc(100% / 12)
+  );
+}
+.hz-bt-row-empty {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: flex-start;
+  padding-left: var(--s-3);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.hz-bt-segment {
+  position: absolute;
+  top: 4px; bottom: 4px;
+  border-radius: 4px;
+  padding: 4px 8px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 11px;
+  line-height: 1.2;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 6px;
+}
+.hz-bt-segment-label {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hz-bt-segment-scheduled { background: var(--bg-surface-3); }
+.hz-bt-segment-active    { border-color: var(--info); background: var(--bg-surface); }
+.hz-bt-segment-actualised { background: var(--bg-surface-2); color: var(--text-muted); }
+.hz-bt-segment-at-risk   { border-color: var(--warning); }
+.hz-bt-segment-conflict  {
+  border-color: var(--critical);
+  box-shadow: 0 0 0 1px var(--critical) inset;
+}
+.hz-bt-segment-conflict-dot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--critical);
+  color: white; font-size: 9px; font-weight: 700;
+  flex-shrink: 0;
+}
+
+.hz-bt-orphans {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.hz-bt-orphans code {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-secondary);
+}
