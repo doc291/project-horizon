@@ -17,7 +17,71 @@ a Python stdlib module and a top-level package named `platform/`
 would shadow it. This matches the PF-M1 Implementation Plan §4.1
 fallback path.
 
-## Slice 1a (this slice): scaffold + types + pure permission resolution + tests
+## Slice 1b (current): repository / persistence boundary scaffold
+
+Per the PF-M1 Implementation Plan §20.2 slice 1 continuation, slice
+1b lands the storage boundary scaffold:
+
+- **Protocols** (runtime-checkable) for `OrganisationRepository`,
+  `UserRepository`, `PortScopeRepository`, `RoleCatalogueRepository`
+  — pure interface declarations, no implementation, no database
+- **In-memory implementations** of each Protocol — clearly marked
+  **non-production**, for tests and sandbox bootstrap only
+- **Integration tests** proving the repository boundary feeds the
+  slice-1a permission-resolution functions without bypass, with
+  Sev-1 cross-port leakage negative tests
+- **Structural guards** proving the storage module has no global
+  mutable state, no frontend imports, no Beta 10 imports, and no
+  skip / bypass / unsafe affordance
+
+### What slice 1b does NOT do
+
+- **No database selection** — Protocol contracts are abstract
+- **No SQL, no migrations, no schema files**
+- **No filesystem persistence**
+- **No login handlers, no session handlers, no HTTP middleware**
+- **No frontend changes**
+- **No `server.py` changes**
+- **No Railway / config / env changes**
+- **No production auth activation**
+- **No Beta 10 touch**
+
+### Layout (after slice 1b)
+
+```
+horizon_platform/
+├── __init__.py
+├── README.md
+├── .gitignore
+├── identity/                          # slice 1a
+│   ├── __init__.py
+│   ├── types.py
+│   └── catalogue.py
+├── access/                            # slice 1a
+│   ├── __init__.py
+│   └── permissions.py
+├── storage/                           # slice 1b — NEW
+│   ├── __init__.py
+│   ├── repositories.py                # Runtime-checkable Protocols
+│   └── in_memory.py                   # NON-PRODUCTION implementations
+└── tests/
+    ├── __init__.py
+    ├── test_identity.py               # slice 1a
+    ├── test_catalogue.py              # slice 1a
+    ├── test_permissions.py            # slice 1a
+    ├── test_server_authoritative.py   # slice 1a
+    └── test_repositories.py           # slice 1b — NEW
+```
+
+The next slice (under separate explicit authorisation) replaces
+the in-memory implementations with a real persistence layer (e.g.
+relational + append-only audit table per Platform Foundation §5.7).
+The Protocols remain stable across that replacement; the in-memory
+implementations remain available for tests.
+
+---
+
+## Slice 1a: scaffold + types + pure permission resolution + tests
 
 Per the PF-M1 Implementation Plan §20.2, slice 1 covers "Identity
 model + persistence + framework choice (scope amendment captured)."
