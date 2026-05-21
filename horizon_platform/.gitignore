@@ -1,0 +1,6 @@
+# Python bytecode caches inside the new horizon_platform package.
+# The Beta 10 root-level __pycache__/ is separately tracked for legacy
+# reasons; this package is greenfield and never commits caches.
+__pycache__/
+*.pyc
+*.pyo
