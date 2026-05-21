@@ -556,3 +556,41 @@
   margin-top: var(--s-3);
   font-size: 11px; color: var(--text-muted); font-style: italic;
 }
+
+/* ── Centre Panel Navigation (M2 final slice) ────────────────────────────── */
+/* Centre-panel view navigation only — NOT port switching. */
+.hz-center-nav {
+  display: flex;
+  gap: 2px;
+  padding: var(--s-2) 0 var(--s-3) 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--s-3);
+  flex-wrap: wrap;
+}
+.hz-center-nav-tab {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: var(--r-pill);
+}
+.hz-center-nav-tab:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+.hz-center-nav-tab:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+.hz-center-nav-tab-active {
+  background: var(--bg-surface-2);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+.hz-center-body { /* tab content container; no extra styling needed */ }
