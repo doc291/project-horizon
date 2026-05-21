@@ -490,3 +490,45 @@
 .hz-sl-cell-vessel { font-weight: 600; }
 .hz-sl-cell-desc { color: var(--text-secondary); }
 .hz-sl-cell-muted { color: var(--text-muted); font-weight: 400; }
+
+/* ── Pilotage tab (M2, Canon §1.1.3 partial) ─────────────────────────────── */
+.hz-pl-tab { display: flex; flex-direction: column; gap: var(--s-3); }
+.hz-pl-empty { padding: var(--s-3) 0; }
+.hz-pl-counts {
+  display: flex; gap: var(--s-4); flex-wrap: wrap;
+  padding: var(--s-2) 0 var(--s-3) 0;
+}
+.hz-pl-counts-item {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.hz-pl-counts-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.hz-pl-counts-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 16px; color: var(--text-primary);
+}
+.hz-pl-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.hz-pl-table th {
+  text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-muted); padding: var(--s-2) var(--s-2);
+  border-bottom: 1px solid var(--border);
+}
+.hz-pl-table td {
+  padding: var(--s-2) var(--s-2); border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary); vertical-align: top;
+}
+.hz-pl-cell-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px; color: var(--text-secondary); white-space: nowrap;
+}
+.hz-pl-cell-vessel { font-weight: 600; }
+.hz-pl-cell-station { color: var(--text-secondary); font-size: 11px; }
+.hz-pl-cell-pilot {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text-primary);
+}
+.hz-pl-cell-muted { color: var(--text-muted); }
