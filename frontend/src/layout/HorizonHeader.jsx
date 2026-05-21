@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Icon } from '../components/Icon.jsx';
 import { Pill } from '../components/Pill.jsx';
 import { Dot } from '../components/Dot.jsx';
 import { localShort } from '../api/adapters/time.js';
@@ -41,8 +40,11 @@ export function HorizonHeader({ summary, lastUpdated, isStale }) {
   return (
     <header className="hz-header">
       <div className="hz-header-brand">
-        <Icon name="anchor" size={22} style={{ color: 'var(--teal)' }} />
-        <span className="hz-brand-wordmark">HORIZON</span>
+        <img
+          className="hz-brand-logo"
+          src="/logo.png"
+          alt="Horizon"
+        />
         <span className="hz-brand-port">{portName}</span>
       </div>
 
@@ -72,7 +74,11 @@ export function HorizonHeader({ summary, lastUpdated, isStale }) {
             </div>
           )}
         </div>
-        <div className="hz-cobrand">AMS Group</div>
+        <img
+          className="hz-cobrand-logo"
+          src="/ams-logo.png"
+          alt="AMS Group"
+        />
       </div>
     </header>
   );

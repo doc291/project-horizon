@@ -42,11 +42,11 @@
   gap: var(--s-3);
   min-width: 280px;
 }
-.hz-header-brand .hz-brand-wordmark {
-  font-weight: 800;
-  letter-spacing: 0.10em;
-  font-size: 14px;
-  color: var(--text-primary);
+.hz-header-brand .hz-brand-logo {
+  height: 52px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
 }
 .hz-header-brand .hz-brand-port {
   color: var(--text-secondary);
@@ -95,14 +95,11 @@
   text-transform: uppercase;
   color: var(--text-muted);
 }
-.hz-cobrand {
-  font-size: 10px;
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  padding: 4px 8px;
-  border-radius: var(--r-pill);
+.hz-cobrand-logo {
+  height: 32px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
 }
 
 /* ── Conditions ribbon (Canon §1.3, §4.3) — 64px persistent ────────────── */
