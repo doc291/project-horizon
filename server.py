@@ -787,6 +787,27 @@ def make_towage(vessels: list, now: datetime, profile: dict = None) -> list:
 
 # ── Sequencing alternatives ────────────────────────────────────────────────────
 
+def _scale_cost_by_loa(loa_m: float) -> int:
+    """Scale conflict cost impact (AUD) by vessel LOA.
+
+    Deterministic. Returns an AUD value in the A$50,000 – A$120,000 band,
+    rounded to the nearest A$1,000. Larger LOA produces a larger value.
+
+    Bands (linear within each):
+      LOA  <  180 m  → A$50,000 → A$70,000   (smaller)
+      LOA 180-249 m  → A$70,000 → A$95,000   (medium)
+      LOA  ≥ 250 m  → A$95,000 → A$120,000  (large; saturates at LOA ≥ 350m)
+    """
+    if loa_m >= 250:
+        val = 95_000 + (min(loa_m, 350) - 250) * 250
+    elif loa_m >= 180:
+        val = 70_000 + (loa_m - 180) * (25_000 / 70)
+    else:
+        val = 50_000 + max(loa_m - 100, 0) * (20_000 / 80)
+    val = max(50_000, min(120_000, val))
+    return int(round(val / 1000) * 1000)
+
+
 def _seq_alt(sid, strategy, label, description, vessels, cascade, feasibility,
              saving_h=0, cost_usd=0, cost_label="", delay_mins=0,
              cascade_count=0, risk="medium", recommended=False):
@@ -1023,6 +1044,22 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                     else:
                         seq_alts = _generic_berth_alternatives(
                             a["name"], b["name"], berth_name, berth_id, gap)
+                    # Scale conflict cost impact by vessel size (AUD). Deterministic;
+                    # overlays cost_usd / cost_label on every alternative so the dollar
+                    # value reflects the larger of the two LOAs. The internal field
+                    # name stays cost_usd for downstream compatibility; the display
+                    # label is rebuilt as "~A$N,NNN <original suffix>".
+                    _max_loa = max(float(a.get("loa") or 0), float(b.get("loa") or 0))
+                    _aud_cost = _scale_cost_by_loa(_max_loa)
+                    for _alt in seq_alts:
+                        _alt["cost_usd"] = _aud_cost
+                        _orig = _alt.get("cost_label") or ""
+                        _suffix = ""
+                        if _orig.startswith("~"):
+                            parts = _orig.split(" ", 1)
+                            if len(parts) == 2:
+                                _suffix = parts[1]
+                        _alt["cost_label"] = f"~A${_aud_cost:,}" + (f" {_suffix}" if _suffix else "")
                     # Every berth_overlap CONFLICT always gets a Decision Card
                     ds = _build_decision_support(seq_alts, b_start, now)
                     _cid = hashlib.md5(f"berth_overlap-{berth_id}-{a['id']}-{b['id']}".encode()).hexdigest()[:8]
