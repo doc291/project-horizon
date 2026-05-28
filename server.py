@@ -2303,9 +2303,9 @@ def _whatif_shadow(conflict_id, adjustments, base_vessels, base_conflicts):
     if resolved and not new_conflicts:
         new_rec = "Proceed with adjusted schedule"
         if cost_delta < -500:
-            cost_note = f"Net saving: ~${abs(cost_delta):,}."
+            cost_note = f"Net saving: ~A${abs(cost_delta):,}."
         elif cost_delta > 500:
-            cost_note = f"Net additional cost: ~${cost_delta:,}."
+            cost_note = f"Net additional cost: ~A${cost_delta:,}."
         else:
             cost_note = "Cost-neutral vs current trajectory."
         new_why = (f"This scenario resolves {len(resolved)} conflict(s) with no new issues. "
