@@ -74,13 +74,21 @@ def build_authority_block(summary: dict, now: float) -> dict:
     feeds.append(_feed_entry("Vessel movements", vessel_prov, now))
 
     # ── 2. Environmental: tides + weather ─────────────────────────────────────
+    # Environmental classification (Slice 4B audit fix):
+    #   fresh feed              -> LIVE_ENVIRONMENTAL
+    #   fallback / simulated    -> ASSUMED   (NOT PREDICTED)
+    # PREDICTED is reserved for Horizon operational FORECASTS (ETA / UKC /
+    # berth clearance / conflict probability), per the authority rules. A cosine
+    # tide approximation (BOM unavailable) and a simulated weather feed are
+    # fallbacks, so they degrade to ASSUMED — matching "simulation/fallback =
+    # ASSUMED" and ensuring missing environmental feeds degrade authority.
     tides = summary.get("tides") or {}
     tide_live = (tides.get("data_source") == "bom") or (tides.get("source") == "bom")
     tide_prov = SourceProvenance(
-        category=AuthorityCategory.LIVE_ENVIRONMENTAL if tide_live else AuthorityCategory.PREDICTED,
-        source="BOM Tides" if tide_live else "Horizon (cosine tide model)",
+        category=AuthorityCategory.LIVE_ENVIRONMENTAL if tide_live else AuthorityCategory.ASSUMED,
+        source="BOM Tides" if tide_live else "Simulation (cosine tide fallback)",
         observed_at=now if tide_live else None,
-        detail="bom" if tide_live else "cosine-approximation",
+        detail="bom" if tide_live else "cosine-fallback",
     )
     elements.append(tide_prov)
     feeds.append(_feed_entry("Tides", tide_prov, now))
@@ -88,8 +96,8 @@ def build_authority_block(summary: dict, now: float) -> dict:
     weather = summary.get("weather") or {}
     weather_live = (weather.get("source") in ("live", "open-meteo", "bom")) or (weather.get("is_live") is True)
     weather_prov = SourceProvenance(
-        category=AuthorityCategory.LIVE_ENVIRONMENTAL if weather_live else AuthorityCategory.PREDICTED,
-        source="Weather (live)" if weather_live else "Horizon (weather simulation)",
+        category=AuthorityCategory.LIVE_ENVIRONMENTAL if weather_live else AuthorityCategory.ASSUMED,
+        source="Weather (live)" if weather_live else "Simulation (weather fallback)",
         observed_at=now if weather_live else None,
         detail="live" if weather_live else "simulated",
     )
