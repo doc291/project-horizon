@@ -864,6 +864,31 @@
       font-size: 11px; pointer-events: none; max-width: 220px; line-height: 1.5;
       box-shadow: 0 4px 16px rgba(0,0,0,.5); display: none;
     }
+
+    /* ── BETA11 AUTHORITY DIAGNOSTICS (additive, read-only) ── */
+    #auth-diag{position:fixed;left:12px;bottom:12px;z-index:9000;width:286px;background:rgba(15,23,42,.96);border:1px solid var(--border,#334155);border-radius:10px;font-size:11px;color:var(--text-bright,#e2e8f0);box-shadow:0 8px 24px rgba(0,0,0,.45)}
+    #auth-diag .ad-head{display:flex;align-items:center;gap:7px;padding:8px 10px;cursor:pointer;user-select:none}
+    #auth-diag .ad-toggle{font-size:10px;color:var(--text-dim,#94a3b8);width:10px}
+    #auth-diag .ad-title{font-weight:800;letter-spacing:.4px}
+    #auth-diag .ad-pill{font-size:9px;font-weight:800;letter-spacing:.5px;padding:2px 7px;border-radius:999px}
+    #auth-diag .ad-high{background:rgba(34,197,94,.18);color:#4ade80;border:1px solid rgba(34,197,94,.4)}
+    #auth-diag .ad-med{background:rgba(234,179,8,.18);color:#fde047;border:1px solid rgba(234,179,8,.4)}
+    #auth-diag .ad-low{background:rgba(239,68,68,.18);color:#f87171;border:1px solid rgba(239,68,68,.4)}
+    #auth-diag .ad-score{margin-left:auto;font-weight:800}
+    #auth-diag .ad-degraded{font-size:8px;font-weight:800;color:#f87171;border:1px solid rgba(239,68,68,.5);padding:1px 5px;border-radius:4px}
+    #auth-diag .ad-body{padding:0 10px 10px;border-top:1px solid var(--border,#334155)}
+    #auth-diag .ad-row{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid rgba(148,163,184,.12)}
+    #auth-diag .ad-label{color:var(--text-dim,#94a3b8)}
+    #auth-diag .ad-val{text-align:right}
+    #auth-diag .ad-cat{display:inline-block;background:rgba(56,189,248,.12);color:#7dd3fc;border-radius:4px;padding:1px 5px;margin:1px}
+    #auth-diag .ad-sec{margin:8px 0 4px;font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--text-dim,#94a3b8)}
+    #auth-diag .ad-feed{display:flex;gap:6px;padding:2px 0}
+    #auth-diag .ad-feed-name{flex:1}
+    #auth-diag .ad-feed-cat{color:var(--text-dim,#94a3b8);font-size:9px}
+    #auth-diag .ad-feed-age{width:34px;text-align:right;color:var(--text-dim,#94a3b8)}
+    #auth-diag .ad-warn{color:#fbbf24;padding:1px 0}
+    #auth-diag .ad-dim{color:var(--text-dim,#94a3b8)}
+    #auth-diag .ad-foot{margin-top:8px;font-size:9px;color:var(--text-dim,#94a3b8);opacity:.7}
   </style>
 </head>
 <body>
@@ -1521,7 +1546,41 @@ function render(d){
   if(_activeTab==='dukc')renderDUKC(d.dukc);
   if(_activeTab==='esg')renderESG(d.esg);
   if(_activeTab==='performance')renderPerformance(d);
+  renderAuthorityDiagnostics(d);   /* Beta 11 Slice 4A: additive, read-only */
 }
+
+/* ── BETA11 AUTHORITY DIAGNOSTICS START (additive, read-only) ──
+   Reads summary.authority + summary.vessel_source only. Does NOT touch
+   Decision Cards, conflicts, or recommendations. Remove this block, the
+   #auth-diag markup, the CSS block, and the render() call to fully revert. */
+function _adFmtAge(s){ if(s==null)return '—'; s=Math.round(s); if(s<60)return s+'s'; if(s<3600)return Math.round(s/60)+'m'; return Math.round(s/3600)+'h'; }
+function toggleAuthDiag(){ const b=document.getElementById('ad-body'); const t=document.getElementById('ad-toggle'); if(!b||!t)return; const open=b.style.display!=='none'; b.style.display=open?'none':''; t.textContent=open?'▸':'▾'; }
+function renderAuthorityDiagnostics(d){
+  const el=document.getElementById('auth-diag'); if(!el)return;
+  const a=d&&d.authority; const vs=d&&d.vessel_source;
+  if(!a){ el.style.display='none'; return; }       /* defensive: no payload → hide panel */
+  el.style.display='';
+  const band=a.overall_band||'LOW';
+  const score=(typeof a.overall_score==='number')?Math.round(a.overall_score*100)+'%':'–';
+  const bandCls=band==='HIGH'?'ad-high':(band==='MEDIUM'?'ad-med':'ad-low');
+  const bandEl=document.getElementById('ad-band'); bandEl.textContent=band; bandEl.className='ad-pill '+bandCls;
+  document.getElementById('ad-score').textContent=score;
+  document.getElementById('ad-degraded').style.display=a.degraded?'':'none';
+  document.getElementById('ad-vsource').textContent=vs?(esc(vs.source||'–')+' ('+esc(vs.category||'–')+')'):'–';
+  const cats=a.sources_by_category||{};
+  document.getElementById('ad-cats').innerHTML=Object.keys(cats).filter(k=>cats[k]>0)
+     .map(k=>'<span class="ad-cat">'+esc(k)+': '+cats[k]+'</span>').join('')||'<span class="ad-dim">none</span>';
+  const feeds=a.feeds||[];
+  document.getElementById('ad-feeds').innerHTML=feeds.map(f=>
+     '<div class="ad-feed"><span class="ad-feed-name">'+esc(f.name)+'</span>'
+     +'<span class="ad-feed-cat">'+esc(f.category)+'</span>'
+     +'<span class="ad-feed-age">'+_adFmtAge(f.age_s)+'</span></div>').join('')||'<span class="ad-dim">no feeds</span>';
+  const am=a.assumed_or_missing||[];
+  document.getElementById('ad-assumed').innerHTML=am.length
+     ? am.map(x=>'<div class="ad-warn">⚠ '+esc(x)+'</div>').join('')
+     : '<span class="ad-dim">none</span>';
+}
+/* ── BETA11 AUTHORITY DIAGNOSTICS END ── */
 
 /* ── Beta 9: Conflict Timeline ── */
 function renderConflictTimeline(d){
@@ -3104,5 +3163,26 @@ function _checkCounts(observed,badgeId,label,expected){
 /* ── Boot ── */
 renderAuditLog(); refresh();
 </script>
+
+<!-- BETA11 AUTHORITY DIAGNOSTICS MARKUP START (additive, read-only; remove this block to revert) -->
+<div id="auth-diag" style="display:none">
+  <div class="ad-head" onclick="toggleAuthDiag()">
+    <span class="ad-toggle" id="ad-toggle">▸</span>
+    <span class="ad-title">⚖ Authority</span>
+    <span class="ad-pill ad-low" id="ad-band">LOW</span>
+    <span class="ad-score" id="ad-score">–</span>
+    <span class="ad-degraded" id="ad-degraded" title="data degraded / fallback in use" style="display:none">DEGRADED</span>
+  </div>
+  <div class="ad-body" id="ad-body" style="display:none">
+    <div class="ad-row"><span class="ad-label">Vessel source</span><span class="ad-val" id="ad-vsource">–</span></div>
+    <div class="ad-row"><span class="ad-label">Categories</span><span class="ad-val" id="ad-cats"></span></div>
+    <div class="ad-sec">Feeds</div>
+    <div id="ad-feeds"></div>
+    <div class="ad-sec">Assumed / missing</div>
+    <div id="ad-assumed"></div>
+    <div class="ad-foot">Read-only diagnostics · Beta 11 authority overlay</div>
+  </div>
+</div>
+<!-- BETA11 AUTHORITY DIAGNOSTICS MARKUP END -->
 </body>
 </html>
