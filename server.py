@@ -2386,6 +2386,7 @@ def build_summary():
     is_live     = False
     using_live_vessel = False
     using_live_tidal  = False
+    _vsrc       = "simulation"   # Beta 11: which vessel feed actually served (provenance marker)
 
     # Demo simulation lock — per-port flag (currently DARWIN only).
     # When True, skip AISStream + MST live vessel paths so the deterministic
@@ -2410,6 +2411,7 @@ def build_summary():
                         port_name = profile["display_name"]
                         is_live   = True
                         using_live_vessel = True
+                        _vsrc     = "aisstream"
                         log.info("AISStream: %d vessels for %s", len(vessels), unloco)
             except Exception as exc:
                 log.error("AISStream vessel build failed (%s) — trying MST", exc)
@@ -2432,6 +2434,7 @@ def build_summary():
                         port_name = profile["display_name"]
                         is_live   = True
                         using_live_vessel = True
+                        _vsrc     = "mst"
                         log.info("MST cache: %d vessels for %s (AISStream fallback)",
                                  len(vessels), unloco)
                 except Exception as exc:
@@ -2449,6 +2452,7 @@ def build_summary():
                 port_name = profile["display_name"]
                 is_live   = True
                 using_live_vessel = True
+                _vsrc     = "public_scrape"
                 log.info("Using live vessel data: %d vessels from %s",
                          len(vessels), profile["short_name"])
             except Exception as exc:
@@ -2463,6 +2467,7 @@ def build_summary():
                 berths    = build_berths_from_qships(_qships_data)
                 port_name = _qships_data.get("port_name", profile["display_name"])
                 is_live   = True
+                _vsrc     = "qships_public"
             except Exception as exc:
                 log.error("QShips vessel build failed (%s) — falling back to simulation", exc)
                 vessels = None
@@ -2472,6 +2477,7 @@ def build_summary():
         vessels   = make_vessels(now)
         port_name = profile["display_name"]
         is_live   = False
+        _vsrc     = "simulation"
 
     # BOM tidal data — cache_only=True: never block in request path.
     # Background thread (_schedule_bom_weather_warmup) populates the cache.
@@ -2564,10 +2570,46 @@ def build_summary():
     else:
         _ds_label = f"{profile['short_name']} — Simulation"
 
+    # ── Beta 11: vessel-feed provenance (additive; backend-only) ───────────────
+    # Records the source that ACTUALLY served the vessels this request, so the
+    # authority block reflects real provenance rather than re-derived guesses.
+    _now_epoch = now.timestamp()
+    _scraped_epoch = None
+    _scraped_at_str = scrape_result.get("scraped_at") if isinstance(scrape_result, dict) else None
+    if _scraped_at_str:
+        try:
+            _scraped_epoch = isoparse(_scraped_at_str).timestamp()
+        except Exception:
+            _scraped_epoch = None
+    _ais_age = None
+    if _vsrc == "aisstream":
+        try:
+            _ais_age = aisstream_scraper.get_status().get("last_message_age_s")
+        except Exception:
+            _ais_age = None
+    _VSRC_MAP = {
+        "aisstream":     ("LIVE_OBSERVED",       "AISStream",
+                          (_now_epoch - _ais_age) if _ais_age is not None else _now_epoch, "live AIS"),
+        "mst":           ("LIVE_OBSERVED",       "MST (AIS cache)",      _now_epoch, "mst-fallback-cache"),
+        "public_scrape": ("CONFIRMED_PUBLISHED", f"Public movements ({profile.get('short_name','')})",
+                          _scraped_epoch or _now_epoch, "public-scrape"),
+        "qships_public": ("CONFIRMED_PUBLISHED", "QShips (public)",      _scraped_epoch or _now_epoch, "webx-scrape"),
+        "simulation":    ("ASSUMED",             "Simulation",           None, "simulated"),
+    }
+    _vc, _vsource, _vobs, _vdetail = _VSRC_MAP.get(_vsrc, _VSRC_MAP["simulation"])
+    _vessel_source = {
+        "feed":        _vsrc,
+        "category":    _vc,
+        "source":      _vsource,
+        "observed_at": _vobs,
+        "detail":      _vdetail,
+    }
+
     return {
         "port_name":       port_name,
         "generated_at":    fmt(now),
         "lookahead_hours": 48,
+        "vessel_source":   _vessel_source,
         "data_source":     "live" if using_live_vessel else ds["source"],
         "data_source_label": _ds_label,
         "scraped_at":      scrape_result.get("scraped_at") or ds["scraped_at"],
@@ -2616,6 +2658,28 @@ def build_summary():
             "available_ports":       list_profiles(),
         },
     }
+
+
+# ── Beta 11: backend authority block attachment ───────────────────────────────
+
+def _attach_authority_block(summary: dict) -> None:
+    """Attach an `authority` block to the summary in place (backend-only).
+
+    Never raises: any failure degrades authority (LOW) rather than breaking the
+    /api/summary response. Beta 11 Slice 3 — no Decision Card UI change.
+    """
+    if not isinstance(summary, dict):
+        return
+    try:
+        from authority.payload import build_authority_block
+        summary["authority"] = build_authority_block(summary, utcnow().timestamp())
+    except Exception as exc:   # never break the request
+        try:
+            from authority.payload import degraded_block
+            summary["authority"] = degraded_block(str(exc))
+        except Exception:
+            summary["authority"] = {"version": "beta11-slice3", "overall_band": "LOW",
+                                    "degraded": True, "overall_score": 0.0}
 
 
 # ── HTTP handler ──────────────────────────────────────────────────────────────
@@ -3042,6 +3106,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
             summary = None
             try:
                 summary = build_summary()
+                _attach_authority_block(summary)   # Beta 11: backend-only, never raises
                 self._json(summary)
             except Exception as exc:
                 import traceback
@@ -3051,6 +3116,7 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 _qships_data = None
                 try:
                     summary = build_summary()
+                    _attach_authority_block(summary)
                     self._json(summary)
                 except Exception as exc2:
                     tb2 = traceback.format_exc()

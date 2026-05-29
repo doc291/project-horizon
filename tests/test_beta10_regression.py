@@ -103,6 +103,9 @@ EXPECTED_SUMMARY_KEYS = frozenset({
     "conflicts", "guidance", "port_geo", "weather", "tides",
     "berth_utilisation", "etd_risk", "dashboard", "ukc", "arrival_ukc",
     "dukc", "esg", "port_profile",
+    # Beta 11 Slice 3 (additive, backend-only): vessel-feed provenance marker.
+    # Present on the feat/beta-11 line; demo/beta-10 baseline is unchanged.
+    "vessel_source",
 })
 
 EXPECTED_PORT_STATUS_KEYS = frozenset({
