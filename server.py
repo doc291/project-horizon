@@ -3338,7 +3338,17 @@ class HorizonHandler(BaseHTTPRequestHandler):
             if p["tide_source"] == "cosine":
                 issues.append({"sev": "low", "msg": f"{p['short_name']}: tides using cosine approximation (BOM unavailable)"})
             if p["vessel_source"] == "aisstream" and p["vessel_count"] == 0:
-                issues.append({"sev": "low", "msg": f"{p['short_name']}: AISStream connected but 0 vessels detected (possible coverage gap)"})
+                # Beta 11 Slice 6A: factual funnel status instead of a misleading
+                # "coverage gap" claim while AISStream is connected and flowing.
+                f = ais.get("funnel", {}).get(unloco, {})
+                in_area  = f.get("in_port_area", 0)
+                approach = f.get("in_approach", 0)
+                if tracked == 0:
+                    issues.append({"sev": "low", "msg": f"{p['short_name']}: AISStream live, no vessels currently in range"})
+                elif in_area == 0:
+                    issues.append({"sev": "low", "msg": f"{p['short_name']}: AISStream live — {approach} in approach, 0 in port operating area"})
+                else:
+                    issues.append({"sev": "low", "msg": f"{p['short_name']}: AISStream live — {in_area} in port area, 0 commercial accepted"})
         # Overall readiness
         sevs = [i["sev"] for i in issues]
         if "critical" in sevs:
