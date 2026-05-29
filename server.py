@@ -44,6 +44,10 @@ import operator_action_audit
 
 _ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
+# Configurable version badge. Default "BETA 10" preserves existing behaviour
+# everywhere (incl. the protected Beta 10 branch); the Beta 11 preview sets
+# HORIZON_VERSION_LABEL=BETA 11 PREVIEW. Display-only; no behavioural effect.
+_VERSION_LABEL   = os.environ.get("HORIZON_VERSION_LABEL", "BETA 10")
 _profile_lock    = threading.Lock()
 
 log = logging.getLogger("horizon")
@@ -3527,7 +3531,10 @@ setInterval(refresh, 30000);
         if not INDEX_HTML.exists():
             self.send_error(404, "index.html not found")
             return
-        body = INDEX_HTML.read_bytes()
+        # Substitute the configurable version label (display-only).
+        html = INDEX_HTML.read_text(encoding="utf-8").replace(
+            "__HORIZON_VERSION_LABEL__", _VERSION_LABEL)
+        body = html.encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -4591,7 +4598,7 @@ if __name__ == "__main__":
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), HorizonHandler)
     ds = get_data_source()
-    print(f"╔══ HORIZON BETA 10 ══════════════════════════╗")
+    print(f"╔══ HORIZON {_VERSION_LABEL} ══════════════════════════╗")
     print(f"║  Active Port: {_PORT_PROFILE['display_name']:<28} ║")
     print(f"║  Data Source: {_PORT_PROFILE['vessel_data_source']:<28} ║")
     print(f"║  BOM Station: {str(_PORT_PROFILE.get('bom_station_id','N/A')):<28} ║")
