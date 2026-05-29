@@ -23,7 +23,8 @@ from typing import Optional
 
 from authority.categories import AuthorityCategory
 from authority.provenance import SourceProvenance
-from authority.scoring import element_score, aggregate_scores
+from authority.scoring import element_score, aggregate_scores, default_half_life_s
+from authority.freshness import freshness_factor
 
 BLOCK_VERSION = "beta11-slice3"
 
@@ -87,7 +88,8 @@ def build_authority_block(summary: dict, now: float) -> dict:
     tide_prov = SourceProvenance(
         category=AuthorityCategory.LIVE_ENVIRONMENTAL if tide_live else AuthorityCategory.ASSUMED,
         source="BOM Tides" if tide_live else "Simulation (cosine tide fallback)",
-        observed_at=now if tide_live else None,
+        # Slice 4C: real fetch age stamped by build_summary; never `now`.
+        observed_at=tides.get("observed_at") if tide_live else None,
         detail="bom" if tide_live else "cosine-fallback",
     )
     elements.append(tide_prov)
@@ -98,7 +100,8 @@ def build_authority_block(summary: dict, now: float) -> dict:
     weather_prov = SourceProvenance(
         category=AuthorityCategory.LIVE_ENVIRONMENTAL if weather_live else AuthorityCategory.ASSUMED,
         source="Weather (live)" if weather_live else "Simulation (weather fallback)",
-        observed_at=now if weather_live else None,
+        # Slice 4C: real fetch age stamped by build_summary; never `now`.
+        observed_at=weather.get("observed_at") if weather_live else None,
         detail="live" if weather_live else "simulated",
     )
     elements.append(weather_prov)
@@ -116,7 +119,7 @@ def build_authority_block(summary: dict, now: float) -> dict:
         feeds.append(_feed_entry(label, prov, now))
 
     # ── Aggregate ─────────────────────────────────────────────────────────────
-    scores = [element_score(p, now) for p in elements]
+    scores = [_score_for(p, now) for p in elements]
     overall = aggregate_scores(scores)
 
     # sources_by_category counts
@@ -147,6 +150,20 @@ def build_authority_block(summary: dict, now: float) -> dict:
     }
 
 
+def _score_for(prov: SourceProvenance, now: float) -> float:
+    """Authority score for one element.
+
+    Environmental LIVE feeds REQUIRE a real observed_at to score fresh: a missing
+    timestamp yields freshness 0 (not the full category weight), so unverifiable
+    'live' environmental data does not falsely score as fresh, and genuinely fresh
+    feeds decay with age. All other categories use the standard element_score()
+    (where a None timestamp means "not time-stamped" → category weight)."""
+    if prov.category is AuthorityCategory.LIVE_ENVIRONMENTAL:
+        hl = default_half_life_s(AuthorityCategory.LIVE_ENVIRONMENTAL)
+        return prov.category.weight * freshness_factor(prov.observed_at, now, half_life_s=hl)
+    return element_score(prov, now)
+
+
 def _feed_entry(name: str, prov: SourceProvenance, now: float) -> dict:
     age = _age_s(prov.observed_at, now)
     return {
@@ -155,7 +172,7 @@ def _feed_entry(name: str, prov: SourceProvenance, now: float) -> dict:
         "source": prov.source,
         "observed_at": prov.observed_at,
         "age_s": round(age, 1) if age is not None else None,
-        "score": round(element_score(prov, now), 3),
+        "score": round(_score_for(prov, now), 3),
         "detail": prov.detail,
     }
 

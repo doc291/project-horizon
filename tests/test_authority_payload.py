@@ -91,7 +91,8 @@ def test_no_confirmed_system_anywhere():
 def test_live_feeds_score_higher_than_simulation():
     live = build_authority_block(
         _summary(_vs("aisstream", "LIVE_OBSERVED", "AISStream", observed_at=NOW),
-                 tides={"data_source": "bom"}, weather={"source": "live"}),
+                 tides={"data_source": "bom", "observed_at": NOW},
+                 weather={"source": "live", "observed_at": NOW}),
         NOW,
     )
     sim = build_authority_block(_summary(_vs("simulation", "ASSUMED", "Simulation")), NOW)

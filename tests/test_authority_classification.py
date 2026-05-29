@@ -128,7 +128,8 @@ def test_never_confirmed_system():
 def test_all_live_band_at_least_medium():
     b = build_authority_block(
         _summary(_vs("aisstream", "LIVE_OBSERVED", "AISStream", observed_at=NOW),
-                 tides={"data_source": "bom"}, weather={"source": "live"}), NOW)
+                 tides={"data_source": "bom", "observed_at": NOW},
+                 weather={"source": "live", "observed_at": NOW}), NOW)
     assert b["overall_band"] in ("MEDIUM", "HIGH")
 
 

@@ -29,9 +29,9 @@ from urllib.parse import parse_qs
 
 # ── Port profile system ───────────────────────────────────────────────────────
 from port_profiles import PORT_PROFILES, get_profile, list_profiles
-from bom_tides import fetch_bom_tides, predict_height_at
+from bom_tides import fetch_bom_tides, predict_height_at, cache_age_s as _bom_cache_age_s
 from vessel_scraper import fetch_vessel_movements
-from weather import fetch_weather
+from weather import fetch_weather, cache_age_s as _weather_cache_age_s
 import mst_scraper
 import aisstream_scraper
 import db
@@ -2604,6 +2604,23 @@ def build_summary():
         "observed_at": _vobs,
         "detail":      _vdetail,
     }
+
+    # ── Beta 11 Slice 4C: stamp REAL environmental fetch age onto tides/weather ──
+    # observed_at = now - cache_age (None when there is no live cache → the feed
+    # is a fallback and is classified ASSUMED downstream). Copies the dicts so the
+    # shared weather cache object is never mutated.
+    try:
+        _t_age = _bom_cache_age_s(profile)
+    except Exception:
+        _t_age = None
+    try:
+        _w_age = _weather_cache_age_s(profile)
+    except Exception:
+        _w_age = None
+    tides = dict(tides)
+    tides["observed_at"] = (_now_epoch - _t_age) if _t_age is not None else None
+    weather = dict(weather)
+    weather["observed_at"] = (_now_epoch - _w_age) if _w_age is not None else None
 
     return {
         "port_name":       port_name,
