@@ -300,6 +300,7 @@ def get_vessels_in_port(unloco: str) -> list | None:
                 "lat":         pos.get("lat"),
                 "lon":         pos.get("lon"),
                 "sog":         pos.get("sog"),
+                "heading":     pos.get("heading"),   # Slice 7A: preserve AIS heading
                 # Beta 11 Slice 6A: AIS-derived status label (additive; does NOT
                 # override the operational status assigned downstream).
                 "ais_status":  entry.get("status"),

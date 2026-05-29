@@ -2601,12 +2601,20 @@ def build_summary():
         "simulation":    ("ASSUMED",             "Simulation",           None, "simulated"),
     }
     _vc, _vsource, _vobs, _vdetail = _VSRC_MAP.get(_vsrc, _VSRC_MAP["simulation"])
+    # ── Slice 7A: per-vessel provenance breakdown so the live feed is not blanket
+    # over-claimed as LIVE_OBSERVED when simulated fillers are mixed in. Counts
+    # only; authority scoring is unchanged in this slice.
+    _ais_n = sum(1 for v in (vessels or []) if v.get("match_state") == "ais_only")
+    _sim_n = sum(1 for v in (vessels or []) if v.get("match_state") == "simulated")
     _vessel_source = {
         "feed":        _vsrc,
         "category":    _vc,
         "source":      _vsource,
         "observed_at": _vobs,
         "detail":      _vdetail,
+        "ais_count":       _ais_n,
+        "simulated_count": _sim_n,
+        "has_simulated":   _sim_n > 0,
     }
 
     # ── Beta 11 Slice 4C: stamp REAL environmental fetch age onto tides/weather ──
