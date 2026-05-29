@@ -889,6 +889,24 @@
     #auth-diag .ad-warn{color:#fbbf24;padding:1px 0}
     #auth-diag .ad-dim{color:var(--text-dim,#94a3b8)}
     #auth-diag .ad-foot{margin-top:8px;font-size:9px;color:var(--text-dim,#94a3b8);opacity:.7}
+
+    /* ── BETA11 DECISION CARD AUTHORITY (additive, read-only, secondary) ── */
+    .dec-auth{margin:8px 12px 0;padding:7px 9px;border:1px solid rgba(148,163,184,.18);border-radius:7px;background:rgba(148,163,184,.05);font-size:10px}
+    .dec-auth .da-head{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+    .dec-auth .da-lbl{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim,#94a3b8)}
+    .dec-auth .da-pill{font-size:8px;font-weight:800;letter-spacing:.4px;padding:1px 6px;border-radius:999px}
+    .dec-auth .da-high{background:rgba(34,197,94,.16);color:#4ade80;border:1px solid rgba(34,197,94,.35)}
+    .dec-auth .da-med{background:rgba(234,179,8,.16);color:#fde047;border:1px solid rgba(234,179,8,.35)}
+    .dec-auth .da-low{background:rgba(239,68,68,.16);color:#f87171;border:1px solid rgba(239,68,68,.35)}
+    .dec-auth .da-score{font-weight:800;color:var(--text-bright,#e2e8f0)}
+    .dec-auth .da-degraded{margin-left:auto;font-size:8px;font-weight:800;color:#f87171;border:1px solid rgba(239,68,68,.4);padding:1px 4px;border-radius:3px}
+    .dec-auth .da-line{display:flex;gap:6px;padding:2px 0}
+    .dec-auth .da-k{flex:0 0 64px;color:var(--text-dim,#94a3b8);font-weight:700}
+    .dec-auth .da-v{flex:1;min-width:0}
+    .dec-auth .da-chip{display:inline-block;background:rgba(56,189,248,.10);color:#7dd3fc;border-radius:3px;padding:0 4px;margin:1px 2px 1px 0}
+    .dec-auth .da-warn{color:#fbbf24}
+    .dec-auth .da-dim{color:var(--text-dim,#94a3b8)}
+    .dec-auth .da-foot{margin-top:5px;font-size:9px;color:var(--text-dim,#94a3b8);opacity:.75;font-style:italic}
   </style>
 </head>
 <body>
@@ -1837,6 +1855,36 @@ function _tickDecTimer(conflictId, deadlineIso){
   if(secs===0){ clearInterval(_decTimers[conflictId]); delete _decTimers[conflictId]; }
 }
 
+/* ── BETA11 DECISION CARD AUTHORITY START (additive, read-only) ──
+   Renders a compact, secondary "Decision Authority" section on each Decision
+   Card from the port-level _data.authority payload (Slice 3). Explains the
+   decision; never changes it. No fetch, no /api call, no action. Returns ''
+   when authority is absent (section hidden). Remove this block, the CSS block,
+   and the ${_decAuthHtml()} call to fully revert. */
+function _daCatShort(c){return {LIVE_OBSERVED:'Live',LIVE_ENVIRONMENTAL:'Live env',CONFIRMED_SYSTEM:'System',CONFIRMED_PUBLISHED:'Published',PREDICTED:'Predicted',ASSUMED:'Assumed'}[c]||c;}
+function _decAuthHtml(){
+  const a=(typeof _data!=='undefined')&&_data&&_data.authority;
+  if(!a) return '';   /* hide section when authority payload is missing */
+  const band=a.overall_band||'LOW';
+  const score=(typeof a.overall_score==='number')?Math.round(a.overall_score*100)+'%':'';
+  const bandCls=band==='HIGH'?'da-high':(band==='MEDIUM'?'da-med':'da-low');
+  const feeds=a.feeds||[];
+  const evidence=feeds.filter(f=>f.category!=='ASSUMED');
+  const evHtml=evidence.length
+    ? evidence.map(f=>`<span class="da-chip">${esc(f.name)} · ${esc(_daCatShort(f.category))}${f.age_s!=null?' · '+_adFmtAge(f.age_s):''}</span>`).join('')
+    : '<span class="da-dim">none</span>';
+  const am=a.assumed_or_missing||[];
+  const amHtml=am.length?esc(am.join(', ')):'none';
+  const degraded=a.degraded?'<span class="da-degraded">DEGRADED</span>':'';
+  return `<div class="dec-auth">
+      <div class="da-head"><span class="da-lbl">Decision Authority</span><span class="da-pill ${bandCls}">${esc(band)}</span><span class="da-score">${score}</span>${degraded}</div>
+      <div class="da-line"><span class="da-k">Evidence</span><span class="da-v">${evHtml}</span></div>
+      <div class="da-line"><span class="da-k">Assumptions</span><span class="da-v da-warn">${amHtml}</span></div>
+      <div class="da-foot">Horizon coordinates · you decide</div>
+    </div>`;
+}
+/* ── BETA11 DECISION CARD AUTHORITY END ── */
+
 function renderDecisions(conflicts){
   _stopDecTimers();
   const el = document.getElementById('decisions-list');
@@ -1908,6 +1956,7 @@ function renderDecisions(conflicts){
             </div>
           </div>
         </div>
+        ${_decAuthHtml()}
         ${hasDeadline ? `<div class="dec-timer" id="dec-timer-${c.id}"><span class="dec-timer-lbl">⏱ Decide within</span><span class="dec-timer-box" id="dec-tbox-${c.id}"><span class="dec-timer-val" id="dec-tval-${c.id}">--:--:--</span></span></div>` : ''}
         <button class="dec-open-btn" onclick="openDSW('${c.id}')">⚡ Open Decision Support →</button>
         <button class="dec-wi-btn" onclick="openWhatIf('${c.id}')">⊕ Scenario Builder →</button>
