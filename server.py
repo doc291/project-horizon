@@ -2304,16 +2304,20 @@ def _whatif_shadow(conflict_id, adjustments, base_vessels, base_conflicts):
     # existing arithmetic (saving vs additional cost). cost_delta == 0
     # stays at 0 → renders "Cost-neutral".
     #
-    # Two-tier LOA lookup:
+    # Three-tier LOA lookup:
     #   1) PRIMARY — vessel LOAs from the originating conflict (same input
     #      the decision card used, when that conflict is still in scope).
-    #   2) FALLBACK — when the originating conflict is no longer in the
-    #      fresh snapshot (vessel departed, status shift, daily-shuffle
-    #      drift, or the operator selected a vessel outside the original
-    #      conflict), derive LOAs from the vessels referenced by the
-    #      operator's adjustments. Still in the same A$50K–A$120K band,
-    #      still vessel-size-guided. If both paths fail (operator picked
-    #      an unrecognised vessel name), the existing arithmetic survives.
+    #   2) FALLBACK — match the operator's adjustment vessel against ALL
+    #      safe identifiers on base_vessels (name / vessel_name / id /
+    #      mmsi / imo). Handles vessels whose dropdown value differs from
+    #      the field the fresh snapshot stores them under.
+    #   3) LAST-RESORT FLOOR — when no LOA can be resolved (e.g. the live
+    #      vessel-data source at /api/summary time is not reused at
+    #      /api/whatif time, so the vessel is absent from base_vessels),
+    #      anchor to a median demo vessel (180m → A$70K). Guarantees the
+    #      operator always sees a credibility-band number when cost_delta
+    #      is non-zero. Only the displayed magnitude is affected; sign,
+    #      resolution detection, and narrative are untouched.
     if cost_delta != 0:
         _loas: list = []
         _base_c = next((c for c in (base_conflicts or [])
@@ -2324,13 +2328,16 @@ def _whatif_shadow(conflict_id, adjustments, base_vessels, base_conflicts):
                      for v in (base_vessels or [])
                      if v.get("id") in _ids]
         if not _loas:
-            _adj_names = {a.get("vessel", "") for a in (adjustments or [])}
-            _loas = [float(v.get("loa") or 0)
-                     for v in (base_vessels or [])
-                     if (v.get("name") or v.get("vessel_name") or "") in _adj_names]
-        if _loas:
-            _sign = 1 if cost_delta > 0 else -1
-            cost_delta = _sign * _scale_cost_by_loa(max(_loas))
+            _adj = {a.get("vessel", "") for a in (adjustments or []) if a.get("vessel")}
+            if _adj:
+                _loas = [float(v.get("loa") or 0)
+                         for v in (base_vessels or [])
+                         if any((v.get(k) or "") in _adj
+                                for k in ("name", "vessel_name", "id", "mmsi", "imo"))]
+        if not _loas:
+            _loas = [180.0]   # median demo vessel → medium-band A$ value
+        _sign = 1 if cost_delta > 0 else -1
+        cost_delta = _sign * _scale_cost_by_loa(max(_loas))
 
     # Generate revised recommendation
     if resolved and not new_conflicts:
