@@ -2299,6 +2299,24 @@ def _whatif_shadow(conflict_id, adjustments, base_vessels, base_conflicts):
                 "severity":    "high",
             })
 
+    # Anchor scenario cost magnitude to the decision-card credibility band
+    # (PR #77). Reuses _scale_cost_by_loa with the LOA of the largest vessel
+    # in the scenario's originating conflict — same input the decision card
+    # used — so the scenario number naturally tracks the decision card.
+    # Sign is preserved from the existing arithmetic (saving vs additional
+    # cost). cost_delta == 0 stays at 0 → renders "Cost-neutral".
+    if cost_delta != 0:
+        _base_c = next((c for c in (base_conflicts or [])
+                        if c.get("id") == conflict_id), None)
+        if _base_c:
+            _ids = _base_c.get("vessel_ids") or []
+            _loas = [float(v.get("loa") or 0)
+                     for v in (base_vessels or [])
+                     if v.get("id") in _ids]
+            if _loas:
+                _sign = 1 if cost_delta > 0 else -1
+                cost_delta = _sign * _scale_cost_by_loa(max(_loas))
+
     # Generate revised recommendation
     if resolved and not new_conflicts:
         new_rec = "Proceed with adjusted schedule"
