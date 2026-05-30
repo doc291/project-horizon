@@ -1,0 +1,21 @@
+# mise configuration — Railway build only.
+#
+# Why this file exists:
+# Railway's railpack builder uses `mise` to install the Python toolchain. On
+# 2026-05-30 the production build of main@7ce4a93 failed because mise could not
+# verify GitHub artifact attestations for python@3.10.13:
+#
+#   mise ERROR Failed to install core:python@3.10.13:
+#   No GitHub artifact attestations found for python@3.10.13
+#
+# Attestation lookups depend on GitHub's attestation API being reachable and
+# populated for the exact runtime version; when it is not, mise aborts the
+# install before the app is ever built. Disabling attestation verification
+# restores the prior install behaviour.
+#
+# Scope: this is a BUILD-TIME setting only. It does NOT pin or change the
+# Python version (no [tools] section), so the runtime stays exactly as the
+# last-good production build (d04db8b) used. No application behaviour changes.
+
+[settings]
+python.github_attestations = false
