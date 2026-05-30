@@ -49,9 +49,20 @@ _profile_lock    = threading.Lock()
 
 # Beta 11 role based stakeholder views feature flag. Defaults OFF.
 # When OFF the platform must be functionally identical to the Beta 10 baseline.
-# No code reads this flag yet; it is introduced first so baseline equality can be
-# proven before any Beta 11 behaviour is wired to it.
+# Every Beta 11 code path in this file is gated on this flag. With the flag off
+# the beta11_decision module is never imported and /api/summary is unchanged.
 BETA11_ENABLED = os.environ.get("BETA11_ENABLED", "0").strip().lower() in ("1", "true", "yes", "on")
+
+# Lazy accessor for the Beta 11 decision module. Importing lazily keeps the
+# module entirely off the Beta 10 path: when BETA11_ENABLED is false this is
+# never called, so flag off behaviour is byte identical to Beta 10.
+_beta11_mod = None
+def _beta11():
+    global _beta11_mod
+    if _beta11_mod is None:
+        import beta11_decision
+        _beta11_mod = beta11_decision
+    return _beta11_mod
 
 log = logging.getLogger("horizon")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [horizon] %(levelname)s %(message)s",
@@ -2599,6 +2610,19 @@ def build_summary():
         key=lambda c: (sev_order.get(c["severity"], 9), c["conflict_time"]),
     )
 
+    # ── Beta 11: attach active decision loop state (additive, flag gated) ──
+    # With BETA11_ENABLED off this block is skipped entirely, so the conflict
+    # objects and the /api/summary shape are byte identical to Beta 10. When
+    # on, each conflict gains a beta11_decision field carrying its active
+    # decision (or None). Detection and decision_support logic are untouched.
+    if BETA11_ENABLED:
+        try:
+            _active = _beta11().active_decisions()
+            for c in conflicts:
+                c["beta11_decision"] = _active.get(c.get("id"))
+        except Exception as exc:
+            log.error("beta11 decision merge failed: %s", exc, exc_info=True)
+
     guidance   = build_guidance(conflicts, vessels, berths, pilotage, towage, now)
 
     # Beta 7: enrich every conflict with a consolidated safety score
@@ -2781,6 +2805,17 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 self.send_error(401)
                 return
             self._clear_whatif()
+        elif path == "/api/decision-action":
+            # Beta 11 decision loop. Entire route is gated on BETA11_ENABLED so
+            # that with the flag off this endpoint does not exist (404), exactly
+            # as in the Beta 10 baseline.
+            if not BETA11_ENABLED:
+                self.send_error(404)
+                return
+            if not self._is_authenticated():
+                self.send_error(401)
+                return
+            self._beta11_decision_action()
         else:
             self.send_error(405)
 
@@ -4446,6 +4481,62 @@ doRefresh();setInterval(doRefresh,30000);
             port_id=_ACTIVE_PORT_ID,
             conflict_id=cleared_conflict_id,
         )
+
+    def _beta11_decision_action(self):
+        """
+        POST /api/decision-action — Beta 11 decision loop entry point.
+
+        Body: {"action": "issue|acknowledge|flag|supersede", ...}. The whole
+        method is only reachable when BETA11_ENABLED is true (gated in do_POST).
+        The authority model is enforced inside beta11_decision: only VTSO may
+        issue or supersede, and a stakeholder may only act on its own line item.
+        """
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body   = json.loads(self.rfile.read(length)) if length else {}
+            b11    = _beta11()
+            action = (body.get("action") or "").lower().strip()
+
+            if action == "issue":
+                decision = b11.issue_decision(
+                    conflict_id=body.get("conflict_id"),
+                    issued_by=session_audit.resolve_actor_handle(_AUTH_USER, _AUTH_USER),
+                    required_stakeholders=body.get("required_stakeholders") or [],
+                    predicted_impact=body.get("predicted_impact"),
+                    decision_deadline=body.get("decision_deadline"),
+                    actor_role=(body.get("actor_role") or b11.ROLE_VTSO),
+                )
+            elif action in ("acknowledge", "flag"):
+                decision = b11.act_on_decision(
+                    decision_id=body.get("decision_id"),
+                    role=body.get("role"),
+                    action=action,
+                    actor=session_audit.resolve_actor_handle(_AUTH_USER, _AUTH_USER),
+                    flag_reason=body.get("flag_reason"),
+                )
+            elif action == "supersede":
+                decision = b11.supersede_decision(
+                    decision_id=body.get("decision_id"),
+                    issued_by=session_audit.resolve_actor_handle(_AUTH_USER, _AUTH_USER),
+                    actor_role=(body.get("actor_role") or b11.ROLE_VTSO),
+                )
+            else:
+                self._json({"success": False, "error": f"unknown action: {action}"}, status=400)
+                return
+
+            self._json({"success": True, "decision": decision})
+        except Exception as exc:
+            # Map the decision loop errors to 4xx, everything else to 500.
+            b11 = _beta11()
+            client_errors = (
+                b11.AuthorityError, b11.InvalidTransitionError,
+                b11.ValidationError, b11.NotFoundError,
+            )
+            if isinstance(exc, client_errors):
+                self._json({"success": False, "error": str(exc)}, status=409)
+            else:
+                log.error("decision-action failed: %s", exc, exc_info=True)
+                self._json({"success": False, "error": str(exc)}, status=500)
 
     def _send_brief(self):
         """POST /api/send-brief — email the Port Brief PDF to a list of recipients."""
