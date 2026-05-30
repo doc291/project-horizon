@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 AISStream.io WebSocket connector for Project Horizon.
 
