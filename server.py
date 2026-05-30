@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """
 Project Horizon — Beta 10
 Port profile system: multi-port support with live BOM tidal data
@@ -1234,7 +1235,82 @@ def _gpri(sev):
 def build_guidance(conflicts, vessels, berths, pilotage, towage, now):
     items = []
 
+    # ── Group bridge_restriction conflicts by bridge name ──────────────────────
+    # Multiple vessels hitting the same bridge limit are shown as one constraint-
+    # first tile instead of N near-identical vessel-first warnings.
+    _sev_rank = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    bridge_groups: dict = {}   # bridge_name -> [conflict, ...]
+    non_bridge: list = []
     for c in conflicts:
+        if c["conflict_type"] == "bridge_restriction":
+            key = c.get("berth_name") or "bridge"
+            bridge_groups.setdefault(key, []).append(c)
+        else:
+            non_bridge.append(c)
+
+    for bridge_name, grp in bridge_groups.items():
+        grp_sorted = sorted(grp, key=lambda x: _sev_rank.get(x["severity"], 9))
+        worst = grp_sorted[0]
+        if len(grp) == 1:
+            # Single vessel — emit normally
+            c = worst
+            deadline = None
+            if c["severity"] == "critical":
+                ct = isoparse(c["conflict_time"])
+                deadline = fmt(ct - timedelta(hours=1))
+            items.append({
+                "id": hashlib.md5(f"guidance-{c['id']}".encode()).hexdigest()[:8],
+                "priority": _gpri(c["severity"]),
+                "message": _short(c),
+                "detail": c["description"],
+                "resolution_options": c.get("resolution_options", []),
+                "vessel_id": c["vessel_ids"][0] if c["vessel_ids"] else None,
+                "vessel_name": c["vessel_names"][0] if c["vessel_names"] else None,
+                "action_required": c["severity"] in ("critical", "high"),
+                "deadline": deadline,
+            })
+        else:
+            # Multiple vessels — emit one grouped constraint-first tile
+            all_names = [n for c in grp_sorted for n in (c["vessel_names"] or [])]
+            n = len(all_names)
+            if n <= 3:
+                vessel_summary = ", ".join(all_names)
+            else:
+                vessel_summary = ", ".join(all_names[:3]) + f" and {n - 3} more"
+            # Extract limit from description ("limit of Xm")
+            limit_hint = ""
+            desc0 = worst["description"]
+            if "limit of " in desc0:
+                try:
+                    raw = desc0.split("limit of ")[1].split("m")[0].strip()
+                    if raw.isdigit():
+                        limit_hint = f" ({raw}m limit)"
+                except (IndexError, ValueError):
+                    pass
+            grouped_detail = (
+                f"{n} vessel(s) estimated to exceed {bridge_name} air-draught limit{limit_hint}. "
+                f"Affected: {', '.join(all_names)}. "
+                f"Confirm actual air draught with each master before authorising transit."
+            )
+            deadline = None
+            if worst["severity"] == "critical":
+                ct = isoparse(worst["conflict_time"])
+                deadline = fmt(ct - timedelta(hours=1))
+            items.append({
+                "id": hashlib.md5(f"guidance-bridge-{bridge_name}".encode()).hexdigest()[:8],
+                "priority": _gpri(worst["severity"]),
+                "message": f"{bridge_name} air-draught restriction — {n} vessel(s) affected",
+                "detail": grouped_detail,
+                "resolution_options": worst.get("resolution_options", []),
+                "vessel_id": None,
+                "vessel_name": None,
+                "affected_vessels": all_names,
+                "vessel_summary": vessel_summary,
+                "action_required": worst["severity"] in ("critical", "high"),
+                "deadline": deadline,
+            })
+
+    for c in non_bridge:
         deadline = None
         if c["severity"] == "critical":
             ct = isoparse(c["conflict_time"])

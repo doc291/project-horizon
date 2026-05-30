@@ -247,6 +247,7 @@
     .guidance-msg { font-size: 12px; color: var(--text-bright); flex: 1; line-height: 1.4; }
     .guidance-detail { display: none; margin-top: 6px; font-size: 11px; color: var(--text-dim); line-height: 1.5; }
     .guidance-item.open .guidance-detail { display: block; }
+    .guidance-vessels { font-size: 10px; color: var(--text-dim); margin-top: 3px; line-height: 1.4; }
 
     /* ── Conflict cards ── */
     .conflict-card  { margin: 8px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
@@ -1743,6 +1744,7 @@ function renderGuidance(items){
         <div style="flex:1;min-width:0;">
           <span class="guidance-sev-label ${sm.cls}">${sm.lbl}</span>
           <div class="guidance-msg">${esc(g.message)}</div>
+          ${g.vessel_summary?`<div class="guidance-vessels">${esc(g.vessel_summary)}</div>`:''}
         </div>
       </div>
       <div class="guidance-detail">

@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Project Horizon — Vessel Movement Scraper
 Scrapes public ship movements pages for configured ports.

@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Project Horizon — BOM Tidal Prediction Module
 Fetches live tide predictions from the Bureau of Meteorology XML feed for the

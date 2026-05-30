@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 MyShipTracking API connector for Project Horizon.
 
