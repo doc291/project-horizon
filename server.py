@@ -47,6 +47,12 @@ _ACTIVE_PORT_ID  = os.environ.get("HORIZON_PORT", "BRISBANE").upper()
 _PORT_PROFILE    = get_profile(_ACTIVE_PORT_ID)
 _profile_lock    = threading.Lock()
 
+# Beta 11 role based stakeholder views feature flag. Defaults OFF.
+# When OFF the platform must be functionally identical to the Beta 10 baseline.
+# No code reads this flag yet; it is introduced first so baseline equality can be
+# proven before any Beta 11 behaviour is wired to it.
+BETA11_ENABLED = os.environ.get("BETA11_ENABLED", "0").strip().lower() in ("1", "true", "yes", "on")
+
 log = logging.getLogger("horizon")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [horizon] %(levelname)s %(message)s",
                     datefmt="%Y-%m-%dT%H:%M:%SZ")
