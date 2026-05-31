@@ -3994,6 +3994,62 @@ function _checkCounts(observed,badgeId,label,expected){
       bk.flag_severity = reasons.reduce((m, r) => _maxSeverity(m, r.severity), null);
     });
 
+    // T4 — Layer 4 forward shape: 6 × 2h slots across the shift window.
+    // capacity_tugs counts ON_SHIFT only (STANDBY and MAINTENANCE are not
+    // immediately deployable).
+    const slots = [];
+    const capacityTugs = fleet.filter(t => t.operational_status === "ON_SHIFT").length;
+    for(let i = 0; i < 6; i++){
+      const s0 = winStart + i * 2 * 3600 * 1000;
+      const s1 = s0 + 2 * 3600 * 1000;
+      let demandJobs = 0, demandTugs = 0;
+      bookings.forEach(bk => {
+        const t = new Date(bk.scheduled_time).getTime();
+        if(t >= s0 && t < s1){
+          demandJobs++;
+          demandTugs += (bk.tugs_assigned ? bk.tugs_assigned.length : 1);
+        }
+      });
+      slots.push({
+        start: new Date(s0).toISOString(),
+        end:   new Date(s1).toISOString(),
+        demand_jobs: demandJobs,
+        demand_tugs: demandTugs,
+        capacity_tugs: capacityTugs,
+        at_capacity: capacityTugs > 0 && demandTugs >= capacityTugs
+      });
+    }
+
+    // Environment block. Uses server-side conditions rating (port-specific
+    // thresholds already applied there) as the breach signal.
+    const tides = d.tides || {};
+    const wx = d.weather || {};
+    const conditions = wx.conditions || null;
+    const tideProv = tides.data_source === "bom" ? "live_bom"
+                   : (tides.data_source ? "simulated" : "cosine");
+    const wxProv = (wx.source === "live" || wx.data_source === "live") ? "live"
+                 : (wx.data_source || "live");
+
+    const forward = {
+      slots: slots,
+      environment: {
+        tide: {
+          state: tides.state || null,
+          next_event_type: tides.next_event_type || null,
+          next_event_time: tides.next_event_time || null,
+          height_m: tides.height_m != null ? tides.height_m : null,
+          provenance: tideProv
+        },
+        weather: {
+          wind_speed_kts: wx.wind_speed_kts != null ? wx.wind_speed_kts : null,
+          swell_m: wx.swell_m != null ? wx.swell_m : null,
+          conditions: conditions,
+          provenance: wxProv,
+          threshold_breach: conditions === "Poor"
+        }
+      }
+    };
+
     return {
       port_id: portId,
       port_name: portName,
@@ -4005,7 +4061,7 @@ function _checkCounts(observed,badgeId,label,expected){
       },
       fleet: fleet,
       bookings: bookings,
-      forward: null,
+      forward: forward,
       exceptions: []
     };
   }
