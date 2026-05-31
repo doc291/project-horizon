@@ -3847,6 +3847,34 @@ function _checkCounts(observed,badgeId,label,expected){
     return (_SHIFT_SEV_RANK[a] || 0) >= (_SHIFT_SEV_RANK[b] || 0) ? a : b;
   }
 
+  // T3 — deterministic hash for stable per-tug simulated status assignment.
+  function _shiftHash(s){
+    let h = 0;
+    for(let i = 0; i < s.length; i++){ h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+    return Math.abs(h);
+  }
+
+  // T3 — assign per-tug operational_status. Hash-stable per (portKey, tug_name).
+  // Rule: <3 tugs -> all ON_SHIFT; otherwise lowest-hash MAINTENANCE,
+  // next STANDBY, rest ON_SHIFT. Every tug carries provenance:"simulated".
+  function _assignTugStatus(fleet, portKey){
+    if(fleet.length < 3){
+      fleet.forEach(t => {
+        t.operational_status = "ON_SHIFT";
+        t.operational_status_provenance = "simulated";
+      });
+      return;
+    }
+    const ranked = fleet.map((t, i) => ({i, key: _shiftHash((portKey||"") + ":" + t.tug_name)}))
+                        .sort((a, b) => a.key - b.key);
+    fleet.forEach(t => {
+      t.operational_status = "ON_SHIFT";
+      t.operational_status_provenance = "simulated";
+    });
+    fleet[ranked[0].i].operational_status = "MAINTENANCE";
+    fleet[ranked[1].i].operational_status = "STANDBY";
+  }
+
   // T1: pure data transform — fleet + bookings in window.
   // T2: per-booking confidence rule set (flags + reasons + max severity).
   // T3: tug status simulation. T4: forward shape. T5/T6: exceptions.
@@ -3875,7 +3903,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const vById = {};
     vessels.forEach(v => { if(v && v.id) vById[v.id] = v; });
 
-    // Layer 1 — Fleet (tug status simulation added in T3)
+    // Layer 1 — Fleet
     const fleet = portTugs.map(t => ({
       tug_id: (t.name || "").replace(/\s+/g,"-").toUpperCase(),
       tug_name: t.name || "",
@@ -3884,6 +3912,9 @@ function _checkCounts(observed,badgeId,label,expected){
       operational_status_provenance: null,
       bookings_in_window: 0
     }));
+    // T3 — assign simulated operational_status (hash-stable, port-keyed).
+    // Port key prefers explicit portId, falls back to fingerprint for stability.
+    _assignTugStatus(fleet, portId || portFingerprint);
 
     // Layer 2 — Bookings in window (confidence rules added in T2)
     const bookings = towage.filter(b => {
