@@ -3392,7 +3392,8 @@ function _checkCounts(observed,badgeId,label,expected){
     // Beta 10 header, so the official logo + environment badge are repeated here.
     let html=`<div class="b11-ovbrand"><img src="/logo" alt="Horizon"><span class="env">Horizon Beta 12 Preview</span><span class="within">${esc(meta.label)} lens · a view within Horizon, not a separate product</span></div>`;
     if(_activeRole==="TOWAGE"){
-      html+=`<div class="tmb-simbanner">Morning Brief · real Horizon signals where labelled · illustrative values clearly marked</div>`;
+      // My Shift V1: no simbanner — provenance is carried on each value inline
+      // via b11-simtag / b11-realtag pills inside the shift sections.
     } else {
       html+=`<div class="b11-simbanner">⚠ Simulated stakeholder view · all data on this screen is simulated for demonstration</div>`;
     }
@@ -3788,19 +3789,14 @@ function _checkCounts(observed,badgeId,label,expected){
   function confirmerBody(b,role){
     const ad=b.active_decision;
 
-    // ── TOWAGE: morning brief is the persistent base layer ───────────────────
-    // The brief renders regardless of active_decision. When a decision is active
-    // the execution sections (decision context, required action, coordination
-    // status) are appended below it. Towage guidance is omitted here — the
-    // morning brief already surfaces tug availability and conflict signals.
+    // ── TOWAGE: My Shift V1 — doctrine-aligned five-layer lens ───────────────
+    // Layer 5 exceptions (incl. coordinated_decision when active) appear at
+    // the top of the shift view. Layer 1 fleet, Layer 2+3 jobs with inline
+    // confidence flags, Layer 4 forward shape and environment.
+    // towageMorningBrief / tmbInlineCard remain defined (T10 will remove) but
+    // are no longer called from this branch.
     if(role==="TOWAGE"){
-      const brief=towageMorningBrief(b);
-      if(!b.is_scenario_port||!ad) return brief;
-      // Two-column layout: Morning Brief + coord status (left), inline action card (right).
-      // b11DecisionContext omitted — conflict context is in the inline card.
-      const tLine=ad.required_stakeholders.find(s=>s.role==="TOWAGE")||null;
-      const card=`<div class="tmb-action-inline">${tmbInlineCard(ad,tLine,b)}</div>`;
-      return `<div class="tmb-layout"><div class="tmb-col-main">${brief}${b11CoordStatus(b,"TOWAGE")}</div><div class="tmb-col-action">${card}</div></div>`;
+      return renderTowageShift(buildTowageShift(_last));
     }
 
     // ── All other confirmer roles: existing behaviour unchanged ──────────────
