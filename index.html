@@ -4108,6 +4108,67 @@ function _checkCounts(observed,badgeId,label,expected){
       });
     }
 
+    // T6 — coordinated_decision exception (prepended; highest priority).
+    // Also flags the affected booking(s) with source:'coordinated_decision'
+    // and severity:'critical', so the decision is both an exception above the
+    // shift and a property of the affected job.
+    const activeDecision = beta11.active_decision || null;
+    if(activeDecision){
+      const towStk = (activeDecision.required_stakeholders || [])
+                       .find(s => s.role === "TOWAGE");
+      if(towStk){
+        const oc = conflicts.find(c => c.id === activeDecision.conflict_id);
+        const affectedVids = (oc && oc.vessel_ids) || [];
+        const affectedBookingIds = bookings
+          .filter(b => affectedVids.indexOf(b.vessel_id) >= 0)
+          .map(b => b.booking_id);
+        const pi = activeDecision.predicted_impact || {};
+        const tTerm = activeDecision.decision_state === "SUPERSEDED"
+                   || activeDecision.decision_state === "EXPIRED";
+
+        exceptions.unshift({
+          type: "coordinated_decision",
+          raised_at: activeDecision.issued_at || new Date(now).toISOString(),
+          affects_booking_ids: affectedBookingIds,
+          payload: {
+            decision_id: activeDecision.decision_id,
+            decision_state: activeDecision.decision_state,
+            is_terminal: tTerm,
+            conflict_id: activeDecision.conflict_id,
+            conflict_text: oc ? oc.description
+                              : "A coordinated decision has been issued by the VTSO.",
+            display_name: towStk.display_name,
+            action_label: towStk.action_label,
+            status: towStk.status,
+            flag_reason: towStk.flag_reason || null,
+            predicted_impact: {
+              total_impact_aud: pi.total_impact_aud != null ? pi.total_impact_aud : null,
+              cost_per_hour_aud: pi.cost_per_hour_aud != null ? pi.cost_per_hour_aud : null,
+              headline: pi.headline || null,
+              provenance: "simulated"
+            }
+          }
+        });
+
+        // Mirror the decision as a critical flag on affected bookings.
+        if(affectedVids.length > 0){
+          bookings.forEach(b => {
+            if(affectedVids.indexOf(b.vessel_id) < 0) return;
+            b.flag_reasons.push({
+              source: "coordinated_decision",
+              severity: "critical",
+              description: towStk.action_label,
+              conflict_id: activeDecision.conflict_id,
+              decision_id: activeDecision.decision_id,
+              provenance: "live"
+            });
+            b.flag = true;
+            b.flag_severity = "critical";
+          });
+        }
+      }
+    }
+
     return {
       port_id: portId,
       port_name: portName,
