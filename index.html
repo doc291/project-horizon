@@ -3248,7 +3248,57 @@ function _checkCounts(observed,badgeId,label,expected){
     .tmb-ac-impact{font-size:14px;font-weight:700;color:#c084fc;margin-bottom:2px;}
     .tmb-ac-hint{font-size:11px;color:#64748b;}
     .tmb-ac-btns{display:flex;gap:8px;margin-top:14px;}
-    .tmb-ac-done{font-size:11px;color:#64748b;font-style:italic;margin-top:14px;}`;
+    .tmb-ac-done{font-size:11px;color:#64748b;font-style:italic;margin-top:14px;}
+    /* ── Towage My Shift V1 (T7) — pure renderer scaffolding ── */
+    .tms-shift{font-size:13px;color:#cbd5e1;}
+    .tms-section{margin-bottom:22px;}
+    .tms-section-h{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#7dd3fc;margin:0 0 12px;}
+    .tms-empty{color:#64748b;font-size:12px;padding:12px;font-style:italic;}
+    .tms-exceptions{margin-bottom:22px;display:flex;flex-direction:column;gap:10px;}
+    .tms-ex{padding:12px 16px;border-radius:8px;background:#0d1b2e;border-left:3px solid #f87171;}
+    .tms-ex-coordinated{border-left-color:#f59e0b;background:rgba(245,158,11,.06);}
+    .tms-ex-new-conflict{border-left-color:#fbbf24;}
+    .tms-ex-weather{border-left-color:#7dd3fc;}
+    .tms-ex-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#f59e0b;margin-bottom:8px;}
+    .tms-ex-body{font-size:12px;line-height:1.6;color:#cbd5e1;}
+    .tms-ex-line{margin-bottom:6px;}
+    .tms-ex-k{color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-right:6px;}
+    .tms-ex-btns{display:flex;gap:8px;margin-top:12px;}
+    .tms-ex-done{font-size:11px;color:#64748b;font-style:italic;margin-top:10px;}
+    .tms-ex-meta{font-size:10px;color:#64748b;margin-top:4px;}
+    .tms-fleet-list{display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:8px;}
+    .tms-tug{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px 12px;}
+    .tms-tug-on_shift{border-left:3px solid #34d399;}
+    .tms-tug-standby{border-left:3px solid #fbbf24;}
+    .tms-tug-maintenance{border-left:3px solid #64748b;}
+    .tms-tug-name{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:2px;}
+    .tms-tug-status{font-size:11px;color:#94a3b8;margin-bottom:4px;}
+    .tms-tug-meta{font-size:11px;color:#64748b;}
+    .tms-bookings-list{display:flex;flex-direction:column;gap:8px;}
+    .tms-job{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px 12px;}
+    .tms-job-flagged{border-color:rgba(251,191,36,.4);background:rgba(245,158,11,.04);}
+    .tms-job-flagged.tms-flag-critical{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.04);}
+    .tms-job-hdr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+    .tms-job-time{font-family:monospace;font-size:12px;color:#94a3b8;}
+    .tms-job-vessel{font-size:13px;font-weight:700;color:#e2e8f0;}
+    .tms-job-dir{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;}
+    .tms-job-flag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 7px;border-radius:4px;margin-left:auto;}
+    .tms-flag-pill-critical{background:rgba(239,68,68,.18);color:#fca5a5;}
+    .tms-flag-pill-warning{background:rgba(251,191,36,.18);color:#fbbf24;}
+    .tms-flag-pill-advisory{background:rgba(148,163,184,.18);color:#cbd5e1;}
+    .tms-job-tugs{font-size:11px;color:#94a3b8;margin-bottom:6px;}
+    .tms-job-reasons{font-size:11px;color:#cbd5e1;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.05);}
+    .tms-job-reason{margin-bottom:3px;line-height:1.5;}
+    .tms-reason-sev{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-right:6px;}
+    .tms-slots{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+    .tms-slot{display:flex;align-items:center;gap:14px;padding:6px 10px;background:rgba(255,255,255,.02);border-radius:6px;font-size:11px;}
+    .tms-slot-at-cap{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.25);}
+    .tms-slot-time{font-family:monospace;color:#94a3b8;min-width:110px;}
+    .tms-slot-jobs{color:#cbd5e1;min-width:64px;}
+    .tms-slot-cap{color:#94a3b8;}
+    .tms-slot-marker{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#fca5a5;margin-left:auto;}
+    .tms-env{font-size:11px;color:#94a3b8;display:flex;flex-direction:column;gap:4px;}
+    .tms-env-row{padding:4px 0;}`;
     const st=document.createElement("style"); st.id="b11-css"; st.textContent=css; document.head.appendChild(st);
   }
 
@@ -4183,6 +4233,233 @@ function _checkCounts(observed,badgeId,label,expected){
       forward: forward,
       exceptions: exceptions
     };
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // T7 — renderTowageShift(shift) -> HTML string.
+  // Pure function. Consumes only the shift object from buildTowageShift.
+  // Operator-native vocabulary. No Horizon-as-actor phrasing.
+  // No "Morning Brief", "What changed", "Recommended review",
+  // "Horizon disruption signal", or "Commercial consequence".
+  // No standalone at-risk job list. No commercial figures.
+  // NOT YET WIRED. Existing Morning Brief render path is unaffected.
+  // ════════════════════════════════════════════════════════════════════════
+
+  function _tmsStatusLabel(s){
+    switch(s){
+      case "ON_SHIFT":    return "On shift";
+      case "STANDBY":     return "Standby";
+      case "MAINTENANCE": return "Maintenance";
+      case "OFF_SHIFT":   return "Off shift";
+      default:            return s || "—";
+    }
+  }
+
+  function _tmsRenderTugs(t){
+    return (t||[]).map(x => esc(x.tug_name||"")).filter(Boolean).join(", ") || "—";
+  }
+
+  function _tmsRenderFleet(shift){
+    const fleet = shift.fleet || [];
+    let h = `<div class="tms-section"><h3 class="tms-section-h">My fleet</h3>`;
+    if(fleet.length === 0){
+      h += `<div class="tms-empty">No tugs registered for this port.</div></div>`;
+      return h;
+    }
+    h += `<div class="tms-fleet-list">`;
+    fleet.forEach(t => {
+      const cls = "tms-tug-" + (t.operational_status||"unknown").toLowerCase();
+      const prov = t.operational_status_provenance === "simulated"
+        ? ` <span class="b11-simtag">simulated</span>` : "";
+      h += `<div class="tms-tug ${cls}">`;
+      h += `<div class="tms-tug-name">${esc(t.tug_name)}</div>`;
+      h += `<div class="tms-tug-status">${esc(_tmsStatusLabel(t.operational_status))}${prov}</div>`;
+      h += `<div class="tms-tug-meta">`;
+      if(t.bollard_pull_t != null) h += `${esc(String(t.bollard_pull_t))} t bollard pull · `;
+      h += `${t.bookings_in_window} job${t.bookings_in_window===1?"":"s"} this shift`;
+      h += `</div></div>`;
+    });
+    h += `</div></div>`;
+    return h;
+  }
+
+  function _tmsRenderBooking(bk){
+    const flagged = !!bk.flag;
+    const sev = bk.flag_severity || "";
+    const cls = flagged ? `tms-job-flagged tms-flag-${sev}` : "";
+    const timeStr = bk.scheduled_time ? fmtTs(bk.scheduled_time) : "—";
+    let h = `<div class="tms-job ${cls}">`;
+    h += `<div class="tms-job-hdr">`;
+    h += `<span class="tms-job-time">${esc(timeStr)}</span>`;
+    h += `<span class="tms-job-vessel">${esc(bk.vessel_name||"")}</span>`;
+    h += `<span class="tms-job-dir">${esc(bk.direction||"")}</span>`;
+    if(flagged) h += `<span class="tms-job-flag tms-flag-pill-${sev}">${esc(sev)}</span>`;
+    h += `</div>`;
+    h += `<div class="tms-job-tugs">Tugs: ${_tmsRenderTugs(bk.tugs_assigned)}</div>`;
+    if(flagged && (bk.flag_reasons||[]).length){
+      h += `<div class="tms-job-reasons">`;
+      bk.flag_reasons.forEach(r => {
+        h += `<div class="tms-job-reason">`;
+        h += `<span class="tms-reason-sev">${esc(r.severity||"")}</span>`;
+        h += `<span class="tms-reason-desc">${esc(r.description||"")}</span>`;
+        if(r.provenance && r.provenance !== "live"){
+          h += ` <span class="b11-simtag">${esc(r.provenance)}</span>`;
+        }
+        h += `</div>`;
+      });
+      h += `</div>`;
+    }
+    h += `</div>`;
+    return h;
+  }
+
+  function _tmsRenderJobs(shift){
+    const bookings = shift.bookings || [];
+    let h = `<div class="tms-section"><h3 class="tms-section-h">My jobs</h3>`;
+    if(bookings.length === 0){
+      h += `<div class="tms-empty">No jobs scheduled for the current shift.</div></div>`;
+      return h;
+    }
+    h += `<div class="tms-bookings-list">`;
+    bookings.forEach(bk => { h += _tmsRenderBooking(bk); });
+    h += `</div></div>`;
+    return h;
+  }
+
+  function _tmsRenderShiftLoad(shift){
+    const fwd = shift.forward || {};
+    const slots = fwd.slots || [];
+    const env = fwd.environment || {};
+    let h = `<div class="tms-section"><h3 class="tms-section-h">Next 12 hours</h3>`;
+    if(slots.length === 0){
+      h += `<div class="tms-empty">No forward window data available.</div>`;
+    } else {
+      h += `<div class="tms-slots">`;
+      const p = n => String(n).padStart(2,"0");
+      slots.forEach(slot => {
+        const hs = new Date(slot.start), he = new Date(slot.end);
+        const label = `${p(hs.getHours())}:00–${p(he.getHours())}:00`;
+        const cls = slot.at_capacity ? "tms-slot-at-cap" : "";
+        h += `<div class="tms-slot ${cls}">`;
+        h += `<span class="tms-slot-time">${esc(label)}</span>`;
+        h += `<span class="tms-slot-jobs">${slot.demand_jobs} job${slot.demand_jobs===1?"":"s"}</span>`;
+        h += `<span class="tms-slot-cap">${slot.demand_tugs} / ${slot.capacity_tugs} tugs</span>`;
+        if(slot.at_capacity) h += `<span class="tms-slot-marker">at capacity</span>`;
+        h += `</div>`;
+      });
+      h += `</div>`;
+    }
+    // Environment context — tide & weather as a property of the day, not a signal feed
+    const t = env.tide || {}, w = env.weather || {};
+    h += `<div class="tms-env">`;
+    if(t.state){
+      const ne = t.next_event_type
+        ? `, next ${esc(t.next_event_type)} at ${esc(fmtTs(t.next_event_time))}`
+        : "";
+      const tp = t.provenance === "live_bom"
+        ? `<span class="b11-realtag">live BOM</span>`
+        : `<span class="b11-simtag">${esc(t.provenance||"simulated")}</span>`;
+      h += `<div class="tms-env-row">Tide: ${esc(t.state)}${ne} ${tp}</div>`;
+    }
+    if(w.conditions || w.wind_speed_kts != null){
+      const parts = [];
+      if(w.wind_speed_kts != null) parts.push(`wind ${Math.round(w.wind_speed_kts)} kts`);
+      if(w.swell_m != null)        parts.push(`swell ${w.swell_m}m`);
+      if(w.conditions)             parts.push(w.conditions);
+      const wp = w.provenance === "live"
+        ? `<span class="b11-realtag">live</span>`
+        : `<span class="b11-simtag">${esc(w.provenance||"simulated")}</span>`;
+      h += `<div class="tms-env-row">Conditions: ${esc(parts.join(" · "))} ${wp}</div>`;
+    }
+    h += `</div></div>`;
+    return h;
+  }
+
+  function _tmsRenderCoordinatedDecision(ex, bkById){
+    const p = ex.payload || {};
+    const affected = (ex.affects_booking_ids||[])
+      .map(id => (bkById[id]||{}).vessel_name).filter(Boolean);
+    let h = `<div class="tms-ex tms-ex-coordinated">`;
+    h += `<div class="tms-ex-label">Coordinated action required</div>`;
+    h += `<div class="tms-ex-body">`;
+    if(affected.length){
+      h += `<div class="tms-ex-line"><span class="tms-ex-k">Affects</span> ${esc(affected.join(", "))}</div>`;
+    }
+    if(p.conflict_text){
+      h += `<div class="tms-ex-line"><span class="tms-ex-k">Conflict</span> ${esc(p.conflict_text)}</div>`;
+    }
+    h += `<div class="tms-ex-line"><span class="tms-ex-k">Action</span> <strong>${esc(p.action_label||"")}</strong></div>`;
+    h += `<div class="tms-ex-line"><span class="tms-ex-k">Status</span> <span class="b11-stk-status b11-${esc(p.status||"")}">${esc(p.status||"")}</span>`;
+    if(p.flag_reason) h += ` <span style="color:#fbbf24">flag: ${esc(p.flag_reason)}</span>`;
+    h += `</div>`;
+    if(!p.is_terminal){
+      h += `<div class="tms-ex-btns">`;
+      h += `<button class="b11-btn" id="tms-ack-btn"${p.status==="ACKNOWLEDGED"?" disabled":""}>Acknowledge</button>`;
+      h += `<button class="b11-btn ghost" id="tms-flag-btn">Flag concern</button>`;
+      h += `</div>`;
+    } else {
+      h += `<div class="tms-ex-done">This decision is ${esc((p.decision_state||"").toLowerCase())}. No further action required.</div>`;
+    }
+    h += `</div></div>`;
+    return h;
+  }
+
+  function _tmsRenderNewConflict(ex, bkById){
+    const p = ex.payload || {};
+    const affected = (ex.affects_booking_ids||[])
+      .map(id => (bkById[id]||{}).vessel_name).filter(Boolean);
+    let h = `<div class="tms-ex tms-ex-new-conflict">`;
+    h += `<div class="tms-ex-label">New conflict</div>`;
+    h += `<div class="tms-ex-body">`;
+    if(affected.length){
+      h += `<div class="tms-ex-line"><span class="tms-ex-k">Affects</span> ${esc(affected.join(", "))}</div>`;
+    }
+    h += `<div class="tms-ex-line">${esc(p.description||"")}</div>`;
+    const prov = p.provenance === "live"
+      ? `<span class="b11-realtag">live</span>`
+      : `<span class="b11-simtag">${esc(p.provenance||"simulated")}</span>`;
+    h += `<div class="tms-ex-meta">${prov}</div>`;
+    h += `</div></div>`;
+    return h;
+  }
+
+  function _tmsRenderWeather(ex){
+    const p = ex.payload || {};
+    let h = `<div class="tms-ex tms-ex-weather">`;
+    h += `<div class="tms-ex-label">Conditions deteriorating</div>`;
+    h += `<div class="tms-ex-body">`;
+    const bits = [];
+    if(p.conditions)            bits.push(p.conditions);
+    if(p.wind_speed_kts != null) bits.push(`wind ${Math.round(p.wind_speed_kts)} kts`);
+    if(p.swell_m != null)        bits.push(`swell ${p.swell_m}m`);
+    h += `<div class="tms-ex-line">${esc(bits.join(" · "))}</div>`;
+    h += `</div></div>`;
+    return h;
+  }
+
+  function _tmsRenderExceptions(exceptions, shift){
+    if(!exceptions || exceptions.length === 0) return "";
+    const bkById = {};
+    (shift.bookings||[]).forEach(b => { bkById[b.booking_id] = b; });
+    let h = `<div class="tms-exceptions">`;
+    exceptions.forEach(ex => {
+      if(ex.type === "coordinated_decision")     h += _tmsRenderCoordinatedDecision(ex, bkById);
+      else if(ex.type === "new_conflict")        h += _tmsRenderNewConflict(ex, bkById);
+      else if(ex.type === "weather_threshold")   h += _tmsRenderWeather(ex);
+    });
+    h += `</div>`;
+    return h;
+  }
+
+  function renderTowageShift(shift){
+    const s = shift || {};
+    let h = `<div class="tms-shift">`;
+    h += _tmsRenderExceptions(s.exceptions || [], s);   // Layer 5 — interrupt above
+    h += _tmsRenderFleet(s);                             // Layer 1
+    h += _tmsRenderJobs(s);                              // Layer 2 + Layer 3 (flags on jobs)
+    h += _tmsRenderShiftLoad(s);                         // Layer 4
+    h += `</div>`;
+    return h;
   }
 
   function onData(d){
