@@ -3336,7 +3336,13 @@ function _checkCounts(observed,badgeId,label,expected){
     const tone=ROLE_TONES[meta.tone]||"#94a3b8";
     // Horizon branding stays visible in every lens: the overlay covers the
     // Beta 10 header, so the official logo + environment badge are repeated here.
-    let html=`<div class="b11-ovbrand"><img src="/logo" alt="Horizon"><span class="env">Horizon Beta 12 Preview</span><span class="within">${esc(meta.label)} lens · a view within Horizon, not a separate product</span></div>`;
+    // Overlay branding: environment label + role label only. Other roles retain
+    // the existing "a view within Horizon" framing; TOWAGE lens is doctrine-strict
+    // (environment labelling only, no product positioning).
+    const _withinText = (_activeRole==="TOWAGE")
+      ? `${esc(meta.label)} lens`
+      : `${esc(meta.label)} lens · a view within Horizon, not a separate product`;
+    let html=`<div class="b11-ovbrand"><img src="/logo" alt="Horizon"><span class="env">Horizon Beta 12 Preview</span><span class="within">${_withinText}</span></div>`;
     if(_activeRole==="TOWAGE"){
       // My Shift V1: no simbanner — provenance is carried on each value inline
       // via b11-simtag / b11-realtag pills inside the shift sections.
@@ -3365,12 +3371,10 @@ function _checkCounts(observed,badgeId,label,expected){
 
   // Per-role operational context shown when no decision is active, so a lens is
   // never a blank page. All illustrative / simulated.
+  // ROLE_CONTEXT supplies the no-decision standing context for non-TOWAGE roles.
+  // TOWAGE has its own doctrine-aligned shift view (renderTowageShift) and does
+  // not consume this map.
   const ROLE_CONTEXT={
-    TOWAGE:{title:"Towage operations · standing context",items:[
-      "Your tugs and crews on shift for the Melbourne river and bay.",
-      "Forward vessel demand window where tug support will be requested.",
-      "Any double-booking risk Horizon is watching across the timeline."],
-      await_:"Standing by. When the VTSO issues a coordinated decision needing a tug change, it will appear here for you to acknowledge or flag."},
     PILOTAGE:{title:"Pilotage operations · standing context",items:[
       "Pilots on roster against the forward arrival and departure timeline.",
       "Tide and under-keel windows that constrain transit timing.",
@@ -3443,18 +3447,9 @@ function _checkCounts(observed,badgeId,label,expected){
     const ps=d.port_status||{};
     let items=[];
     let realNote="";
-    if(role==="TOWAGE"){
-      // REAL: tug double-booking signals (towage_resource conflicts) + tug count.
-      const dbl=(d.conflicts||[]).filter(c=>c.conflict_type==="towage_resource");
-      items.push(`<li><strong>Tug availability:</strong> ${ps.tugs_available!=null?ps.tugs_available+" tugs available":"—"} <span class="b11-realtag">live</span></li>`);
-      if(dbl.length){
-        items.push(`<li><strong>Double-booking watch (${dbl.length}):</strong> <span class="b11-realtag">live</span><ul>`+
-          dbl.slice(0,3).map(c=>`<li>${esc(c.description)}</li>`).join("")+`</ul></li>`);
-      } else {
-        items.push(`<li><strong>Double-booking watch:</strong> none flagged <span class="b11-realtag">live</span></li>`);
-      }
-      items.push(`<li><strong>Standby utilisation:</strong> within normal range <span class="b11-simtag">simulated</span></li>`);
-    } else if(role==="PILOTAGE"){
+    // TOWAGE no longer reaches this function — confirmerBody returns early
+    // via renderTowageShift. PILOTAGE / TERMINAL branches retained below.
+    if(role==="PILOTAGE"){
       // REAL: tide window (BOM), arrival UKC, pilotage_window short-notice, pilot count.
       const t=d.tides||{};
       const auk=d.arrival_ukc||{};
