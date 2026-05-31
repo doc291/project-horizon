@@ -279,3 +279,68 @@ class TestMigration:
         assert set(ns["_DECISION_STATES"]) == set(b11.DECISION_STATES)
         assert set(ns["_CONFIRMER_ROLES"]) == set(b11.CONFIRMER_ROLES)
         assert set(ns["_STAKEHOLDER_STATUSES"]) == set(b11.STAKEHOLDER_STATUSES)
+
+
+# ── Database backend cross-process convergence ──────────────────────────────
+# These run only when DATABASE_URL points at a Postgres with the beta11 schema
+# (migration 0005 applied). They are skipped in the default no-database posture,
+# mirroring how the audit suite gates its DB tests. They prove the Phase 1.5
+# read gap is closed: two independent _DbBackend instances (standing in for two
+# processes) converge through Postgres, not through any shared in-process state.
+import os as _os
+
+_DB = _os.environ.get("DATABASE_URL", "").strip()
+_dbskip = pytest.mark.skipif(not _DB, reason="DATABASE_URL not set; DB backend not exercised")
+
+
+@_dbskip
+class TestDatabaseBackendCrossProcess:
+    def _two_backends(self):
+        # Each instance shares no Python state; only Postgres connects them.
+        a = b11._DbBackend()
+        b = b11._DbBackend()
+        a.reset()  # clean slate in the DB
+        return a, b
+
+    def test_second_instance_sees_issued_decision(self):
+        a, b = self._two_backends()
+        d = a.issue("CONF-T1", "O-1",
+                    b11._normalise_stakeholders([{"role": "TOWAGE", "action_label": "x"}]),
+                    None, None)
+        assert b.get(d["decision_id"]) is not None
+        assert "CONF-T1" in b.all_active()
+
+    def test_independent_acks_converge_to_confirmed(self):
+        a, b = self._two_backends()
+        d = a.issue("CONF-T2", "O-1", b11._normalise_stakeholders([
+            {"role": "TOWAGE", "action_label": "x"},
+            {"role": "PILOTAGE", "action_label": "y"},
+        ]), None, None)
+        did = d["decision_id"]
+        b.act(did, "TOWAGE", "acknowledge", "tug", None)
+        a.act(did, "PILOTAGE", "acknowledge", "pilot", None)
+        assert a.get(did)["decision_state"] == b11.STATE_CONFIRMED
+        assert b.get(did)["decision_state"] == b11.STATE_CONFIRMED
+
+    def test_flag_persists_and_does_not_confirm_cross_instance(self):
+        a, b = self._two_backends()
+        d = a.issue("CONF-T3", "O-1", b11._normalise_stakeholders([
+            {"role": "TOWAGE", "action_label": "x"},
+            {"role": "TERMINAL", "action_label": "y"},
+        ]), None, None)
+        did = d["decision_id"]
+        a.act(did, "TOWAGE", "acknowledge", "tug", None)
+        b.act(did, "TERMINAL", "flag", "term", "crane down")
+        view = a.get(did)
+        assert view["decision_state"] == b11.STATE_PROPAGATED
+        term = next(s for s in view["required_stakeholders"] if s["role"] == "TERMINAL")
+        assert term["status"] == b11.ST_FLAGGED and term["flag_reason"] == "crane down"
+
+    def test_supersede_removes_from_active_cross_instance(self):
+        a, b = self._two_backends()
+        d = a.issue("CONF-T4", "O-1",
+                    b11._normalise_stakeholders([{"role": "TOWAGE", "action_label": "x"}]),
+                    None, None)
+        a.supersede(d["decision_id"], "O-1")
+        assert "CONF-T4" not in b.all_active()
+        assert b.get(d["decision_id"])["decision_state"] == b11.STATE_SUPERSEDED
