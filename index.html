@@ -3125,9 +3125,14 @@ function _checkCounts(observed,badgeId,label,expected){
     if(document.getElementById("b11-css"))return;
     const css=`
     #b11-bar{display:flex;align-items:center;gap:8px;padding:6px 14px;background:#0a1422;border-bottom:1px solid rgba(56,189,248,.25);font-size:12px;}
+    #b11-bar .b11-brand{height:22px;width:auto;margin-right:2px;}
     #b11-bar .b11-title{font-weight:700;letter-spacing:.6px;color:#38bdf8;text-transform:uppercase;font-size:11px;}
     #b11-bar select{background:rgba(255,255,255,.05);border:1px solid rgba(56,189,248,.3);color:#e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px;}
     #b11-bar .b11-blurb{color:#64748b;font-size:11px;margin-left:4px;}
+    .b11-ovbrand{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(56,189,248,.15);}
+    .b11-ovbrand img{height:30px;width:auto;}
+    .b11-ovbrand .env{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#38bdf8;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.35);border-radius:5px;padding:3px 8px;}
+    .b11-ovbrand .within{font-size:11px;color:#64748b;margin-left:auto;}
     #b11-overlay{position:fixed;inset:0;z-index:9000;background:#070f1e;overflow:auto;display:none;}
     #b11-overlay.show{display:block;}
     .b11-wrap{max-width:1100px;margin:0 auto;padding:18px 22px 60px;}
@@ -3167,11 +3172,28 @@ function _checkCounts(observed,badgeId,label,expected){
     const st=document.createElement("style"); st.id="b11-css"; st.textContent=css; document.head.appendChild(st);
   }
 
+  // Relabel the shared header badge at runtime. Stores the original text once so
+  // it can be restored if the module is ever torn down, keeping Beta 10 intact.
+  let _origBadge=null;
+  function setBadge(text){
+    const el=document.querySelector(".logo-badge"); if(!el)return;
+    if(_origBadge===null)_origBadge=el.textContent;
+    el.textContent=text;
+    el.title="Horizon Beta 11 Preview environment";
+  }
+  function restoreBadge(){
+    const el=document.querySelector(".logo-badge");
+    if(el&&_origBadge!==null){el.textContent=_origBadge;el.removeAttribute("title");}
+  }
+
   function buildShell(b){
     injectCSS();
     const bar=document.createElement("div"); bar.id="b11-bar";
     const opts=(b.roles||[]).map(r=>`<option value="${esc(r.id)}">${esc(r.label)}</option>`).join("");
-    bar.innerHTML=`<span class="b11-title">Beta 11 · Role view</span><select id="b11-role">${opts}</select><span class="b11-blurb" id="b11-blurb"></span>`;
+    bar.innerHTML=`<img src="/logo" class="b11-brand" alt="Horizon"><span class="b11-title">Horizon Beta 11 · Role view</span><select id="b11-role">${opts}</select><span class="b11-blurb" id="b11-blurb"></span>`;
+    // Governance: relabel the SHARED Beta 10 badge at runtime only (never edit
+    // the static markup, which must stay byte identical when the flag is off).
+    setBadge("Horizon Beta 11 Preview");
     const hdr=document.querySelector("header");
     if(hdr&&hdr.parentNode){hdr.parentNode.insertBefore(bar,hdr.nextSibling);}else{document.body.insertBefore(bar,document.body.firstChild);}
     const ov=document.createElement("div"); ov.id="b11-overlay"; ov.innerHTML=`<div class="b11-wrap" id="b11-wrap"></div>`;
@@ -3225,7 +3247,10 @@ function _checkCounts(observed,badgeId,label,expected){
     hideVtsoStrip();
     const meta=(b.roles||[]).find(r=>r.id===_activeRole)||{label:_activeRole,tone:"assurance",blurb:""};
     const tone=ROLE_TONES[meta.tone]||"#94a3b8";
-    let html=`<div class="b11-simbanner">⚠ Simulated stakeholder view · all data on this screen is simulated for demonstration</div>`;
+    // Horizon branding stays visible in every lens: the overlay covers the
+    // Beta 10 header, so the official logo + environment badge are repeated here.
+    let html=`<div class="b11-ovbrand"><img src="/logo" alt="Horizon"><span class="env">Horizon Beta 11 Preview</span><span class="within">${esc(meta.label)} lens · a view within Horizon, not a separate product</span></div>`;
+    html+=`<div class="b11-simbanner">⚠ Simulated stakeholder view · all data on this screen is simulated for demonstration</div>`;
     html+=`<div class="b11-rolehdr"><span class="dot" style="background:${tone}"></span><h2>${esc(meta.label)}</h2></div>`;
     html+=`<div class="b11-rolesub">${esc(meta.blurb)}</div>`;
     html+=(_activeRole==="ASSURANCE")?assuranceBody(b):confirmerBody(b,_activeRole);
