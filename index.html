@@ -3195,60 +3195,6 @@ function _checkCounts(observed,badgeId,label,expected){
     .b11-glist{margin:0;padding-left:18px;}
     .b11-glist li{font-size:12px;color:#cbd5e1;line-height:1.7;margin-bottom:4px;}
     .b11-glist ul{margin:4px 0;}
-    /* ── Towage Morning Brief ── */
-    .tmb-brief-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(245,158,11,.2);}
-    .tmb-brief-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#f59e0b;}
-    .tmb-brief-time{font-size:10px;color:#475569;}
-    .tmb-headline-card{border-color:rgba(245,158,11,.3);}
-    .tmb-hl-alert{border-color:rgba(239,68,68,.5)!important;background:rgba(239,68,68,.06)!important;}
-    .tmb-hl-info{border-color:rgba(245,158,11,.5)!important;background:rgba(245,158,11,.06)!important;}
-    .tmb-hl-clear{border-color:rgba(52,211,153,.3)!important;background:rgba(52,211,153,.04)!important;}
-    .tmb-hl-text{font-size:20px;font-weight:800;color:#e2e8f0;line-height:1.3;margin-bottom:6px;}
-    .tmb-hl-sub{font-size:12px;color:#94a3b8;}
-    .tmb-changed-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);}
-    .tmb-changed-item:last-child{border-bottom:none;}
-    .tmb-changed-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
-    .tmb-changed-body{flex:1;}
-    .tmb-changed-text{font-size:13px;color:#e2e8f0;font-weight:500;}
-    .tmb-changed-detail{font-size:11px;color:#64748b;margin-top:3px;}
-    .tmb-fleet-label{font-size:11px;color:#64748b;margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;}
-    .tmb-demand-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
-    .tmb-demand-label{font-size:11px;color:#94a3b8;width:90px;flex-shrink:0;font-family:monospace;}
-    .tmb-demand-bar{flex:1;height:8px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden;}
-    .tmb-demand-fill{height:100%;background:#f59e0b;border-radius:4px;}
-    .tmb-demand-fill.tmb-at-cap{background:#ef4444;}
-    .tmb-demand-count{font-size:11px;color:#94a3b8;width:36px;text-align:right;flex-shrink:0;}
-    .tmb-demand-count.tmb-at-cap{color:#fca5a5;font-weight:700;}
-    .tmb-risk-card{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:12px 14px;margin-bottom:8px;}
-    .tmb-risk-card:last-child{margin-bottom:0;}
-    .tmb-risk-vessels{font-size:13px;font-weight:700;color:#fca5a5;margin-bottom:4px;}
-    .tmb-risk-desc{font-size:12px;color:#cbd5e1;line-height:1.5;}
-    .tmb-risk-meta{font-size:10px;color:#64748b;margin-top:6px;}
-    .tmb-cost-row{display:flex;gap:28px;margin-bottom:10px;flex-wrap:wrap;}
-    .tmb-cost-value{font-size:22px;font-weight:800;color:#c084fc;margin-bottom:3px;}
-    .tmb-cost-value.tmb-cost-alert{color:#f87171;}
-    .tmb-cost-desc{font-size:11px;color:#64748b;max-width:200px;line-height:1.4;}
-    .tmb-cost-note{font-size:10px;color:#475569;font-style:italic;margin-top:4px;}
-    .tmb-rec-card{border-color:rgba(245,158,11,.4)!important;background:rgba(245,158,11,.04)!important;}
-    .tmb-rec-text{font-size:14px;color:#fbbf24;font-weight:600;line-height:1.5;}
-    .tmb-simbanner{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);color:#fbbf24;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;letter-spacing:.4px;margin-bottom:16px;}
-    /* ── Towage two-column layout (active decision) ── */
-    .tmb-layout{display:flex;gap:20px;align-items:flex-start;}
-    .tmb-col-main{flex:1;min-width:0;}
-    .tmb-col-action{width:340px;flex-shrink:0;}
-    .tmb-action-inline{background:#0d1b2e;border:1px solid rgba(245,158,11,.6);border-radius:12px;padding:16px 18px;box-shadow:0 4px 24px rgba(0,0,0,.5);position:sticky;top:16px;}
-    @media(max-width:860px){.tmb-layout{flex-direction:column;}.tmb-col-action{width:100%;order:-1;}.tmb-action-inline{position:static;}}
-    /* ── Towage action card section styles ── */
-    .tmb-ac-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(245,158,11,.25);}
-    .tmb-ac-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#f59e0b;}
-    .tmb-ac-time{font-size:10px;color:#475569;margin-top:1px;}
-    .tmb-ac-section{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.04);}
-    .tmb-ac-key{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#475569;margin-bottom:3px;}
-    .tmb-ac-val{font-size:12px;color:#cbd5e1;line-height:1.5;}
-    .tmb-ac-impact{font-size:14px;font-weight:700;color:#c084fc;margin-bottom:2px;}
-    .tmb-ac-hint{font-size:11px;color:#64748b;}
-    .tmb-ac-btns{display:flex;gap:8px;margin-top:14px;}
-    .tmb-ac-done{font-size:11px;color:#64748b;font-style:italic;margin-top:14px;}
     /* ── Towage My Shift V1 (T7) — pure renderer scaffolding ── */
     .tms-shift{font-size:13px;color:#cbd5e1;}
     .tms-section{margin-bottom:22px;}
@@ -3346,7 +3292,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const meta=(_last&&_last.beta11&&(_last.beta11.roles||[]).find(r=>r.id===role))||null;
     const blurb=document.getElementById("b11-blurb"); if(blurb)blurb.textContent=meta?meta.blurb:"";
     const ret=document.getElementById("b11-return");
-    if(role==="VTSO"){ ov.classList.remove("show"); if(ret)ret.classList.remove("show"); hideTmbActionCard(); renderVtsoPanel(); }
+    if(role==="VTSO"){ ov.classList.remove("show"); if(ret)ret.classList.remove("show"); renderVtsoPanel(); }
     else { ov.classList.add("show"); if(ret)ret.classList.add("show"); renderOverlay(); }
   }
 
@@ -3402,8 +3348,6 @@ function _checkCounts(observed,badgeId,label,expected){
     html+=(_activeRole==="ASSURANCE")?assuranceBody(b):confirmerBody(b,_activeRole);
     wrap.innerHTML=html;
     const ad=b.active_decision;
-    // Safety: clear any stale fixed-position floating card from prior renders.
-    hideTmbActionCard();
     if(_activeRole==="TOWAGE"){
       // My Shift V1: Ack / Flag concern buttons live inside the
       // coordinated_decision exception payload at the top of the shift view
@@ -3547,247 +3491,6 @@ function _checkCounts(observed,badgeId,label,expected){
     return `<div class="b11-card"><h3>What value you get · ${esc(role.toLowerCase())} guidance</h3><ul class="b11-glist">`+items.join("")+`</ul></div>`;
   }
 
-  function towageMorningBrief(b){
-    const d=_last||{};
-    const towage=d.towage||[];
-    const allConf=d.conflicts||[];
-    const ps=d.port_status||{};
-    const portTugs=d.port_tugs||[];
-    const tides=d.tides||{};
-    const weather=d.weather||{};
-
-    const now=Date.now();
-    const H12=12*3600*1000;
-
-    // Real Horizon signals
-    const towConf=allConf.filter(c=>c.conflict_type==="towage_resource");
-    const etaVar=allConf.filter(c=>c.conflict_type==="eta_variance");
-
-    // Jobs in next 12 hours (include up to 1h in the past to catch in-progress)
-    const jobs12h=towage.filter(t=>{
-      try{const s=new Date(t.scheduled_time).getTime();return s>=now-3600000&&s<=now+H12;}catch(e){return false;}
-    });
-
-    const fleetSize=portTugs.length||ps.tugs_available||4;
-    const atRiskVids=new Set(towConf.flatMap(c=>c.vessel_ids||[]));
-    const atRiskCount=towConf.length;
-
-    // ── 1. HEADLINE ─────────────────────────────────────────────────────────
-    let hlText,hlSub,hlCls;
-    if(atRiskCount>0){
-      hlText=`${atRiskCount} tug conflict${atRiskCount>1?"s":""} active · ${jobs12h.length} job${jobs12h.length!==1?"s":""} in window`;
-      hlSub="Tug double-booking detected. Review required before operations proceed.";
-      hlCls="tmb-hl-alert";
-    } else if(jobs12h.length>0){
-      hlText=`${jobs12h.length} tug job${jobs12h.length!==1?"s":""} scheduled — no conflicts detected`;
-      hlSub="Forward demand within fleet capacity. No immediate action required.";
-      hlCls="tmb-hl-info";
-    } else {
-      hlText="No towage jobs in the next 12 hours";
-      hlSub="Port is quiet for the current window.";
-      hlCls="tmb-hl-clear";
-    }
-
-    // ── 2. WHAT CHANGED ──────────────────────────────────────────────────────
-    const changed=[];
-    if(towConf.length>0){
-      changed.push({icon:"⚡",
-        text:`${towConf.length} tug double-booking signal${towConf.length>1?"s":""} detected by Horizon`,
-        tag:"live",
-        detail:towConf.length>1?"Multiple tug assignments overlap across the forward window.":"One tug is assigned to two overlapping operations."});
-    }
-    if(etaVar.length>0){
-      const ns=etaVar.slice(0,2).map(c=>esc((c.vessel_names||[])[0]||"vessel")).join(", ");
-      changed.push({icon:"⏱",
-        text:`ETA variance on ${ns}${etaVar.length>2?` +${etaVar.length-2} more`:""}`,
-        tag:"live",
-        detail:"Tug scheduling window may need to shift with revised arrival timing."});
-    }
-    if(tides.state){
-      const te=tides.next_event_type?`, next ${tides.next_event_type} at ${fmtTs(tides.next_event_time)}`:"";
-      changed.push({icon:"🌊",
-        text:`Tide: ${tides.state}${te}`,
-        tag:"live BOM",
-        detail:"Tidal window constrains heavy-laden vessel timing and tug positioning."});
-    }
-    if(weather.wind_speed_kts!=null&&weather.wind_speed_kts>12){
-      changed.push({icon:"💨",
-        text:`Wind ${Math.round(weather.wind_speed_kts)} kts · ${weather.conditions||"check conditions"}`,
-        tag:"live weather",
-        detail:"Wind above threshold may affect tug deployment on large vessels."});
-    }
-    if(changed.length===0){
-      changed.push({icon:"✓",text:"No significant changes to the forward towage picture",tag:null,detail:""});
-    }
-
-    // ── 3. DEMAND PRESSURE (2-hour slots, derived from towage schedule) ──────
-    const slots=[];
-    for(let i=0;i<6;i++){
-      const s0=now+i*2*3600*1000,s1=s0+2*3600*1000;
-      const sj=jobs12h.filter(t=>{try{const x=new Date(t.scheduled_time).getTime();return x>=s0&&x<s1;}catch(e){return false;}});
-      const dem=sj.reduce((a,t)=>a+(t.tugs?t.tugs.length:1),0);
-      const h0=new Date(s0).getHours(),h1=new Date(s1).getHours();
-      const p=n=>String(n).padStart(2,"0");
-      slots.push({label:`${p(h0)}:00–${p(h1)}:00`,demand:dem,jobs:sj.length});
-    }
-    const peak=Math.max(...slots.map(s=>s.demand),0);
-    const maxBar=Math.max(fleetSize,peak,1);
-
-    // ── 4. COMMERCIAL CONSEQUENCE (illustrative, labelled) ───────────────────
-    const STANDBY_RATE=25000;
-    const DISRUPTION=650000;
-
-    // ── 5. RECOMMENDATION ────────────────────────────────────────────────────
-    let rec;
-    if(towConf.length>0){
-      const atRiskJobs=jobs12h.filter(j=>atRiskVids.has(j.vessel_id));
-      atRiskJobs.sort((a,z)=>new Date(a.scheduled_time)-new Date(z.scheduled_time));
-      if(atRiskJobs.length>0){
-        const fj=atRiskJobs[0];
-        rec=`Review tug allocation for ${esc(fj.vessel_name)} · ${esc(fj.direction)} scheduled ~${fmtTs(fj.scheduled_time)} — double-booking signal requires resolution before operations commence`;
-      } else {
-        rec=`Review tug allocation · ${towConf.length} double-booking signal${towConf.length>1?"s":""} require attention before operations commence`;
-      }
-    } else if(peak>=fleetSize&&fleetSize>0){
-      const pk=slots.find(s=>s.demand===peak);
-      rec=`Fleet at capacity during ${pk?pk.label:"peak window"} — verify standby tug availability with the tug operator before the window opens`;
-    } else {
-      rec="No immediate action required · current plan covers the forward demand window";
-    }
-
-    // ── BUILD HTML ────────────────────────────────────────────────────────────
-    let h=`<div class="tmb-brief-hdr">`;
-    h+=`<span class="tmb-brief-label">Towage Morning Brief</span>`;
-    h+=`<span class="tmb-brief-time">Generated ${new Date(now).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>`;
-    h+=`</div>`;
-
-    // Headline
-    h+=`<div class="b11-card tmb-headline-card ${hlCls}">`;
-    h+=`<div class="tmb-hl-text">${esc(hlText)}</div>`;
-    h+=`<div class="tmb-hl-sub">${esc(hlSub)}</div>`;
-    h+=`</div>`;
-
-    // What changed
-    h+=`<div class="b11-card"><h3>What changed · key signals</h3>`;
-    changed.forEach(item=>{
-      const tagHtml=item.tag?`<span class="b11-${item.tag==="live BOM"||item.tag==="live"||item.tag==="live weather"?"realtag":"simtag"}">${esc(item.tag)}</span>`:"";
-      h+=`<div class="tmb-changed-item"><span class="tmb-changed-icon">${item.icon}</span><div class="tmb-changed-body"><span class="tmb-changed-text">${esc(item.text)}</span>${tagHtml}${item.detail?`<div class="tmb-changed-detail">${esc(item.detail)}</div>`:""}</div></div>`;
-    });
-    h+=`</div>`;
-
-    // Risk cards (only when conflicts exist)
-    if(towConf.length>0){
-      h+=`<div class="b11-card"><h3>At-risk jobs · tug conflicts <span class="b11-realtag">Horizon disruption signal</span></h3>`;
-      towConf.slice(0,3).forEach(c=>{
-        const vnames=(c.vessel_names||[]).filter(Boolean).join(" &amp; ")||"Unknown vessels";
-        const ct=c.conflict_time?fmtTs(c.conflict_time):"—";
-        h+=`<div class="tmb-risk-card"><div class="tmb-risk-vessels">${vnames}</div><div class="tmb-risk-desc">${esc(c.description)}</div><div class="tmb-risk-meta">Conflict window ~${ct} · <span class="b11-simtag">simulated towage data</span></div></div>`;
-      });
-      h+=`</div>`;
-    }
-
-    // Demand pressure window
-    h+=`<div class="b11-card"><h3>Forward demand · next 12 hours <span class="b11-simtag">illustrative</span></h3>`;
-    h+=`<div class="tmb-fleet-label">Fleet capacity: ${fleetSize} tug${fleetSize!==1?"s":""}</div>`;
-    slots.forEach(slot=>{
-      const pct=maxBar>0?Math.round(slot.demand/maxBar*100):0;
-      const atCap=slot.demand>=fleetSize&&fleetSize>0&&slot.demand>0;
-      h+=`<div class="tmb-demand-row">`;
-      h+=`<span class="tmb-demand-label">${esc(slot.label)}</span>`;
-      h+=`<div class="tmb-demand-bar"><div class="tmb-demand-fill${atCap?" tmb-at-cap":""}" style="width:${pct}%"></div></div>`;
-      h+=`<span class="tmb-demand-count${atCap?" tmb-at-cap":""}">${slot.demand}/${fleetSize}</span>`;
-      h+=`</div>`;
-    });
-    h+=`</div>`;
-
-    // Commercial consequence
-    h+=`<div class="b11-card"><h3>Commercial consequence <span class="b11-simtag">simulated illustrative</span></h3>`;
-    h+=`<div class="tmb-cost-row">`;
-    h+=`<div><div class="tmb-cost-value">${b11Money(STANDBY_RATE)}/hr</div><div class="tmb-cost-desc">Tug standby rate exposure per unresolved overlap</div></div>`;
-    if(atRiskCount>0){
-      h+=`<div><div class="tmb-cost-value tmb-cost-alert">${b11Money(DISRUPTION)}</div><div class="tmb-cost-desc">Indicative disruption cost if ${atRiskCount>1?"conflicts are":"conflict is"} unresolved</div></div>`;
-    }
-    h+=`</div>`;
-    h+=`<div class="tmb-cost-note">All figures are simulated and illustrative. Not verified commercial data.</div>`;
-    h+=`</div>`;
-
-    // Recommended review
-    h+=`<div class="b11-card tmb-rec-card"><h3>Recommended review</h3><div class="tmb-rec-text">${esc(rec)}</div></div>`;
-
-    // Decision loop note for non-scenario ports
-    if(!b.is_scenario_port){
-      h+=`<div class="b11-card" style="border-color:rgba(56,189,248,.1)"><div class="b11-line" style="font-size:11px;color:#475569">Coordinated decision loop available at ${esc(b.scenario_port||"Melbourne")}. Switch the port to run the full Stage 2 decision propagation demonstration.</div></div>`;
-    }
-
-    return h;
-  }
-
-  // ── Towage inline action card HTML builder ──────────────────────────────────
-  // Builds the right-column card HTML for the two-column layout in confirmerBody.
-  // Returns a string; the caller wraps it in .tmb-action-inline.
-  function tmbInlineCard(ad, tLine, b){
-    const d=b||_last||{};
-
-    // Originating conflict — full text, no truncation
-    const oc=(d.conflicts||[]).find(c=>c.id===ad.conflict_id);
-    const conflictText=oc&&oc.description?oc.description:"A coordinated decision has been issued by the VTSO.";
-
-    // Why towage is involved — leading clause of first towage_resource conflict
-    const towConf=(d.conflicts||[]).filter(c=>c.conflict_type==="towage_resource");
-    let towWhy="Tug reassignment required to support the revised operating window.";
-    if(towConf.length>0){
-      const parts=towConf[0].description.split("—");
-      const lead=(parts[0]||"").trim();
-      if(lead.length>10)towWhy=lead+".";
-    }
-
-    const pi=ad.predicted_impact||{};
-    const tTerm=(ad.decision_state==="SUPERSEDED"||ad.decision_state==="EXPIRED");
-    const issuedStr=ad.issued_at?`Issued ${fmtTs(ad.issued_at)}`:"";
-
-    let h=`<div class="tmb-ac-hdr">`;
-    h+=`<span class="tmb-ac-label">Coordinated action required</span>`;
-    h+=`<span class="tmb-ac-time">${esc(issuedStr)}</span>`;
-    h+=`</div>`;
-
-    h+=`<div class="tmb-ac-section"><div class="tmb-ac-key">Conflict</div><div class="tmb-ac-val">${esc(conflictText)}</div></div>`;
-    h+=`<div class="tmb-ac-section"><div class="tmb-ac-key">Why towage is involved</div><div class="tmb-ac-val">${esc(towWhy)}</div></div>`;
-
-    if(pi.total_impact_aud){
-      h+=`<div class="tmb-ac-section"><div class="tmb-ac-key">Impact <span class="b11-simtag">simulated</span></div>`;
-      h+=`<div class="tmb-ac-impact">${b11Money(pi.total_impact_aud)}</div>`;
-      if(pi.headline)h+=`<div class="tmb-ac-hint">${esc(pi.headline)}</div>`;
-      h+=`</div>`;
-    }
-
-    if(tLine){
-      h+=`<div class="tmb-ac-section"><div class="tmb-ac-key">Required action</div><div class="tmb-ac-val"><strong>${esc(tLine.action_label)}</strong></div></div>`;
-      h+=`<div class="tmb-ac-section" style="border-bottom:none;margin-bottom:0">`;
-      h+=`<div class="tmb-ac-key">Status</div>`;
-      h+=`<span class="b11-stk-status b11-${esc(tLine.status)}">${esc(tLine.status)}</span>`;
-      if(tLine.flag_reason)h+=` <span style="font-size:11px;color:#fbbf24;margin-left:4px">flag: ${esc(tLine.flag_reason)}</span>`;
-      h+=`</div>`;
-      if(!tTerm){
-        h+=`<div class="tmb-ac-btns"><button class="b11-btn" id="tmb-ack-btn" ${tLine.status==="ACKNOWLEDGED"?"disabled":""}>Acknowledge</button><button class="b11-btn ghost" id="tmb-flag-btn">Flag concern</button></div>`;
-      } else {
-        h+=`<div class="tmb-ac-done">This decision is ${esc(ad.decision_state.toLowerCase())}. No further action required.</div>`;
-      }
-    } else {
-      h+=`<div class="tmb-ac-done">This coordinated decision does not require a direct action from your operation.</div>`;
-    }
-    return h;
-  }
-
-  // showTmbActionCard / hideTmbActionCard are kept as no-ops so renderOverlay
-  // call sites need no changes. The card is now inline in the two-column layout.
-  function showTmbActionCard(ad){ /* card is inline in confirmerBody */ }
-
-  function hideTmbActionCard(){
-    // Remove any previously-appended fixed card from older renders
-    const card=document.getElementById("tmb-action-card");
-    if(card&&card.parentNode)card.parentNode.removeChild(card);
-  }
-
   function confirmerBody(b,role){
     const ad=b.active_decision;
 
@@ -3795,8 +3498,6 @@ function _checkCounts(observed,badgeId,label,expected){
     // Layer 5 exceptions (incl. coordinated_decision when active) appear at
     // the top of the shift view. Layer 1 fleet, Layer 2+3 jobs with inline
     // confidence flags, Layer 4 forward shape and environment.
-    // towageMorningBrief / tmbInlineCard remain defined (T10 will remove) but
-    // are no longer called from this branch.
     if(role==="TOWAGE"){
       return renderTowageShift(buildTowageShift(_last));
     }
@@ -3882,9 +3583,8 @@ function _checkCounts(observed,badgeId,label,expected){
   function ensurePoll(){ if(_poll)return; _poll=setInterval(()=>{ if(typeof refresh==="function")refresh(); },4000); }
 
   // ════════════════════════════════════════════════════════════════════════
-  // Towage My Shift V1 — data layer (T1–T6)
-  // Pure transform: /api/summary -> shift object. Not yet wired to renderer.
-  // Existing Morning Brief code path is unaffected by anything in this block.
+  // Towage My Shift V1 — data layer
+  // Pure transform: /api/summary -> shift object.
   // ════════════════════════════════════════════════════════════════════════
 
   // T5 — Layer 5 diff state. Module-scoped; reset on port-fingerprint change.
@@ -4234,13 +3934,11 @@ function _checkCounts(observed,badgeId,label,expected){
   }
 
   // ════════════════════════════════════════════════════════════════════════
-  // T7 — renderTowageShift(shift) -> HTML string.
+  // renderTowageShift(shift) -> HTML string.
   // Pure function. Consumes only the shift object from buildTowageShift.
-  // Operator-native vocabulary. No Horizon-as-actor phrasing.
-  // No "Morning Brief", "What changed", "Recommended review",
-  // "Horizon disruption signal", or "Commercial consequence".
-  // No standalone at-risk job list. No commercial figures.
-  // NOT YET WIRED. Existing Morning Brief render path is unaffected.
+  // Doctrine: operator-native vocabulary; intelligence attached to items the
+  // operator owns; no Horizon-as-actor phrasing; no standalone analytical
+  // section; no commercial figures in Stage 1.
   // ════════════════════════════════════════════════════════════════════════
 
   function _tmsStatusLabel(s){
