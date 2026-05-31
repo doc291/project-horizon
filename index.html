@@ -3645,14 +3645,36 @@ function _checkCounts(observed,badgeId,label,expected){
 
   function confirmerBody(b,role){
     const ad=b.active_decision;
-    if(!b.is_scenario_port){
-      if(role==="TOWAGE") return towageMorningBrief(b);
-      return roleContext(role)+`<div class="b11-card"><div class="b11-empty">The pinned demonstration scenario runs at ${esc(b.scenario_port)}. No coordinated decision is active for your operation at the current port.</div></div>`;
+
+    // ── TOWAGE: morning brief is the persistent base layer ───────────────────
+    // The brief renders regardless of active_decision. When a decision is active
+    // the execution sections (decision context, required action, coordination
+    // status) are appended below it. Towage guidance is omitted here — the
+    // morning brief already surfaces tug availability and conflict signals.
+    if(role==="TOWAGE"){
+      const brief=towageMorningBrief(b);
+      if(!b.is_scenario_port||!ad) return brief;
+      const tLine=ad.required_stakeholders.find(s=>s.role==="TOWAGE");
+      if(!tLine) return brief+b11DecisionContext(b,"TOWAGE")+
+        `<div class="b11-card"><div class="b11-empty">This coordinated decision does not require an action from your operation.</div></div>`+
+        b11CoordStatus(b,"TOWAGE");
+      let tAct=`<div class="b11-card"><h3>What you need to do · required action</h3>
+        <div class="b11-line"><strong>${esc(tLine.display_name)}</strong></div>
+        <div class="b11-line" style="margin-top:6px">${esc(tLine.action_label)}</div>
+        <div style="margin-top:12px"><span class="b11-stk-status b11-${esc(tLine.status)}">${esc(tLine.status)}</span>${tLine.flag_reason?` · <span style="color:#fbbf24">flag: ${esc(tLine.flag_reason)}</span>`:""}</div>`;
+      const tTerm=(ad.decision_state==="SUPERSEDED"||ad.decision_state==="EXPIRED");
+      if(!tTerm){
+        tAct+=`<div style="margin-top:16px"><button class="b11-btn" id="b11-ack" ${tLine.status==="ACKNOWLEDGED"?"disabled":""}>Acknowledge</button><button class="b11-btn ghost" id="b11-flag">Flag concern</button></div>`;
+      } else {
+        tAct+=`<div class="b11-line" style="margin-top:14px;color:#64748b">This decision is ${esc(ad.decision_state.toLowerCase())}. No further action required.</div>`;
+      }
+      tAct+=`</div>`;
+      return brief+b11DecisionContext(b,"TOWAGE")+tAct+b11CoordStatus(b,"TOWAGE");
     }
-    if(!ad){
-      if(role==="TOWAGE") return towageMorningBrief(b);
-      return roleContext(role)+`<div class="b11-card"><div class="b11-empty">No coordinated decision is active right now. Your standing operational context is shown above.</div></div>`;
-    }
+
+    // ── All other confirmer roles: existing behaviour unchanged ──────────────
+    if(!b.is_scenario_port) return roleContext(role)+`<div class="b11-card"><div class="b11-empty">The pinned demonstration scenario runs at ${esc(b.scenario_port)}. No coordinated decision is active for your operation at the current port.</div></div>`;
+    if(!ad) return roleContext(role)+`<div class="b11-card"><div class="b11-empty">No coordinated decision is active right now. Your standing operational context is shown above.</div></div>`;
     const line=ad.required_stakeholders.find(s=>s.role===role);
     if(!line) return b11DecisionContext(b,role)+`<div class="b11-card"><div class="b11-empty">This coordinated decision does not require an action from your operation.</div></div>`+b11CoordStatus(b,role);
     // §2 Required Action
