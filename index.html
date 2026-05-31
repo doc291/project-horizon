@@ -3464,6 +3464,181 @@ function _checkCounts(observed,badgeId,label,expected){
     return `<div class="b11-card"><h3>What value you get · ${esc(role.toLowerCase())} guidance</h3><ul class="b11-glist">`+items.join("")+`</ul></div>`;
   }
 
+  function towageMorningBrief(b){
+    const d=_last||{};
+    const towage=d.towage||[];
+    const allConf=d.conflicts||[];
+    const ps=d.port_status||{};
+    const portTugs=d.port_tugs||[];
+    const tides=d.tides||{};
+    const weather=d.weather||{};
+
+    const now=Date.now();
+    const H12=12*3600*1000;
+
+    // Real Horizon signals
+    const towConf=allConf.filter(c=>c.conflict_type==="towage_resource");
+    const etaVar=allConf.filter(c=>c.conflict_type==="eta_variance");
+
+    // Jobs in next 12 hours (include up to 1h in the past to catch in-progress)
+    const jobs12h=towage.filter(t=>{
+      try{const s=new Date(t.scheduled_time).getTime();return s>=now-3600000&&s<=now+H12;}catch(e){return false;}
+    });
+
+    const fleetSize=portTugs.length||ps.tugs_available||4;
+    const atRiskVids=new Set(towConf.flatMap(c=>c.vessel_ids||[]));
+    const atRiskCount=towConf.length;
+
+    // ── 1. HEADLINE ─────────────────────────────────────────────────────────
+    let hlText,hlSub,hlCls;
+    if(atRiskCount>0){
+      hlText=`${atRiskCount} tug conflict${atRiskCount>1?"s":""} active · ${jobs12h.length} job${jobs12h.length!==1?"s":""} in window`;
+      hlSub="Tug double-booking detected. Review required before operations proceed.";
+      hlCls="tmb-hl-alert";
+    } else if(jobs12h.length>0){
+      hlText=`${jobs12h.length} tug job${jobs12h.length!==1?"s":""} scheduled — no conflicts detected`;
+      hlSub="Forward demand within fleet capacity. No immediate action required.";
+      hlCls="tmb-hl-info";
+    } else {
+      hlText="No towage jobs in the next 12 hours";
+      hlSub="Port is quiet for the current window.";
+      hlCls="tmb-hl-clear";
+    }
+
+    // ── 2. WHAT CHANGED ──────────────────────────────────────────────────────
+    const changed=[];
+    if(towConf.length>0){
+      changed.push({icon:"⚡",
+        text:`${towConf.length} tug double-booking signal${towConf.length>1?"s":""} detected by Horizon`,
+        tag:"live",
+        detail:towConf.length>1?"Multiple tug assignments overlap across the forward window.":"One tug is assigned to two overlapping operations."});
+    }
+    if(etaVar.length>0){
+      const ns=etaVar.slice(0,2).map(c=>esc((c.vessel_names||[])[0]||"vessel")).join(", ");
+      changed.push({icon:"⏱",
+        text:`ETA variance on ${ns}${etaVar.length>2?` +${etaVar.length-2} more`:""}`,
+        tag:"live",
+        detail:"Tug scheduling window may need to shift with revised arrival timing."});
+    }
+    if(tides.state){
+      const te=tides.next_event_type?`, next ${tides.next_event_type} at ${fmtTs(tides.next_event_time)}`:"";
+      changed.push({icon:"🌊",
+        text:`Tide: ${tides.state}${te}`,
+        tag:"live BOM",
+        detail:"Tidal window constrains heavy-laden vessel timing and tug positioning."});
+    }
+    if(weather.wind_speed_kts!=null&&weather.wind_speed_kts>12){
+      changed.push({icon:"💨",
+        text:`Wind ${Math.round(weather.wind_speed_kts)} kts · ${weather.conditions||"check conditions"}`,
+        tag:"live",
+        detail:"Wind above threshold may affect tug deployment on large vessels."});
+    }
+    if(changed.length===0){
+      changed.push({icon:"✓",text:"No significant changes to the forward towage picture",tag:null,detail:""});
+    }
+
+    // ── 3. DEMAND PRESSURE (2-hour slots, derived from towage schedule) ──────
+    const slots=[];
+    for(let i=0;i<6;i++){
+      const s0=now+i*2*3600*1000,s1=s0+2*3600*1000;
+      const sj=jobs12h.filter(t=>{try{const x=new Date(t.scheduled_time).getTime();return x>=s0&&x<s1;}catch(e){return false;}});
+      const dem=sj.reduce((a,t)=>a+(t.tugs?t.tugs.length:1),0);
+      const h0=new Date(s0).getHours(),h1=new Date(s1).getHours();
+      const p=n=>String(n).padStart(2,"0");
+      slots.push({label:`${p(h0)}:00–${p(h1)}:00`,demand:dem,jobs:sj.length});
+    }
+    const peak=Math.max(...slots.map(s=>s.demand),0);
+    const maxBar=Math.max(fleetSize,peak,1);
+
+    // ── 4. COMMERCIAL CONSEQUENCE (illustrative, labelled) ───────────────────
+    const STANDBY_RATE=25000;
+    const DISRUPTION=650000;
+
+    // ── 5. RECOMMENDATION ────────────────────────────────────────────────────
+    let rec;
+    if(towConf.length>0){
+      const atRiskJobs=jobs12h.filter(j=>atRiskVids.has(j.vessel_id));
+      atRiskJobs.sort((a,z)=>new Date(a.scheduled_time)-new Date(z.scheduled_time));
+      if(atRiskJobs.length>0){
+        const fj=atRiskJobs[0];
+        rec=`Review tug allocation for ${esc(fj.vessel_name)} · ${esc(fj.direction)} scheduled ~${fmtTs(fj.scheduled_time)} — double-booking signal requires resolution before operations commence`;
+      } else {
+        rec=`Review tug allocation · ${towConf.length} double-booking signal${towConf.length>1?"s":""} require attention before operations commence`;
+      }
+    } else if(peak>=fleetSize&&fleetSize>0){
+      const pk=slots.find(s=>s.demand===peak);
+      rec=`Fleet at capacity during ${pk?pk.label:"peak window"} — verify standby tug availability with the tug operator before the window opens`;
+    } else {
+      rec="No immediate action required · current plan covers the forward demand window";
+    }
+
+    // ── BUILD HTML ────────────────────────────────────────────────────────────
+    let h=`<div class="tmb-brief-hdr">`;
+    h+=`<span class="tmb-brief-label">Towage Morning Brief</span>`;
+    h+=`<span class="tmb-brief-time">Generated ${new Date(now).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>`;
+    h+=`</div>`;
+
+    // Headline
+    h+=`<div class="b11-card tmb-headline-card ${hlCls}">`;
+    h+=`<div class="tmb-hl-text">${esc(hlText)}</div>`;
+    h+=`<div class="tmb-hl-sub">${esc(hlSub)}</div>`;
+    h+=`</div>`;
+
+    // What changed
+    h+=`<div class="b11-card"><h3>What changed · key signals</h3>`;
+    changed.forEach(item=>{
+      const tagHtml=item.tag?`<span class="b11-${item.tag==="live BOM"||item.tag==="live"?"realtag":"simtag"}">${esc(item.tag)}</span>`:"";
+      h+=`<div class="tmb-changed-item"><span class="tmb-changed-icon">${item.icon}</span><div class="tmb-changed-body"><span class="tmb-changed-text">${esc(item.text)}</span>${tagHtml}${item.detail?`<div class="tmb-changed-detail">${esc(item.detail)}</div>`:""}</div></div>`;
+    });
+    h+=`</div>`;
+
+    // Risk cards (only when conflicts exist)
+    if(towConf.length>0){
+      h+=`<div class="b11-card"><h3>At-risk jobs · tug conflicts <span class="b11-realtag">live Horizon signal</span></h3>`;
+      towConf.slice(0,3).forEach(c=>{
+        const vnames=(c.vessel_names||[]).filter(Boolean).join(" &amp; ")||"Unknown vessels";
+        const ct=c.conflict_time?fmtTs(c.conflict_time):"—";
+        h+=`<div class="tmb-risk-card"><div class="tmb-risk-vessels">${vnames}</div><div class="tmb-risk-desc">${esc(c.description)}</div><div class="tmb-risk-meta">Conflict window ~${ct} · <span class="b11-simtag">simulated data</span></div></div>`;
+      });
+      h+=`</div>`;
+    }
+
+    // Demand pressure window
+    h+=`<div class="b11-card"><h3>Forward demand · next 12 hours <span class="b11-simtag">illustrative</span></h3>`;
+    h+=`<div class="tmb-fleet-label">Fleet capacity: ${fleetSize} tug${fleetSize!==1?"s":""}</div>`;
+    slots.forEach(slot=>{
+      const pct=maxBar>0?Math.round(slot.demand/maxBar*100):0;
+      const atCap=slot.demand>=fleetSize&&fleetSize>0&&slot.demand>0;
+      h+=`<div class="tmb-demand-row">`;
+      h+=`<span class="tmb-demand-label">${esc(slot.label)}</span>`;
+      h+=`<div class="tmb-demand-bar"><div class="tmb-demand-fill${atCap?" tmb-at-cap":""}" style="width:${pct}%"></div></div>`;
+      h+=`<span class="tmb-demand-count${atCap?" tmb-at-cap":""}">${slot.demand}/${fleetSize}</span>`;
+      h+=`</div>`;
+    });
+    h+=`</div>`;
+
+    // Commercial consequence
+    h+=`<div class="b11-card"><h3>Commercial consequence <span class="b11-simtag">simulated illustrative</span></h3>`;
+    h+=`<div class="tmb-cost-row">`;
+    h+=`<div><div class="tmb-cost-value">${b11Money(STANDBY_RATE)}/hr</div><div class="tmb-cost-desc">Tug standby rate exposure per unresolved overlap</div></div>`;
+    if(atRiskCount>0){
+      h+=`<div><div class="tmb-cost-value tmb-cost-alert">${b11Money(DISRUPTION)}</div><div class="tmb-cost-desc">Indicative disruption cost if ${atRiskCount>1?"conflicts are":"conflict is"} unresolved</div></div>`;
+    }
+    h+=`</div>`;
+    h+=`<div class="tmb-cost-note">All figures are simulated and illustrative. Not verified commercial data.</div>`;
+    h+=`</div>`;
+
+    // Recommended review
+    h+=`<div class="b11-card tmb-rec-card"><h3>Recommended review</h3><div class="tmb-rec-text">${esc(rec)}</div></div>`;
+
+    // Decision loop note for non-scenario ports
+    if(!b.is_scenario_port){
+      h+=`<div class="b11-card" style="border-color:rgba(56,189,248,.1)"><div class="b11-line" style="font-size:11px;color:#475569">Coordinated decision loop available at ${esc(b.scenario_port||"Melbourne")}. Switch the port to run the full Stage 2 decision propagation demonstration.</div></div>`;
+    }
+
+    return h;
+  }
+
   function confirmerBody(b,role){
     const ad=b.active_decision;
     if(!b.is_scenario_port) return roleContext(role)+`<div class="b11-card"><div class="b11-empty">The pinned demonstration scenario runs at ${esc(b.scenario_port)}. No coordinated decision is active for your operation at the current port.</div></div>`;
