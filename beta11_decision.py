@@ -748,9 +748,11 @@ def pinned_predicted_impact():
     """
     return {
         "label": "Simulated illustrative value",
-        "headline": "Reduced anchorage waiting and avoided standby",
+        "headline": "Reduced anchorage waiting and avoided berth standby",
         "cost_text": "Illustrative only. Not a verified figure.",
-        "cost_per_hour_aud": 3500,   # illustrative simulated rate, labelled at the UI
+        "cost_per_hour_aud": 25000,        # illustrative simulated standby rate, labelled at the UI
+        "total_impact_aud": 650000,        # illustrative simulated total decision impact, labelled at the UI
+        "impact_text": "A$650,000 simulated total impact across berth, towage and pilotage",
         "simulated": True,
     }
 

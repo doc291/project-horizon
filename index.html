@@ -3265,7 +3265,10 @@ function _checkCounts(observed,badgeId,label,expected){
       inner+=`<div class="b11-line" style="font-size:12px;margin-bottom:10px">Conflict <strong>${esc(pid)}</strong> detected. Issue a coordinated decision to towage, pilotage and terminal.</div><button class="b11-btn" id="b11-issue">Issue coordinated decision</button>`;
     } else {
       const acks=ad.required_stakeholders.filter(s=>s.status==="ACKNOWLEDGED").length;
-      inner+=`<div style="margin-bottom:8px"><span class="b11-statepill b11-st-${esc(ad.decision_state)}">${esc(ad.decision_state)}</span></div><div class="b11-line" style="font-size:12px;margin-bottom:8px">${acks} of ${ad.required_stakeholders.length} stakeholders confirmed.</div>`;
+      const _pi=ad.predicted_impact||{};
+      inner+=`<div style="margin-bottom:8px"><span class="b11-statepill b11-st-${esc(ad.decision_state)}">${esc(ad.decision_state)}</span></div>`;
+      if(_pi.total_impact_aud) inner+=`<div class="b11-line" style="font-size:12px;margin-bottom:6px">Predicted impact <strong>${b11Money(_pi.total_impact_aud)}</strong> <span class="b11-simtag">simulated</span></div>`;
+      inner+=`<div class="b11-line" style="font-size:12px;margin-bottom:8px">${acks} of ${ad.required_stakeholders.length} stakeholders confirmed.</div>`;
       inner+=ad.required_stakeholders.map(s=>`<div style="font-size:11px;color:#94a3b8;margin-bottom:3px">${esc(s.display_name)} · <span class="b11-stk-status b11-${esc(s.status)}">${esc(s.status)}</span>${s.flag_reason?` · flag: ${esc(s.flag_reason)}`:""}</div>`).join("");
       if(ad.decision_state!=="SUPERSEDED"&&ad.decision_state!=="EXPIRED")
         inner+=`<div style="margin-top:10px"><button class="b11-btn ghost" id="b11-supersede">Supersede</button></div>`;
@@ -3344,7 +3347,7 @@ function _checkCounts(observed,badgeId,label,expected){
     }
     return `<div class="b11-card b11-dctx"><h3>Why you are seeing this · decision context</h3>
       <div class="b11-kv"><span class="k">Conflict</span><span class="v">${esc(conflictText)}</span></div>
-      <div class="b11-kv"><span class="k">Predicted impact</span><span class="v">${esc(pi.headline||"Coordinated resolution")} <span class="b11-simtag">simulated</span></span></div>
+      <div class="b11-kv"><span class="k">Predicted impact</span><span class="v">${pi.total_impact_aud?'<strong>'+b11Money(pi.total_impact_aud)+'</strong> ':''}${esc(pi.headline||"Coordinated resolution")} <span class="b11-simtag">simulated</span></span></div>
       <div class="b11-kv"><span class="k">Decision</span><span class="v">Coordinated change issued by the VTSO to towage, pilotage and terminal</span></div>
       ${urgency?`<div class="b11-kv"><span class="k">Urgency</span><span class="v">${esc(urgency)}</span></div>`:""}
       <div class="b11-kv"><span class="k">Your role</span><span class="v" style="color:#7dd3fc;font-weight:600">${esc(yourRole)}</span></div>
@@ -3486,7 +3489,7 @@ function _checkCounts(observed,badgeId,label,expected){
     // §4 predicted vs actual (real loop, labelled pending actuals)
     const pi=b.predicted_impact||{};
     html+=`<div class="b11-card"><h3>What value you get · predicted vs actual</h3>
-      <div class="b11-pva"><div><div class="k">Predicted</div><div class="v">${esc(pi.headline||"—")}</div></div>
+      <div class="b11-pva"><div><div class="k">Predicted</div><div class="v">${pi.total_impact_aud?'<strong>'+b11Money(pi.total_impact_aud)+'</strong> ':''}${esc(pi.headline||"—")} <span class="b11-simtag">simulated</span></div></div>
       <div><div class="k">Actual</div><div class="v" style="color:#64748b">Pending · no outcome feed yet</div></div></div>
       <div class="b11-line" style="margin-top:10px;color:#64748b;font-size:11px">${esc(pi.cost_text||"Illustrative only. Not a verified figure.")}</div></div>`;
     return html;
