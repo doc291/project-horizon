@@ -3833,6 +3833,94 @@ function _checkCounts(observed,badgeId,label,expected){
 
   function ensurePoll(){ if(_poll)return; _poll=setInterval(()=>{ if(typeof refresh==="function")refresh(); },4000); }
 
+  // ════════════════════════════════════════════════════════════════════════
+  // Towage My Shift V1 — data layer (T1–T6)
+  // Pure transform: /api/summary -> shift object. Not yet wired to renderer.
+  // Existing Morning Brief code path is unaffected by anything in this block.
+  // ════════════════════════════════════════════════════════════════════════
+
+  // T1: pure data transform — fleet + bookings in window. No flags yet (T2),
+  // no tug status simulation (T3), no forward shape (T4), no exceptions (T5/T6).
+  function buildTowageShift(summary){
+    const d = summary || {};
+    const towage = d.towage || [];
+    const vessels = d.vessels || [];
+    const portTugs = d.port_tugs || [];
+    const ps = d.port_status || {};
+    const beta11 = d.beta11 || {};
+
+    // Port identity: prefer explicit fields, fall back to tug-list fingerprint
+    // (port-stable: changes whenever the active port switches).
+    const portId = ps.port_id || (beta11.scenario_port && beta11.is_scenario_port ? beta11.scenario_port : null);
+    const portName = ps.port_name || portId || "";
+    const portFingerprint = portTugs.map(t => t.name||"").join("|");
+
+    // Rolling 12h shift window: [now - 1h, now + 11h]
+    const now = Date.now();
+    const winStart = now - 3600*1000;
+    const winEnd   = now + 11*3600*1000;
+
+    // Vessel lookup
+    const vById = {};
+    vessels.forEach(v => { if(v && v.id) vById[v.id] = v; });
+
+    // Layer 1 — Fleet (tug status simulation added in T3)
+    const fleet = portTugs.map(t => ({
+      tug_id: (t.name || "").replace(/\s+/g,"-").toUpperCase(),
+      tug_name: t.name || "",
+      bollard_pull_t: t.bollard_pull_t != null ? t.bollard_pull_t : null,
+      operational_status: null,
+      operational_status_provenance: null,
+      bookings_in_window: 0
+    }));
+
+    // Layer 2 — Bookings in window (confidence rules added in T2)
+    const bookings = towage.filter(b => {
+      if(!b || !b.scheduled_time) return false;
+      const t = new Date(b.scheduled_time).getTime();
+      return !isNaN(t) && t >= winStart && t <= winEnd;
+    }).map(b => {
+      const v = vById[b.vessel_id] || {};
+      return {
+        booking_id: b.id,
+        vessel_id: b.vessel_id,
+        vessel_name: b.vessel_name,
+        direction: b.direction,
+        scheduled_time: b.scheduled_time,
+        tugs_assigned: (b.tugs || []).map(t => ({tug_id: t.tug_id, tug_name: t.tug_name})),
+        vessel_eta: v.eta || null,
+        vessel_status: v.status || null,
+        vessel_notes: v.notes || "",
+        flag: false,
+        flag_reasons: [],
+        flag_severity: null
+      };
+    }).sort((a,b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
+
+    // Per-tug booking count in window
+    bookings.forEach(bk => {
+      (bk.tugs_assigned||[]).forEach(t => {
+        const f = fleet.find(x => x.tug_id === t.tug_id);
+        if(f) f.bookings_in_window++;
+      });
+    });
+
+    return {
+      port_id: portId,
+      port_name: portName,
+      port_fingerprint: portFingerprint,
+      window: {
+        start: new Date(winStart).toISOString(),
+        end:   new Date(winEnd).toISOString(),
+        now:   new Date(now).toISOString()
+      },
+      fleet: fleet,
+      bookings: bookings,
+      forward: null,
+      exceptions: []
+    };
+  }
+
   function onData(d){
     _last=d;
     if(!_built)buildShell(d.beta11);
@@ -3841,7 +3929,7 @@ function _checkCounts(observed,badgeId,label,expected){
     ensurePoll();
   }
 
-  window._b11={onData};
+  window._b11={onData, shift:()=>_last?buildTowageShift(_last):null};
 })();
 
 /* ── Boot ── */
