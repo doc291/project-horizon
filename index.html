@@ -3941,6 +3941,12 @@ function _checkCounts(observed,badgeId,label,expected){
   //   - No transit duration estimates. No commercial figures.
   // ════════════════════════════════════════════════════════════════════════
 
+  // P4 — PILOTAGE Layer 5 diff state. Independent from Towage's _prevConflictIds
+  // so the two lenses' new_conflict detection doesn't interfere when the user
+  // switches roles. Reset on port-fingerprint change.
+  let _pwcPrevConflictIds = null;
+  let _pwcPrevPortFingerprint = null;
+
   // P1: pure data transform — port id, watch window, pilots_available count,
   //     transits filtered to window.
   // P2: per-transit Layer 3 confidence rules (UKC, ETA drift, eta_variance,
@@ -4124,6 +4130,52 @@ function _checkCounts(observed,badgeId,label,expected){
                  : (weather.data_source || "live");
     const conditions = weather.conditions || null;
 
+    // P4 — Layer 5 exceptions.
+    // (a) new_conflict diff: track conflict ids touching pilotage vessels;
+    //     reset on port switch (port_fingerprint change). First poll for a
+    //     given port populates the set and emits no exceptions.
+    const exceptions = [];
+    const pilotageVesselIds = new Set(transits.map(t => t.vessel_id).filter(Boolean));
+    // Only diff conflicts that actually affect a pilotage transit in this
+    // watch window — avoids spamming exceptions for unrelated conflicts.
+    const currentIds = new Set();
+    conflicts.forEach(c => {
+      if(!c || !c.id) return;
+      const touchesPilotage = (c.vessel_ids || []).some(vid => pilotageVesselIds.has(vid));
+      if(touchesPilotage) currentIds.add(c.id);
+    });
+
+    if(_pwcPrevPortFingerprint !== portFingerprint){
+      _pwcPrevConflictIds = new Set(currentIds);
+      _pwcPrevPortFingerprint = portFingerprint;
+    } else if(_pwcPrevConflictIds === null){
+      _pwcPrevConflictIds = new Set(currentIds);
+    } else {
+      conflicts.forEach(c => {
+        if(!c || !c.id) return;
+        const affectedVids = (c.vessel_ids || []).filter(vid => pilotageVesselIds.has(vid));
+        if(affectedVids.length === 0) return;          // not a pilotage-affecting conflict
+        if(_pwcPrevConflictIds.has(c.id)) return;     // already seen
+        const affectedTransitIds = transits
+          .filter(t => affectedVids.indexOf(t.vessel_id) >= 0)
+          .map(t => t.transit_id);
+        exceptions.push({
+          type: "new_conflict",
+          raised_at: new Date(now).toISOString(),
+          affects_transit_ids: affectedTransitIds,
+          payload: {
+            conflict_id: c.id,
+            conflict_type: c.conflict_type,
+            severity: c.severity || "warning",
+            description: c.description,
+            vessel_names: c.vessel_names || [],
+            provenance: c.data_source || "live"
+          }
+        });
+      });
+      _pwcPrevConflictIds = new Set(currentIds);
+    }
+
     const forward = {
       transit_count: transits.length,
       flagged_count: transits.filter(t => t.flag).length,
@@ -4150,6 +4202,76 @@ function _checkCounts(observed,badgeId,label,expected){
       }
     };
 
+    // P4 (b) — weather threshold breach exception (Layer 5).
+    if(forward.environment.weather.threshold_breach){
+      exceptions.push({
+        type: "weather_threshold",
+        raised_at: new Date(now).toISOString(),
+        affects_transit_ids: [],
+        payload: {
+          conditions: forward.environment.weather.conditions,
+          wind_speed_kts: forward.environment.weather.wind_speed_kts,
+          swell_height_m: forward.environment.weather.swell_height_m,
+          provenance: forward.environment.weather.provenance
+        }
+      });
+    }
+
+    // P4 (c) — coordinated_decision exception for PILOTAGE.
+    // Prepended (highest priority). Also flags affected transits with
+    // source:"coordinated_decision" so the decision is BOTH a Layer 5
+    // exception AND a property of the specific transit(s) it affects.
+    const activeDecision = beta11.active_decision || null;
+    if(activeDecision){
+      const pilStk = (activeDecision.required_stakeholders || [])
+                       .find(s => s.role === "PILOTAGE");
+      if(pilStk){
+        const oc = conflicts.find(c => c.id === activeDecision.conflict_id);
+        const affectedVids = (oc && oc.vessel_ids) || [];
+        const affectedTransitIds = transits
+          .filter(t => affectedVids.indexOf(t.vessel_id) >= 0)
+          .map(t => t.transit_id);
+        const tTerm = activeDecision.decision_state === "SUPERSEDED"
+                   || activeDecision.decision_state === "EXPIRED";
+
+        // predicted_impact intentionally OMITTED from payload — commercial
+        // figure rule. The decision_id is preserved for the Stage 2 wiring.
+        exceptions.unshift({
+          type: "coordinated_decision",
+          raised_at: activeDecision.issued_at || new Date(now).toISOString(),
+          affects_transit_ids: affectedTransitIds,
+          payload: {
+            decision_id: activeDecision.decision_id,
+            decision_state: activeDecision.decision_state,
+            is_terminal: tTerm,
+            conflict_id: activeDecision.conflict_id,
+            conflict_text: oc ? oc.description
+                              : "A coordinated decision has been issued by the VTSO.",
+            action_label: pilStk.action_label,
+            status: pilStk.status,
+            flag_reason: pilStk.flag_reason || null
+          }
+        });
+
+        // Mirror critical flag on affected transits.
+        if(affectedVids.length > 0){
+          transits.forEach(t => {
+            if(affectedVids.indexOf(t.vessel_id) < 0) return;
+            t.flag_reasons.push({
+              source: "coordinated_decision",
+              severity: "critical",
+              description: pilStk.action_label,
+              conflict_id: activeDecision.conflict_id,
+              decision_id: activeDecision.decision_id,
+              provenance: "live"
+            });
+            t.flag = true;
+            t.flag_severity = "critical";
+          });
+        }
+      }
+    }
+
     return {
       port_id: portId,
       port_name: portName,
@@ -4165,7 +4287,7 @@ function _checkCounts(observed,badgeId,label,expected){
       pilots_available: ps.pilots_available != null ? ps.pilots_available : null,
       transits: transits,
       forward: forward,
-      exceptions: []        // P4
+      exceptions: exceptions
     };
   }
 
