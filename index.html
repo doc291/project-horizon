@@ -3942,8 +3942,10 @@ function _checkCounts(observed,badgeId,label,expected){
   // ════════════════════════════════════════════════════════════════════════
 
   // P1: pure data transform — port id, watch window, pilots_available count,
-  // transits filtered to window. No flags (P2), no forward shape (P3), no
-  // exceptions (P4). pilot_name is intentionally NOT exposed.
+  //     transits filtered to window.
+  // P2: per-transit Layer 3 confidence rules (UKC, ETA drift, eta_variance,
+  //     pilotage_window, berth_side, boarding_conditions, bridge_restriction).
+  // P3: forward shape. P4: exceptions. pilot_name never exposed.
   function buildPilotageWatch(summary){
     const d = summary || {};
     const pilotage = d.pilotage || [];
@@ -3951,6 +3953,9 @@ function _checkCounts(observed,badgeId,label,expected){
     const ps = d.port_status || {};
     const beta11 = d.beta11 || {};
     const portTugs = d.port_tugs || [];
+    const conflicts = d.conflicts || [];
+    const arrivalUkc = (d.arrival_ukc && Array.isArray(d.arrival_ukc.all)) ? d.arrival_ukc.all : [];
+    const weather = d.weather || {};
 
     // Port identity — same fallback chain as Towage.
     const portId = ps.port_id || (beta11.scenario_port && beta11.is_scenario_port ? beta11.scenario_port : null);
@@ -3992,13 +3997,102 @@ function _checkCounts(observed,badgeId,label,expected){
         vessel_notes: v.notes || "",
         vessel_loa: v.loa != null ? v.loa : null,
         berth_id: v.berth_id || null,
-        // P2: confidence (flag, flag_reasons, flag_severity)
-        // P2: window (ukc_m, predicted_tide_m, ukc_status, etc.)
+        // P2: window snapshot + confidence (populated below)
+        window: null,
         flag: false,
         flag_reasons: [],
         flag_severity: null
       };
     }).sort((a,b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
+
+    // P2 — Layer 3 confidence rules. Reuse _SHIFT_SEV_RANK / _maxSeverity from
+    // the Towage data layer (same severity rank: critical > warning > advisory).
+    const ukcByVid = {};
+    arrivalUkc.forEach(a => { if(a && a.vessel_id) ukcByVid[a.vessel_id] = a; });
+
+    transits.forEach(t => {
+      const V = t.vessel_id;
+      const v = vById[V] || {};
+      const reasons = [];
+
+      // Window snapshot — UKC / tide context for this specific vessel, when present.
+      const ukc = ukcByVid[V] || null;
+      if(ukc){
+        t.window = {
+          ukc_m: ukc.ukc_m != null ? ukc.ukc_m : null,
+          predicted_tide_m: ukc.predicted_tide_m != null ? ukc.predicted_tide_m : null,
+          available_depth_m: ukc.available_depth_m != null ? ukc.available_depth_m : null,
+          vessel_draught_m: ukc.vessel_draught_m != null ? ukc.vessel_draught_m : null,
+          ukc_status: ukc.status || null,
+          hrs_to_eta: ukc.hrs_to_eta != null ? ukc.hrs_to_eta : null,
+          provenance: "live"
+        };
+      }
+
+      // 3.1 — UKC margin (Layer 3 — strongest signal for pilotage)
+      if(ukc && ukc.ukc_m != null){
+        if(ukc.ukc_m < 0){
+          reasons.push({ source:"ukc_unsafe", severity:"critical",
+                         description:"UKC at predicted arrival "+ukc.ukc_m+"m (below safe limit)",
+                         conflict_id:null, provenance:"live" });
+        } else if(ukc.ukc_m < 0.5){
+          reasons.push({ source:"ukc_tight", severity:"warning",
+                         description:"UKC margin "+ukc.ukc_m+"m — tight at predicted arrival",
+                         conflict_id:null, provenance:"live" });
+        }
+      }
+
+      // 3.2 — pilotage_window short-notice conflicts
+      conflicts.forEach(c => {
+        if(!c || !c.vessel_ids || c.vessel_ids.indexOf(V) < 0) return;
+        if(c.conflict_type === "pilotage_window"){
+          reasons.push({ source:"short_notice", severity:"warning",
+                         description: c.description, conflict_id: c.id,
+                         provenance: c.data_source || "simulated" });
+        } else if(c.conflict_type === "eta_variance"){
+          reasons.push({ source:"eta_variance", severity:"advisory",
+                         description: c.description, conflict_id: c.id,
+                         provenance: c.data_source || "simulated" });
+        } else if(c.conflict_type === "berth_not_ready" || c.conflict_type === "berth_overlap"){
+          reasons.push({ source:"berth_side", severity:"advisory",
+                         description: c.description, conflict_id: c.id,
+                         provenance: c.data_source || "simulated" });
+        } else if(c.conflict_type === "bridge_restriction"){
+          reasons.push({ source:"bridge_restriction", severity:"warning",
+                         description: c.description, conflict_id: c.id,
+                         provenance: c.data_source || "simulated" });
+        }
+      });
+
+      // 3.3 — ETA drift (vessel-side status flag)
+      if(v.status === "at_risk"){
+        reasons.push({ source:"vessel_at_risk", severity:"warning",
+                       description: v.notes || "Vessel tracking off schedule",
+                       conflict_id:null, provenance:"live" });
+      }
+
+      // 3.4 — Boarding-ground conditions (port-wide proxy; we do NOT invent
+      // boarding-ground-specific micro-conditions)
+      if(weather.conditions === "Poor"){
+        const w = "wind "+(weather.wind_speed_kts!=null?Math.round(weather.wind_speed_kts):"?")+"kts" +
+                  (weather.swell_height_m!=null?", swell "+weather.swell_height_m+"m":"");
+        reasons.push({ source:"boarding_conditions", severity:"warning",
+                       description:"Conditions: Poor ("+w+")",
+                       conflict_id:null, provenance:"live" });
+      } else if(weather.conditions === "Moderate" && weather.swell_height_m != null && weather.swell_height_m > 2.0){
+        reasons.push({ source:"boarding_conditions", severity:"advisory",
+                       description:"Conditions: Moderate, swell "+weather.swell_height_m+"m — watch boarding",
+                       conflict_id:null, provenance:"live" });
+      }
+
+      // 3.5 — coordinated_decision mirror flag is appended in P4 (after the
+      // exception itself is emitted). No fatigue check. No qualification check.
+      // No rest-window check. No dependency-chain cascade.
+
+      t.flag = reasons.length > 0;
+      t.flag_reasons = reasons;
+      t.flag_severity = reasons.reduce((m, r) => _maxSeverity(m, r.severity), null);
+    });
 
     return {
       port_id: portId,
