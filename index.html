@@ -4094,6 +4094,62 @@ function _checkCounts(observed,badgeId,label,expected){
       t.flag_severity = reasons.reduce((m, r) => _maxSeverity(m, r.severity), null);
     });
 
+    // P3 — Layer 4 forward shape.
+    // Tide clustering: how many transits fall in each 2-hour bucket across the
+    // watch. NOT a dependency chain (we have no transit-duration data) — this
+    // is purely "how many transits are scheduled near the same tide window".
+    const tides = d.tides || {};
+    const slots = [];
+    for(let i = 0; i < 4; i++){
+      // 4 × 2h buckets across the 8h watch starting at win_start.
+      const s0 = winStart + i * 2 * 3600 * 1000;
+      const s1 = s0 + 2 * 3600 * 1000;
+      const inSlot = transits.filter(t => {
+        const ts = new Date(t.scheduled_time).getTime();
+        return ts >= s0 && ts < s1;
+      });
+      slots.push({
+        start: new Date(s0).toISOString(),
+        end:   new Date(s1).toISOString(),
+        transit_count: inSlot.length,
+        flagged_count: inSlot.filter(t => t.flag).length
+      });
+    }
+
+    // Environment block — tide + weather as a property of the watch, not a
+    // standalone "what changed" feed. Same provenance treatment as Towage.
+    const tideProv = tides.data_source === "bom" ? "live_bom"
+                   : (tides.data_source ? "simulated" : "cosine");
+    const wxProv = (weather.source === "live" || weather.data_source === "live") ? "live"
+                 : (weather.data_source || "live");
+    const conditions = weather.conditions || null;
+
+    const forward = {
+      transit_count: transits.length,
+      flagged_count: transits.filter(t => t.flag).length,
+      slots: slots,
+      environment: {
+        tide: {
+          state: tides.state || null,
+          next_event_type: tides.next_event_type || null,
+          next_event_time: tides.next_event_time || null,
+          next_event_height_m: tides.next_event_height_m != null ? tides.next_event_height_m : null,
+          current_height_m: tides.current_height_m != null ? tides.current_height_m : null,
+          provenance: tideProv
+        },
+        weather: {
+          wind_speed_kts: weather.wind_speed_kts != null ? weather.wind_speed_kts : null,
+          wind_direction_label: weather.wind_direction_label || null,
+          swell_height_m: weather.swell_height_m != null ? weather.swell_height_m : null,
+          swell_period_s: weather.swell_period_s != null ? weather.swell_period_s : null,
+          visibility_nm: weather.visibility_nm != null ? weather.visibility_nm : null,
+          conditions: conditions,
+          provenance: wxProv,
+          threshold_breach: conditions === "Poor"
+        }
+      }
+    };
+
     return {
       port_id: portId,
       port_name: portName,
@@ -4108,7 +4164,7 @@ function _checkCounts(observed,badgeId,label,expected){
       // their team by name; we do not, and we will not pretend.
       pilots_available: ps.pilots_available != null ? ps.pilots_available : null,
       transits: transits,
-      forward: null,        // P3
+      forward: forward,
       exceptions: []        // P4
     };
   }
