@@ -3839,6 +3839,11 @@ function _checkCounts(observed,badgeId,label,expected){
   // Existing Morning Brief code path is unaffected by anything in this block.
   // ════════════════════════════════════════════════════════════════════════
 
+  // T5 — Layer 5 diff state. Module-scoped; reset on port-fingerprint change.
+  // First poll for a given port populates the set and emits no exceptions.
+  let _prevConflictIds = null;
+  let _prevPortFingerprint = null;
+
   // Severity ranking for confidence reasons (T2) — critical > warning > advisory
   const _SHIFT_SEV_RANK = { advisory: 1, warning: 2, critical: 3 };
   function _maxSeverity(a, b){
@@ -4050,6 +4055,59 @@ function _checkCounts(observed,badgeId,label,expected){
       }
     };
 
+    // T5 — Layer 5 exceptions.
+    // (a) new_conflict diff: track conflict ids across polls; reset on port
+    //     switch (detected via port_fingerprint change). First poll for a
+    //     given port populates the set and emits no exceptions.
+    const exceptions = [];
+    const currentIds = new Set();
+    conflicts.forEach(c => { if(c && c.id) currentIds.add(c.id); });
+
+    if(_prevPortFingerprint !== portFingerprint){
+      _prevConflictIds = new Set(currentIds);
+      _prevPortFingerprint = portFingerprint;
+    } else if(_prevConflictIds === null){
+      _prevConflictIds = new Set(currentIds);
+    } else {
+      conflicts.forEach(c => {
+        if(!c || !c.id) return;
+        if(!_prevConflictIds.has(c.id)){
+          const affected = bookings
+            .filter(b => (c.vessel_ids || []).indexOf(b.vessel_id) >= 0)
+            .map(b => b.booking_id);
+          exceptions.push({
+            type: "new_conflict",
+            raised_at: new Date(now).toISOString(),
+            affects_booking_ids: affected,
+            payload: {
+              conflict_id: c.id,
+              conflict_type: c.conflict_type,
+              severity: c.severity || "warning",
+              description: c.description,
+              vessel_names: c.vessel_names || [],
+              provenance: c.data_source || "live"
+            }
+          });
+        }
+      });
+      _prevConflictIds = new Set(currentIds);
+    }
+
+    // (b) weather threshold breach exception.
+    if(forward.environment.weather.threshold_breach){
+      exceptions.push({
+        type: "weather_threshold",
+        raised_at: new Date(now).toISOString(),
+        affects_booking_ids: [],
+        payload: {
+          conditions: forward.environment.weather.conditions,
+          wind_speed_kts: forward.environment.weather.wind_speed_kts,
+          swell_m: forward.environment.weather.swell_m,
+          provenance: forward.environment.weather.provenance
+        }
+      });
+    }
+
     return {
       port_id: portId,
       port_name: portName,
@@ -4062,7 +4120,7 @@ function _checkCounts(observed,badgeId,label,expected){
       fleet: fleet,
       bookings: bookings,
       forward: forward,
-      exceptions: []
+      exceptions: exceptions
     };
   }
 
