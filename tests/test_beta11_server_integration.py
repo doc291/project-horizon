@@ -87,11 +87,20 @@ class TestFlagOnAdditive:
     def test_flag_on(self, server_on):
         assert server_on.BETA11_ENABLED is True
 
-    def test_summary_top_level_keys_still_unchanged(self, server_on):
-        # The beta11_decision field lives INSIDE each conflict, so the top
-        # level summary key set must be identical to Beta 10.
+    def test_summary_adds_exactly_one_top_level_key(self, server_on):
+        # Phase 2 contract: flag-on adds EXACTLY one top-level key, `beta11`
+        # (the role/scenario block). Every other key is unchanged from Beta 10.
         s = server_on.build_summary()
-        assert set(s.keys()) == EXPECTED_SUMMARY_KEYS
+        assert set(s.keys()) == EXPECTED_SUMMARY_KEYS | {"beta11"}
+
+    def test_beta11_block_shape(self, server_on):
+        s = server_on.build_summary()
+        b = s.get("beta11")
+        assert b is not None
+        assert b["enabled"] is True and b["simulated"] is True
+        assert b["scenario_port"] == "MELBOURNE"
+        assert [r["id"] for r in b["roles"]] == ["VTSO", "TOWAGE", "PILOTAGE", "TERMINAL", "ASSURANCE"]
+        assert b["predicted_impact"]["simulated"] is True
 
     def test_conflicts_have_beta11_field_null_until_issued(self, server_on):
         s = server_on.build_summary()

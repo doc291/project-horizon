@@ -697,3 +697,115 @@ def get_active_for_conflict(conflict_id):
 def active_decisions():
     """Map of conflict_id to its active decision view. Used by build_summary."""
     return _backend.all_active()
+
+
+# ── Beta 11 Phase 2: Melbourne pinned scenario (single source of truth) ─────
+# The pinned demo scenario lives here so the server, not the client, owns it.
+# All stakeholder data is simulated and labelled. The cost figure is an
+# explicitly labelled illustrative value, never presented as evidence.
+SCENARIO_PORT = "MELBOURNE"
+
+# Role display metadata used to theme each lens. Pure presentation hints; the
+# authority rules live in the state machine, not here.
+ROLE_META = {
+    ROLE_VTSO:      {"label": "VTSO Coordinator", "tone": "vtso",
+                     "blurb": "Detects conflicts and issues coordinated decisions. Sole decision authority."},
+    ROLE_TOWAGE:    {"label": "Towage Provider", "tone": "towage",
+                     "blurb": "Receives tug reassignment requests and confirms availability."},
+    ROLE_PILOTAGE:  {"label": "Pilotage", "tone": "pilotage",
+                     "blurb": "Receives amended boarding windows and confirms the pilot can meet them."},
+    ROLE_TERMINAL:  {"label": "Terminal", "tone": "terminal",
+                     "blurb": "Receives revised arrival windows and confirms berth readiness."},
+    ROLE_ASSURANCE: {"label": "Assurance", "tone": "assurance",
+                     "blurb": "Read only. Records the full decision loop for audit and verification."},
+}
+
+
+def pinned_stakeholders():
+    """
+    The three simulated stakeholder line items for the pinned Melbourne
+    scenario. Hand authored so the loop always cascades to towage, pilotage
+    and terminal even if the live conflict does not naturally imply all three.
+    Every entry is clearly simulated.
+    """
+    return [
+        {"role": ROLE_TOWAGE,
+         "display_name": "Tug Wando (simulated)",
+         "action_label": "Reassign tug to the revised berthing window"},
+        {"role": ROLE_PILOTAGE,
+         "display_name": "Pilot roster slot 2 (simulated)",
+         "action_label": "Amend pilot boarding time to the new tidal window"},
+        {"role": ROLE_TERMINAL,
+         "display_name": "Appleton Dock berth (simulated)",
+         "action_label": "Confirm berth readiness for the revised arrival"},
+    ]
+
+
+def pinned_predicted_impact():
+    """
+    Labelled, illustrative predicted impact for the pinned scenario. This is a
+    simulated figure for demonstration only and must never be shown as evidence.
+    """
+    return {
+        "label": "Simulated illustrative value",
+        "headline": "Reduced anchorage waiting and avoided standby",
+        "cost_text": "Illustrative only. Not a verified figure.",
+        "cost_per_hour_aud": 3500,   # illustrative simulated rate, labelled at the UI
+        "simulated": True,
+    }
+
+
+def pick_pinned_conflict_id(conflicts):
+    """
+    Choose the conflict the pinned scenario attaches to. Prefer a berth_overlap
+    (the cascade that implies tug, pilot and terminal), else the first conflict.
+    Returns a conflict id or None. Pure read; never mutates conflicts.
+    """
+    if not conflicts:
+        return None
+    for c in conflicts:
+        if c.get("conflict_type") == "berth_overlap":
+            return c.get("id")
+    return conflicts[0].get("id")
+
+
+def summary_block(active_port_id, conflicts):
+    """
+    Build the top level `beta11` block for /api/summary. Returns the scenario
+    descriptor plus the current active decision (if any) for the pinned
+    conflict. Caller only invokes this when BETA11_ENABLED is true.
+    """
+    is_scenario_port = (active_port_id == SCENARIO_PORT)
+    pinned_id = pick_pinned_conflict_id(conflicts) if is_scenario_port else None
+    active = None
+    if pinned_id:
+        try:
+            active = get_active_for_conflict(pinned_id)
+        except Exception:
+            active = None
+    return {
+        "enabled": True,
+        "simulated": True,
+        "scenario_port": SCENARIO_PORT,
+        "is_scenario_port": is_scenario_port,
+        "pinned_conflict_id": pinned_id,
+        "active_decision": active,
+        "roles": [
+            {"id": r, "label": ROLE_META[r]["label"],
+             "tone": ROLE_META[r]["tone"], "blurb": ROLE_META[r]["blurb"]}
+            for r in ALL_ROLES
+        ],
+        "confirmer_roles": list(CONFIRMER_ROLES),
+        "predicted_impact": pinned_predicted_impact(),
+    }
+
+
+def issue_pinned(conflict_id, issued_by):
+    """Issue the pinned Melbourne scenario decision for a conflict (VTSO only)."""
+    return issue_decision(
+        conflict_id=conflict_id,
+        issued_by=issued_by,
+        required_stakeholders=pinned_stakeholders(),
+        predicted_impact=pinned_predicted_impact(),
+        actor_role=ROLE_VTSO,
+    )

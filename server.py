@@ -64,6 +64,20 @@ def _beta11():
         _beta11_mod = beta11_decision
     return _beta11_mod
 
+def _beta11_summary_block(active_port_id, conflicts):
+    """
+    Return {"beta11": {...}} when the flag is on, else {} so the /api/summary
+    shape is byte identical to Beta 10. Spread into the summary dict by the
+    caller. Never raises into build_summary; a failure degrades to {}.
+    """
+    if not BETA11_ENABLED:
+        return {}
+    try:
+        return {"beta11": _beta11().summary_block(active_port_id, conflicts)}
+    except Exception as exc:
+        log.error("beta11 summary block failed: %s", exc, exc_info=True)
+        return {}
+
 log = logging.getLogger("horizon")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [horizon] %(levelname)s %(message)s",
                     datefmt="%Y-%m-%dT%H:%M:%SZ")
@@ -2707,6 +2721,7 @@ def build_summary():
         "arrival_ukc":       arrival_ukc,
         "dukc":              dukc,
         "esg":               esg,
+        **_beta11_summary_block(active_port_id, conflicts),
         "port_profile": {
             "id":                    active_port_id,
             "display_name":          profile["display_name"],
@@ -4498,14 +4513,22 @@ doRefresh();setInterval(doRefresh,30000);
             action = (body.get("action") or "").lower().strip()
 
             if action == "issue":
-                decision = b11.issue_decision(
-                    conflict_id=body.get("conflict_id"),
-                    issued_by=session_audit.resolve_actor_handle(_AUTH_USER, _AUTH_USER),
-                    required_stakeholders=body.get("required_stakeholders") or [],
-                    predicted_impact=body.get("predicted_impact"),
-                    decision_deadline=body.get("decision_deadline"),
-                    actor_role=(body.get("actor_role") or b11.ROLE_VTSO),
-                )
+                if body.get("use_pinned"):
+                    # Server owns the pinned Melbourne scenario stakeholders so
+                    # the client is not the source of truth for the loop.
+                    decision = b11.issue_pinned(
+                        conflict_id=body.get("conflict_id"),
+                        issued_by=session_audit.resolve_actor_handle(_AUTH_USER, _AUTH_USER),
+                    )
+                else:
+                    decision = b11.issue_decision(
+                        conflict_id=body.get("conflict_id"),
+                        issued_by=session_audit.resolve_actor_handle(_AUTH_USER, _AUTH_USER),
+                        required_stakeholders=body.get("required_stakeholders") or [],
+                        predicted_impact=body.get("predicted_impact"),
+                        decision_deadline=body.get("decision_deadline"),
+                        actor_role=(body.get("actor_role") or b11.ROLE_VTSO),
+                    )
             elif action in ("acknowledge", "flag"):
                 decision = b11.act_on_decision(
                     decision_id=body.get("decision_id"),

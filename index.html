@@ -1522,6 +1522,9 @@ function render(d){
   if(_activeTab==='dukc')renderDUKC(d.dukc);
   if(_activeTab==='esg')renderESG(d.esg);
   if(_activeTab==='performance')renderPerformance(d);
+  // Beta 11 role views. No-op unless the server sends a top level `beta11`
+  // block (only present when BETA11_ENABLED). Keeps Beta 10 render untouched.
+  if(window._b11 && d && d.beta11)_b11.onData(d);
 }
 
 /* ── Beta 9: Conflict Timeline ── */
@@ -3102,6 +3105,210 @@ function _checkCounts(observed,badgeId,label,expected){
     console.warn(`[Horizon] Count mismatch on "${label}": badge shows ${val}, data has ${ref}`);
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   Beta 11 — role based stakeholder decision loop (decision centric).
+   Self contained. Activates ONLY when /api/summary carries a top level
+   `beta11` block (server sends it only when BETA11_ENABLED). When absent,
+   this module never builds DOM, injects CSS, or polls — Beta 10 is untouched.
+   One decision is the spine; each role is a lens on that same decision.
+   All stakeholder data is simulated and labelled.
+   ════════════════════════════════════════════════════════════════ */
+(function(){
+  const ROLE_TONES = {vtso:"#38bdf8",towage:"#f59e0b",pilotage:"#34d399",terminal:"#c084fc",assurance:"#94a3b8"};
+  let _built=false, _activeRole="VTSO", _poll=null, _last=null, _busy=false, _costTimer=null;
+
+  function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+  function fmtTs(ts){ try{return new Date(ts).toLocaleTimeString();}catch(e){return ts;} }
+
+  function injectCSS(){
+    if(document.getElementById("b11-css"))return;
+    const css=`
+    #b11-bar{display:flex;align-items:center;gap:8px;padding:6px 14px;background:#0a1422;border-bottom:1px solid rgba(56,189,248,.25);font-size:12px;}
+    #b11-bar .b11-title{font-weight:700;letter-spacing:.6px;color:#38bdf8;text-transform:uppercase;font-size:11px;}
+    #b11-bar select{background:rgba(255,255,255,.05);border:1px solid rgba(56,189,248,.3);color:#e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px;}
+    #b11-bar .b11-blurb{color:#64748b;font-size:11px;margin-left:4px;}
+    #b11-overlay{position:fixed;inset:0;z-index:9000;background:#070f1e;overflow:auto;display:none;}
+    #b11-overlay.show{display:block;}
+    .b11-wrap{max-width:1100px;margin:0 auto;padding:18px 22px 60px;}
+    .b11-simbanner{background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.5);color:#fbbf24;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;letter-spacing:.4px;margin-bottom:16px;text-transform:uppercase;}
+    .b11-rolehdr{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+    .b11-rolehdr .dot{width:12px;height:12px;border-radius:50%;}
+    .b11-rolehdr h2{font-size:18px;color:#e2e8f0;margin:0;}
+    .b11-rolesub{color:#64748b;font-size:12px;margin-bottom:18px;}
+    .b11-card{background:#0d1b2e;border:1px solid rgba(56,189,248,.18);border-radius:12px;padding:18px 20px;margin-bottom:16px;}
+    .b11-card h3{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#7dd3fc;margin:0 0 12px;}
+    .b11-line{font-size:13px;color:#cbd5e1;line-height:1.6;}
+    .b11-statepill{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:3px 9px;border-radius:20px;}
+    .b11-st-PROPAGATED{background:rgba(56,189,248,.18);color:#7dd3fc;}
+    .b11-st-CONFIRMED{background:rgba(52,211,153,.18);color:#6ee7b7;}
+    .b11-st-SUPERSEDED{background:rgba(148,163,184,.18);color:#cbd5e1;}
+    .b11-st-EXPIRED{background:rgba(239,68,68,.18);color:#fca5a5;}
+    .b11-stk-status{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:6px;}
+    .b11-AWAITING{background:rgba(148,163,184,.15);color:#cbd5e1;}
+    .b11-ACKNOWLEDGED{background:rgba(52,211,153,.18);color:#6ee7b7;}
+    .b11-FLAGGED{background:rgba(245,158,11,.2);color:#fbbf24;}
+    .b11-btn{background:#38bdf8;color:#07111e;border:none;border-radius:6px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px;}
+    .b11-btn:hover{background:#7dd3fc;}
+    .b11-btn.ghost{background:transparent;border:1px solid rgba(245,158,11,.5);color:#fbbf24;}
+    .b11-btn:disabled{opacity:.4;cursor:not-allowed;}
+    .b11-empty{color:#64748b;font-size:13px;padding:20px;text-align:center;}
+    .b11-cost{font-size:26px;font-weight:800;color:#c084fc;}
+    .b11-cost-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#a78bfa;margin-top:4px;}
+    .b11-tl{position:relative;padding-left:22px;}
+    .b11-tl::before{content:"";position:absolute;left:7px;top:4px;bottom:4px;width:2px;background:rgba(56,189,248,.25);}
+    .b11-tlrow{position:relative;margin-bottom:14px;}
+    .b11-tlrow .node{position:absolute;left:-19px;top:2px;width:12px;height:12px;border-radius:50%;background:#38bdf8;border:2px solid #070f1e;}
+    .b11-tlrow .ev{font-size:13px;color:#e2e8f0;font-weight:600;text-transform:capitalize;}
+    .b11-tlrow .meta{font-size:11px;color:#64748b;margin-top:1px;}
+    .b11-pva{display:flex;gap:24px;margin-top:8px;}
+    .b11-pva div .k{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#64748b;}
+    .b11-pva div .v{font-size:14px;color:#cbd5e1;margin-top:3px;}`;
+    const st=document.createElement("style"); st.id="b11-css"; st.textContent=css; document.head.appendChild(st);
+  }
+
+  function buildShell(b){
+    injectCSS();
+    const bar=document.createElement("div"); bar.id="b11-bar";
+    const opts=(b.roles||[]).map(r=>`<option value="${esc(r.id)}">${esc(r.label)}</option>`).join("");
+    bar.innerHTML=`<span class="b11-title">Beta 11 · Role view</span><select id="b11-role">${opts}</select><span class="b11-blurb" id="b11-blurb"></span>`;
+    const hdr=document.querySelector("header");
+    if(hdr&&hdr.parentNode){hdr.parentNode.insertBefore(bar,hdr.nextSibling);}else{document.body.insertBefore(bar,document.body.firstChild);}
+    const ov=document.createElement("div"); ov.id="b11-overlay"; ov.innerHTML=`<div class="b11-wrap" id="b11-wrap"></div>`;
+    document.body.appendChild(ov);
+    document.getElementById("b11-role").addEventListener("change",e=>setRole(e.target.value));
+    _built=true;
+  }
+
+  function setRole(role){
+    _activeRole=role;
+    const ov=document.getElementById("b11-overlay"); const sel=document.getElementById("b11-role");
+    if(sel)sel.value=role;
+    const meta=(_last&&_last.beta11&&(_last.beta11.roles||[]).find(r=>r.id===role))||null;
+    const blurb=document.getElementById("b11-blurb"); if(blurb)blurb.textContent=meta?meta.blurb:"";
+    if(role==="VTSO"){ ov.classList.remove("show"); renderVtsoPanel(); }
+    else { ov.classList.add("show"); renderOverlay(); }
+  }
+
+  function renderVtsoPanel(){
+    const b=_last&&_last.beta11; if(!b)return;
+    let strip=document.getElementById("b11-vtso-strip");
+    if(!strip){
+      strip=document.createElement("div"); strip.id="b11-vtso-strip";
+      strip.style.cssText="position:fixed;right:14px;bottom:14px;width:330px;z-index:8000;background:#0d1b2e;border:1px solid rgba(56,189,248,.3);border-radius:12px;padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.5);";
+      document.body.appendChild(strip);
+    }
+    strip.style.display="block";
+    const ad=b.active_decision, pid=b.pinned_conflict_id;
+    let inner=`<div style="font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:#38bdf8;font-weight:700;margin-bottom:8px;">VTSO · Decision loop</div>`;
+    if(!b.is_scenario_port){
+      inner+=`<div class="b11-line" style="font-size:12px;color:#64748b">Pinned scenario runs at ${esc(b.scenario_port)}. Switch the port to Melbourne to run the loop.</div>`;
+    } else if(!pid){
+      inner+=`<div class="b11-line" style="font-size:12px;color:#64748b">No eligible conflict to coordinate.</div>`;
+    } else if(!ad){
+      inner+=`<div class="b11-line" style="font-size:12px;margin-bottom:10px">Conflict <strong>${esc(pid)}</strong> detected. Issue a coordinated decision to towage, pilotage and terminal.</div><button class="b11-btn" id="b11-issue">Issue coordinated decision</button>`;
+    } else {
+      const acks=ad.required_stakeholders.filter(s=>s.status==="ACKNOWLEDGED").length;
+      inner+=`<div style="margin-bottom:8px"><span class="b11-statepill b11-st-${esc(ad.decision_state)}">${esc(ad.decision_state)}</span></div><div class="b11-line" style="font-size:12px;margin-bottom:8px">${acks} of ${ad.required_stakeholders.length} stakeholders confirmed.</div>`;
+      inner+=ad.required_stakeholders.map(s=>`<div style="font-size:11px;color:#94a3b8;margin-bottom:3px">${esc(s.display_name)} · <span class="b11-stk-status b11-${esc(s.status)}">${esc(s.status)}</span>${s.flag_reason?` · flag: ${esc(s.flag_reason)}`:""}</div>`).join("");
+      if(ad.decision_state!=="SUPERSEDED"&&ad.decision_state!=="EXPIRED")
+        inner+=`<div style="margin-top:10px"><button class="b11-btn ghost" id="b11-supersede">Supersede</button></div>`;
+    }
+    strip.innerHTML=inner;
+    const ib=document.getElementById("b11-issue"); if(ib)ib.addEventListener("click",()=>action({action:"issue",use_pinned:true,conflict_id:pid}));
+    const sb=document.getElementById("b11-supersede"); if(sb)sb.addEventListener("click",()=>{ if(ad)action({action:"supersede",decision_id:ad.decision_id}); });
+  }
+  function hideVtsoStrip(){const s=document.getElementById("b11-vtso-strip");if(s)s.style.display="none";}
+
+  function renderOverlay(){
+    const b=_last&&_last.beta11; const wrap=document.getElementById("b11-wrap"); if(!b||!wrap)return;
+    hideVtsoStrip();
+    const meta=(b.roles||[]).find(r=>r.id===_activeRole)||{label:_activeRole,tone:"assurance",blurb:""};
+    const tone=ROLE_TONES[meta.tone]||"#94a3b8";
+    let html=`<div class="b11-simbanner">⚠ Simulated stakeholder view · all data on this screen is simulated for demonstration</div>`;
+    html+=`<div class="b11-rolehdr"><span class="dot" style="background:${tone}"></span><h2>${esc(meta.label)}</h2></div>`;
+    html+=`<div class="b11-rolesub">${esc(meta.blurb)}</div>`;
+    html+=(_activeRole==="ASSURANCE")?assuranceBody(b):confirmerBody(b,_activeRole);
+    wrap.innerHTML=html;
+    const ad=b.active_decision;
+    if(ad){
+      const ackb=document.getElementById("b11-ack"); if(ackb)ackb.addEventListener("click",()=>action({action:"acknowledge",decision_id:ad.decision_id,role:_activeRole}));
+      const flagb=document.getElementById("b11-flag"); if(flagb)flagb.addEventListener("click",()=>{ const r=prompt("Describe the concern to flag to the VTSO:"); if(r&&r.trim())action({action:"flag",decision_id:ad.decision_id,role:_activeRole,flag_reason:r.trim()}); });
+    }
+  }
+
+  function confirmerBody(b,role){
+    const ad=b.active_decision;
+    if(!b.is_scenario_port) return `<div class="b11-card"><div class="b11-empty">The pinned scenario runs at ${esc(b.scenario_port)}. No coordinated decision is active for your operation here.</div></div>`;
+    if(!ad) return `<div class="b11-card"><div class="b11-empty">No coordinated decision has been issued yet. When the VTSO issues one, your action will appear here.</div></div>`;
+    const line=ad.required_stakeholders.find(s=>s.role===role);
+    if(!line) return `<div class="b11-card"><div class="b11-empty">This decision does not require an action from your operation.</div></div>`;
+    let html=`<div class="b11-card"><h3>Incoming coordination</h3><div class="b11-line"><strong>${esc(line.display_name)}</strong></div><div class="b11-line" style="margin-top:6px">${esc(line.action_label)}</div><div style="margin-top:12px"><span class="b11-stk-status b11-${esc(line.status)}">${esc(line.status)}</span>${line.flag_reason?` · <span style="color:#fbbf24">flag: ${esc(line.flag_reason)}</span>`:""}</div>`;
+    const terminal=(ad.decision_state==="SUPERSEDED"||ad.decision_state==="EXPIRED");
+    if(!terminal){
+      html+=`<div style="margin-top:16px"><button class="b11-btn" id="b11-ack" ${line.status==="ACKNOWLEDGED"?"disabled":""}>Acknowledge</button><button class="b11-btn ghost" id="b11-flag">Flag concern</button></div>`;
+    } else {
+      html+=`<div class="b11-line" style="margin-top:14px;color:#64748b">This decision is ${esc(ad.decision_state.toLowerCase())}. No further action required.</div>`;
+    }
+    html+=`</div>`;
+    if(role==="TERMINAL"){
+      const pi=b.predicted_impact||{}; const rate=pi.cost_per_hour_aud||0;
+      html+=`<div class="b11-card"><h3>Standby cost exposure</h3><div class="b11-cost" id="b11-cost">A$0</div><div class="b11-cost-lbl">${esc(pi.label||"Simulated illustrative value")} · A$${rate.toLocaleString()}/hr (illustrative)</div><div class="b11-line" style="margin-top:8px;color:#64748b;font-size:11px">${esc(pi.cost_text||"Illustrative only. Not a verified figure.")}</div></div>`;
+      startCostCounter(ad,rate);
+    }
+    return html;
+  }
+
+  function startCostCounter(ad,ratePerHour){
+    if(_costTimer){clearInterval(_costTimer);_costTimer=null;}
+    const line=ad.required_stakeholders.find(s=>s.role==="TERMINAL");
+    const issued=ad.issued_at?new Date(ad.issued_at).getTime():Date.now();
+    function tick(){
+      const el=document.getElementById("b11-cost"); if(!el){clearInterval(_costTimer);return;}
+      let endMs=Date.now();
+      if(line&&line.status==="ACKNOWLEDGED"&&line.acted_at)endMs=new Date(line.acted_at).getTime();
+      const hrs=Math.max(0,(endMs-issued)/3600000);
+      el.textContent="A$"+Math.round(hrs*ratePerHour).toLocaleString();
+    }
+    tick(); _costTimer=setInterval(tick,1000);
+  }
+
+  function assuranceBody(b){
+    const ad=b.active_decision;
+    if(!ad) return `<div class="b11-card"><div class="b11-empty">No decision loop has run yet. Once the VTSO issues a coordinated decision, the full detection to confirmation trail appears here.</div></div>`;
+    const log=ad.propagation_log||[];
+    let html=`<div class="b11-card"><h3>Decision loop timeline</h3><div style="margin-bottom:12px"><span class="b11-statepill b11-st-${esc(ad.decision_state)}">${esc(ad.decision_state)}</span>&nbsp;<span style="font-size:11px;color:#64748b">Decision ${esc(ad.decision_id)} · conflict ${esc(ad.conflict_id)}</span></div><div class="b11-tl">`;
+    html+=`<div class="b11-tlrow"><span class="node" style="background:#94a3b8"></span><div class="ev">Detection</div><div class="meta">Conflict ${esc(ad.conflict_id)} surfaced by Horizon</div></div>`;
+    html+=log.map(e=>`<div class="b11-tlrow"><span class="node"></span><div class="ev">${esc(e.event)}</div><div class="meta">${esc(e.role)} · ${esc(fmtTs(e.ts))}</div></div>`).join("");
+    html+=`</div></div>`;
+    const pi=b.predicted_impact||{};
+    html+=`<div class="b11-card"><h3>Predicted vs actual</h3><div class="b11-pva"><div><div class="k">Predicted</div><div class="v">${esc(pi.headline||"—")}</div></div><div><div class="k">Actual</div><div class="v" style="color:#64748b">Pending · no outcome feed yet</div></div></div><div class="b11-line" style="margin-top:10px;color:#64748b;font-size:11px">${esc(pi.cost_text||"Illustrative only. Not a verified figure.")}</div></div>`;
+    return html;
+  }
+
+  async function action(payload){
+    if(_busy)return; _busy=true;
+    try{
+      const r=await fetch("/api/decision-action",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      const j=await r.json();
+      if(!j.success)console.warn("[Beta11] action rejected:",j.error);
+    }catch(e){console.error("[Beta11] action failed",e);}
+    _busy=false;
+    if(typeof refresh==="function")await refresh();
+  }
+
+  function ensurePoll(){ if(_poll)return; _poll=setInterval(()=>{ if(typeof refresh==="function")refresh(); },4000); }
+
+  function onData(d){
+    _last=d;
+    if(!_built)buildShell(d.beta11);
+    if(_activeRole==="VTSO"){ const ov=document.getElementById("b11-overlay"); if(ov)ov.classList.remove("show"); renderVtsoPanel(); }
+    else renderOverlay();
+    ensurePoll();
+  }
+
+  window._b11={onData};
+})();
 
 /* ── Boot ── */
 renderAuditLog(); refresh();
