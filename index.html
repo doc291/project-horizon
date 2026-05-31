@@ -3192,7 +3192,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const el=document.querySelector(".logo-badge"); if(!el)return;
     if(_origBadge===null)_origBadge=el.textContent;
     el.textContent=text;
-    el.title="Horizon Beta 11 Preview environment";
+    el.title="Horizon Beta 12 Preview environment";
   }
   function restoreBadge(){
     const el=document.querySelector(".logo-badge");
@@ -3206,12 +3206,12 @@ function _checkCounts(observed,badgeId,label,expected){
     // Return control first (left), then logo, role selector (always visible),
     // and the per-role blurb. The Return button only shows inside a lens.
     bar.innerHTML=`<button id="b11-return" title="Return to the Horizon coordination view">← Return to Horizon Coordination View</button>`+
-      `<img src="/logo" class="b11-brand" alt="Horizon"><span class="b11-title">Horizon Beta 11</span>`+
+      `<img src="/logo" class="b11-brand" alt="Horizon"><span class="b11-title">Horizon Beta 12</span>`+
       `<span class="b11-roles-label">Role</span><select id="b11-role">${opts}</select>`+
       `<span class="b11-blurb" id="b11-blurb"></span>`;
     // Governance: relabel the SHARED Beta 10 badge at runtime only (never edit
     // the static markup, which must stay byte identical when the flag is off).
-    setBadge("Horizon Beta 11 Preview");
+    setBadge("Horizon Beta 12 Preview");
     const hdr=document.querySelector("header");
     if(hdr&&hdr.parentNode){hdr.parentNode.insertBefore(bar,hdr.nextSibling);}else{document.body.insertBefore(bar,document.body.firstChild);}
     const ov=document.createElement("div"); ov.id="b11-overlay"; ov.innerHTML=`<div class="b11-wrap" id="b11-wrap"></div>`;
@@ -3270,7 +3270,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const tone=ROLE_TONES[meta.tone]||"#94a3b8";
     // Horizon branding stays visible in every lens: the overlay covers the
     // Beta 10 header, so the official logo + environment badge are repeated here.
-    let html=`<div class="b11-ovbrand"><img src="/logo" alt="Horizon"><span class="env">Horizon Beta 11 Preview</span><span class="within">${esc(meta.label)} lens · a view within Horizon, not a separate product</span></div>`;
+    let html=`<div class="b11-ovbrand"><img src="/logo" alt="Horizon"><span class="env">Horizon Beta 12 Preview</span><span class="within">${esc(meta.label)} lens · a view within Horizon, not a separate product</span></div>`;
     html+=`<div class="b11-simbanner">⚠ Simulated stakeholder view · all data on this screen is simulated for demonstration</div>`;
     html+=`<div class="b11-rolehdr"><span class="dot" style="background:${tone}"></span><h2>${esc(meta.label)}</h2></div>`;
     html+=`<div class="b11-rolesub">${esc(meta.blurb)}</div>`;
