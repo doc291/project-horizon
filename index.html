@@ -3947,6 +3947,20 @@ function _checkCounts(observed,badgeId,label,expected){
   let _pwcPrevConflictIds = null;
   let _pwcPrevPortFingerprint = null;
 
+  // Strip synthetic pilot identifiers ("PILOT_MEL_PSP_01" etc.) from any
+  // string before it reaches the data layer's flag reasons. The server
+  // embeds these IDs inside some conflict descriptions; the doctrine
+  // requires we never expose them. Applied to every description copied
+  // into the watch object.
+  function _scrubPilotId(s){
+    if(s == null) return s;
+    // Remove the trailing " Pilot: PILOT_XXX_PSP_NN." sentence pattern.
+    let out = String(s).replace(/\s*Pilot:\s*PILOT_[A-Z0-9_]+\.?$/i, "");
+    // Defensive: remove any bare synthetic ID that escaped the pattern above.
+    out = out.replace(/PILOT_[A-Z]{2,4}_PSP_\d+/g, "[pilot]");
+    return out;
+  }
+
   // P1: pure data transform — port id, watch window, pilots_available count,
   //     transits filtered to window.
   // P2: per-transit Layer 3 confidence rules (UKC, ETA drift, eta_variance,
@@ -4048,24 +4062,25 @@ function _checkCounts(observed,badgeId,label,expected){
         }
       }
 
-      // 3.2 — pilotage_window short-notice conflicts
+      // 3.2 — pilotage_window short-notice conflicts.
+      // All conflict descriptions are scrubbed of synthetic pilot IDs.
       conflicts.forEach(c => {
         if(!c || !c.vessel_ids || c.vessel_ids.indexOf(V) < 0) return;
         if(c.conflict_type === "pilotage_window"){
           reasons.push({ source:"short_notice", severity:"warning",
-                         description: c.description, conflict_id: c.id,
+                         description: _scrubPilotId(c.description), conflict_id: c.id,
                          provenance: c.data_source || "simulated" });
         } else if(c.conflict_type === "eta_variance"){
           reasons.push({ source:"eta_variance", severity:"advisory",
-                         description: c.description, conflict_id: c.id,
+                         description: _scrubPilotId(c.description), conflict_id: c.id,
                          provenance: c.data_source || "simulated" });
         } else if(c.conflict_type === "berth_not_ready" || c.conflict_type === "berth_overlap"){
           reasons.push({ source:"berth_side", severity:"advisory",
-                         description: c.description, conflict_id: c.id,
+                         description: _scrubPilotId(c.description), conflict_id: c.id,
                          provenance: c.data_source || "simulated" });
         } else if(c.conflict_type === "bridge_restriction"){
           reasons.push({ source:"bridge_restriction", severity:"warning",
-                         description: c.description, conflict_id: c.id,
+                         description: _scrubPilotId(c.description), conflict_id: c.id,
                          provenance: c.data_source || "simulated" });
         }
       });
@@ -4167,7 +4182,7 @@ function _checkCounts(observed,badgeId,label,expected){
             conflict_id: c.id,
             conflict_type: c.conflict_type,
             severity: c.severity || "warning",
-            description: c.description,
+            description: _scrubPilotId(c.description),
             vessel_names: c.vessel_names || [],
             provenance: c.data_source || "live"
           }
@@ -4245,11 +4260,11 @@ function _checkCounts(observed,badgeId,label,expected){
             decision_state: activeDecision.decision_state,
             is_terminal: tTerm,
             conflict_id: activeDecision.conflict_id,
-            conflict_text: oc ? oc.description
-                              : "A coordinated decision has been issued by the VTSO.",
-            action_label: pilStk.action_label,
+            conflict_text: _scrubPilotId(oc ? oc.description
+                              : "A coordinated decision has been issued by the VTSO."),
+            action_label: _scrubPilotId(pilStk.action_label),
             status: pilStk.status,
-            flag_reason: pilStk.flag_reason || null
+            flag_reason: _scrubPilotId(pilStk.flag_reason || null)
           }
         });
 
@@ -4260,7 +4275,7 @@ function _checkCounts(observed,badgeId,label,expected){
             t.flag_reasons.push({
               source: "coordinated_decision",
               severity: "critical",
-              description: pilStk.action_label,
+              description: _scrubPilotId(pilStk.action_label),
               conflict_id: activeDecision.conflict_id,
               decision_id: activeDecision.decision_id,
               provenance: "live"
