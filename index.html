@@ -3534,7 +3534,7 @@ function _checkCounts(observed,badgeId,label,expected){
     if(weather.wind_speed_kts!=null&&weather.wind_speed_kts>12){
       changed.push({icon:"💨",
         text:`Wind ${Math.round(weather.wind_speed_kts)} kts · ${weather.conditions||"check conditions"}`,
-        tag:"live",
+        tag:"live weather",
         detail:"Wind above threshold may affect tug deployment on large vessels."});
     }
     if(changed.length===0){
@@ -3591,18 +3591,18 @@ function _checkCounts(observed,badgeId,label,expected){
     // What changed
     h+=`<div class="b11-card"><h3>What changed · key signals</h3>`;
     changed.forEach(item=>{
-      const tagHtml=item.tag?`<span class="b11-${item.tag==="live BOM"||item.tag==="live"?"realtag":"simtag"}">${esc(item.tag)}</span>`:"";
+      const tagHtml=item.tag?`<span class="b11-${item.tag==="live BOM"||item.tag==="live"||item.tag==="live weather"?"realtag":"simtag"}">${esc(item.tag)}</span>`:"";
       h+=`<div class="tmb-changed-item"><span class="tmb-changed-icon">${item.icon}</span><div class="tmb-changed-body"><span class="tmb-changed-text">${esc(item.text)}</span>${tagHtml}${item.detail?`<div class="tmb-changed-detail">${esc(item.detail)}</div>`:""}</div></div>`;
     });
     h+=`</div>`;
 
     // Risk cards (only when conflicts exist)
     if(towConf.length>0){
-      h+=`<div class="b11-card"><h3>At-risk jobs · tug conflicts <span class="b11-realtag">live Horizon signal</span></h3>`;
+      h+=`<div class="b11-card"><h3>At-risk jobs · tug conflicts <span class="b11-realtag">Horizon disruption signal</span></h3>`;
       towConf.slice(0,3).forEach(c=>{
         const vnames=(c.vessel_names||[]).filter(Boolean).join(" &amp; ")||"Unknown vessels";
         const ct=c.conflict_time?fmtTs(c.conflict_time):"—";
-        h+=`<div class="tmb-risk-card"><div class="tmb-risk-vessels">${vnames}</div><div class="tmb-risk-desc">${esc(c.description)}</div><div class="tmb-risk-meta">Conflict window ~${ct} · <span class="b11-simtag">simulated data</span></div></div>`;
+        h+=`<div class="tmb-risk-card"><div class="tmb-risk-vessels">${vnames}</div><div class="tmb-risk-desc">${esc(c.description)}</div><div class="tmb-risk-meta">Conflict window ~${ct} · <span class="b11-simtag">simulated towage data</span></div></div>`;
       });
       h+=`</div>`;
     }
