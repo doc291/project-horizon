@@ -3233,16 +3233,20 @@ function _checkCounts(observed,badgeId,label,expected){
     .tmb-rec-text{font-size:14px;color:#fbbf24;font-weight:600;line-height:1.5;}
     .tmb-simbanner{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);color:#fbbf24;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;letter-spacing:.4px;margin-bottom:16px;}
     /* ── Towage floating action card ── */
-    #tmb-action-card{position:fixed;top:58px;right:16px;width:300px;z-index:9100;background:#0d1b2e;border:1px solid rgba(245,158,11,.6);border-radius:12px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.65);display:none;}
+    /* top:218px clears role-bar(41px) + wrap-padding(18px) + ovbrand(58px) + simbanner(42px) + rolehdr(30px) + rolesub(29px) */
+    #tmb-action-card{position:fixed;top:218px;right:16px;width:340px;max-height:calc(100vh - 238px);overflow-y:auto;z-index:9100;background:#0d1b2e;border:1px solid rgba(245,158,11,.6);border-radius:12px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.65);display:none;}
     #tmb-action-card.show{display:block;}
-    .tmb-ac-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,.25);}
+    @media(max-width:840px){#tmb-action-card{top:auto;bottom:0;left:0;right:0;width:auto;max-height:45vh;border-radius:12px 12px 0 0;}}
+    .tmb-ac-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(245,158,11,.25);}
     .tmb-ac-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#f59e0b;}
     .tmb-ac-time{font-size:10px;color:#475569;margin-top:1px;}
-    .tmb-ac-tug{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:4px;}
-    .tmb-ac-action{font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:10px;}
-    .tmb-ac-status-row{margin-bottom:12px;}
-    .tmb-ac-btns{display:flex;gap:8px;}
-    .tmb-ac-done{font-size:11px;color:#64748b;font-style:italic;}`;
+    .tmb-ac-section{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.04);}
+    .tmb-ac-key{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#475569;margin-bottom:3px;}
+    .tmb-ac-val{font-size:12px;color:#cbd5e1;line-height:1.5;}
+    .tmb-ac-impact{font-size:14px;font-weight:700;color:#c084fc;margin-bottom:2px;}
+    .tmb-ac-hint{font-size:11px;color:#64748b;}
+    .tmb-ac-btns{display:flex;gap:8px;margin-top:14px;}
+    .tmb-ac-done{font-size:11px;color:#64748b;font-style:italic;margin-top:14px;}`;
     const st=document.createElement("style"); st.id="b11-css"; st.textContent=css; document.head.appendChild(st);
   }
 
@@ -3671,19 +3675,57 @@ function _checkCounts(observed,badgeId,label,expected){
     if(!tLine){hideTmbActionCard();return;}
     let card=document.getElementById("tmb-action-card");
     if(!card){card=document.createElement("div");card.id="tmb-action-card";document.body.appendChild(card);}
+
+    const d=_last||{};
+
+    // Originating conflict — short summary from the decision's source conflict
+    const oc=(d.conflicts||[]).find(c=>c.id===ad.conflict_id);
+    const rawDesc=oc&&oc.description?oc.description:"A coordinated decision has been issued by the VTSO.";
+    const conflictShort=rawDesc.length>130?rawDesc.slice(0,127)+"…":rawDesc;
+
+    // Why towage is involved — leading clause of the first towage_resource conflict
+    const towConf=(d.conflicts||[]).filter(c=>c.conflict_type==="towage_resource");
+    let towWhy="Tug reassignment required to support the revised operating window.";
+    if(towConf.length>0){
+      const parts=towConf[0].description.split("—");
+      const lead=(parts[0]||"").trim();
+      if(lead.length>10)towWhy=lead+".";
+    }
+
+    // Predicted impact
+    const pi=ad.predicted_impact||{};
     const tTerm=(ad.decision_state==="SUPERSEDED"||ad.decision_state==="EXPIRED");
     const issuedStr=ad.issued_at?`Issued ${fmtTs(ad.issued_at)}`:"";
-    let h=`<div class="tmb-ac-hdr"><span class="tmb-ac-label">Coordinated action required</span><span class="tmb-ac-time">${esc(issuedStr)}</span></div>`;
-    h+=`<div class="tmb-ac-tug">${esc(tLine.display_name)}</div>`;
-    h+=`<div class="tmb-ac-action">${esc(tLine.action_label)}</div>`;
-    h+=`<div class="tmb-ac-status-row"><span class="b11-stk-status b11-${esc(tLine.status)}">${esc(tLine.status)}</span>`;
-    if(tLine.flag_reason)h+=` <span style="font-size:11px;color:#fbbf24">flag: ${esc(tLine.flag_reason)}</span>`;
+
+    let h=`<div class="tmb-ac-hdr">`;
+    h+=`<span class="tmb-ac-label">Coordinated action required</span>`;
+    h+=`<span class="tmb-ac-time">${esc(issuedStr)}</span>`;
     h+=`</div>`;
+
+    h+=`<div class="tmb-ac-section"><div class="tmb-ac-key">Conflict</div><div class="tmb-ac-val">${esc(conflictShort)}</div></div>`;
+    h+=`<div class="tmb-ac-section"><div class="tmb-ac-key">Why towage is involved</div><div class="tmb-ac-val">${esc(towWhy)}</div></div>`;
+
+    if(pi.total_impact_aud){
+      h+=`<div class="tmb-ac-section"><div class="tmb-ac-key">Impact <span class="b11-simtag">simulated</span></div>`;
+      h+=`<div class="tmb-ac-impact">${b11Money(pi.total_impact_aud)}</div>`;
+      if(pi.headline)h+=`<div class="tmb-ac-hint">${esc(pi.headline)}</div>`;
+      h+=`</div>`;
+    }
+
+    h+=`<div class="tmb-ac-section"><div class="tmb-ac-key">Required action</div><div class="tmb-ac-val"><strong>${esc(tLine.action_label)}</strong></div></div>`;
+
+    h+=`<div class="tmb-ac-section" style="border-bottom:none;margin-bottom:0">`;
+    h+=`<div class="tmb-ac-key">Status</div>`;
+    h+=`<span class="b11-stk-status b11-${esc(tLine.status)}">${esc(tLine.status)}</span>`;
+    if(tLine.flag_reason)h+=` <span style="font-size:11px;color:#fbbf24;margin-left:4px">flag: ${esc(tLine.flag_reason)}</span>`;
+    h+=`</div>`;
+
     if(!tTerm){
       h+=`<div class="tmb-ac-btns"><button class="b11-btn" id="tmb-ack-btn" ${tLine.status==="ACKNOWLEDGED"?"disabled":""}>Acknowledge</button><button class="b11-btn ghost" id="tmb-flag-btn">Flag concern</button></div>`;
     } else {
       h+=`<div class="tmb-ac-done">This decision is ${esc(ad.decision_state.toLowerCase())}. No further action required.</div>`;
     }
+
     card.innerHTML=h;
     card.classList.add("show");
   }
