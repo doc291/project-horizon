@@ -3839,8 +3839,17 @@ function _checkCounts(observed,badgeId,label,expected){
   // Existing Morning Brief code path is unaffected by anything in this block.
   // ════════════════════════════════════════════════════════════════════════
 
-  // T1: pure data transform — fleet + bookings in window. No flags yet (T2),
-  // no tug status simulation (T3), no forward shape (T4), no exceptions (T5/T6).
+  // Severity ranking for confidence reasons (T2) — critical > warning > advisory
+  const _SHIFT_SEV_RANK = { advisory: 1, warning: 2, critical: 3 };
+  function _maxSeverity(a, b){
+    if(!a) return b;
+    if(!b) return a;
+    return (_SHIFT_SEV_RANK[a] || 0) >= (_SHIFT_SEV_RANK[b] || 0) ? a : b;
+  }
+
+  // T1: pure data transform — fleet + bookings in window.
+  // T2: per-booking confidence rule set (flags + reasons + max severity).
+  // T3: tug status simulation. T4: forward shape. T5/T6: exceptions.
   function buildTowageShift(summary){
     const d = summary || {};
     const towage = d.towage || [];
@@ -3848,6 +3857,8 @@ function _checkCounts(observed,badgeId,label,expected){
     const portTugs = d.port_tugs || [];
     const ps = d.port_status || {};
     const beta11 = d.beta11 || {};
+    const conflicts = d.conflicts || [];
+    const etdRisk = d.etd_risk || [];
 
     // Port identity: prefer explicit fields, fall back to tug-list fingerprint
     // (port-stable: changes whenever the active port switches).
@@ -3903,6 +3914,53 @@ function _checkCounts(observed,badgeId,label,expected){
         const f = fleet.find(x => x.tug_id === t.tug_id);
         if(f) f.bookings_in_window++;
       });
+    });
+
+    // T2 — Layer 3 confidence rules. Per-booking flag is the only source of
+    // truth. No other function reads conflicts[] for confidence purposes.
+    const etdRiskByVid = {};
+    etdRisk.forEach(e => { if(e && e.vessel_id) etdRiskByVid[e.vessel_id] = e; });
+
+    bookings.forEach(bk => {
+      const reasons = [];
+      const v = vById[bk.vessel_id] || {};
+
+      conflicts.forEach(c => {
+        if(!c || !c.vessel_ids || c.vessel_ids.indexOf(bk.vessel_id) < 0) return;
+        if(c.conflict_type === "towage_resource"){
+          reasons.push({ source:"towage_resource", severity:"warning",
+                         description: c.description, conflict_id: c.id,
+                         provenance: c.data_source || "live" });
+        } else if(c.conflict_type === "eta_variance"){
+          reasons.push({ source:"eta_variance", severity:"advisory",
+                         description: c.description, conflict_id: c.id,
+                         provenance: c.data_source || "live" });
+        } else if(c.conflict_type === "berth_not_ready" || c.conflict_type === "berth_overlap"){
+          reasons.push({ source:"berth_side", severity:"advisory",
+                         description: c.description, conflict_id: c.id,
+                         provenance: c.data_source || "live" });
+        }
+      });
+
+      if(v.status === "at_risk"){
+        reasons.push({ source:"vessel_at_risk", severity:"warning",
+                       description: v.notes || "Vessel tracking off schedule",
+                       conflict_id: null, provenance: "live" });
+      }
+
+      const etd = etdRiskByVid[bk.vessel_id];
+      if(etd && (etd.risk_level === "high" || etd.risk_level === "critical")){
+        reasons.push({ source:"etd_risk",
+                       severity: etd.risk_level === "critical" ? "critical" : "warning",
+                       description: "Departure risk: " + (etd.reason || etd.risk_level),
+                       conflict_id: null, provenance: "live" });
+      }
+
+      // coordinated_decision reasons are appended in T6.
+
+      bk.flag = reasons.length > 0;
+      bk.flag_reasons = reasons;
+      bk.flag_severity = reasons.reduce((m, r) => _maxSeverity(m, r.severity), null);
     });
 
     return {
