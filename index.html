@@ -3929,6 +3929,97 @@ function _checkCounts(observed,badgeId,label,expected){
   }
 
   // ════════════════════════════════════════════════════════════════════════
+  // Pilotage Window Confidence — data layer
+  // Pure transform: /api/summary -> watch object.
+  // Doctrine constraints (POC):
+  //   - Layer 1 is a COUNT only — no pilot enumeration, no qualifications,
+  //     no fatigue, no rest, no dependency chains. None of these exist in
+  //     the data and faking them would damage credibility with pilot users.
+  //   - pilotage[i].pilot_name is SYNTHETIC and must never reach the
+  //     renderer; the data layer carries it only so future Personal
+  //     Execution work has a hook, but it is not exported.
+  //   - No transit duration estimates. No commercial figures.
+  // ════════════════════════════════════════════════════════════════════════
+
+  // P1: pure data transform — port id, watch window, pilots_available count,
+  // transits filtered to window. No flags (P2), no forward shape (P3), no
+  // exceptions (P4). pilot_name is intentionally NOT exposed.
+  function buildPilotageWatch(summary){
+    const d = summary || {};
+    const pilotage = d.pilotage || [];
+    const vessels = d.vessels || [];
+    const ps = d.port_status || {};
+    const beta11 = d.beta11 || {};
+    const portTugs = d.port_tugs || [];
+
+    // Port identity — same fallback chain as Towage.
+    const portId = ps.port_id || (beta11.scenario_port && beta11.is_scenario_port ? beta11.scenario_port : null);
+    const portName = ps.port_name || portId || "";
+    // Fingerprint uses tug-list to detect port switches reliably (same trick
+    // as Towage; pilotage[] would also work but tugs change deterministically
+    // per port too and keep this consistent across both lenses).
+    const portFingerprint = portTugs.map(t => t.name||"").join("|");
+
+    // Rolling 8h watch window: [now - 1h, now + 7h] — pilot scheduler's
+    // natural horizon (one watch), narrower than the 12h tug shift.
+    const now = Date.now();
+    const winStart = now - 3600*1000;
+    const winEnd   = now + 7*3600*1000;
+
+    // Vessel lookup
+    const vById = {};
+    vessels.forEach(v => { if(v && v.id) vById[v.id] = v; });
+
+    // Layer 2 — Transits in window. pilot_name deliberately NOT included
+    // in the returned record (synthetic; would leak through renderer).
+    const transits = pilotage.filter(p => {
+      if(!p || !p.scheduled_time) return false;
+      const t = new Date(p.scheduled_time).getTime();
+      return !isNaN(t) && t >= winStart && t <= winEnd;
+    }).map(p => {
+      const v = vById[p.vessel_id] || {};
+      return {
+        transit_id: p.id,
+        vessel_id: p.vessel_id,
+        vessel_name: p.vessel_name,
+        direction: p.direction,
+        boarding_station: p.boarding_station,
+        scheduled_time: p.scheduled_time,
+        transit_status: p.status,
+        vessel_eta: v.eta || null,
+        vessel_etd: v.etd || null,
+        vessel_status: v.status || null,
+        vessel_notes: v.notes || "",
+        vessel_loa: v.loa != null ? v.loa : null,
+        berth_id: v.berth_id || null,
+        // P2: confidence (flag, flag_reasons, flag_severity)
+        // P2: window (ukc_m, predicted_tide_m, ukc_status, etc.)
+        flag: false,
+        flag_reasons: [],
+        flag_severity: null
+      };
+    }).sort((a,b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
+
+    return {
+      port_id: portId,
+      port_name: portName,
+      port_fingerprint: portFingerprint,
+      window: {
+        start: new Date(winStart).toISOString(),
+        end:   new Date(winEnd).toISOString(),
+        now:   new Date(now).toISOString()
+      },
+      // Layer 1 — COUNT ONLY. No enumeration of pilots. The doctrine and the
+      // discovery report both require this restraint: real schedulers know
+      // their team by name; we do not, and we will not pretend.
+      pilots_available: ps.pilots_available != null ? ps.pilots_available : null,
+      transits: transits,
+      forward: null,        // P3
+      exceptions: []        // P4
+    };
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
   // renderTowageShift(shift) -> HTML string.
   // Pure function. Consumes only the shift object from buildTowageShift.
   // Doctrine: operator-native vocabulary; intelligence attached to items the
