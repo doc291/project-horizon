@@ -3324,7 +3324,11 @@ function _checkCounts(observed,badgeId,label,expected){
     // Horizon branding stays visible in every lens: the overlay covers the
     // Beta 10 header, so the official logo + environment badge are repeated here.
     let html=`<div class="b11-ovbrand"><img src="/logo" alt="Horizon"><span class="env">Horizon Beta 12 Preview</span><span class="within">${esc(meta.label)} lens · a view within Horizon, not a separate product</span></div>`;
-    html+=`<div class="b11-simbanner">⚠ Simulated stakeholder view · all data on this screen is simulated for demonstration</div>`;
+    if(_activeRole==="TOWAGE"){
+      html+=`<div class="tmb-simbanner">Morning Brief · real Horizon signals where labelled · illustrative values clearly marked</div>`;
+    } else {
+      html+=`<div class="b11-simbanner">⚠ Simulated stakeholder view · all data on this screen is simulated for demonstration</div>`;
+    }
     html+=`<div class="b11-rolehdr"><span class="dot" style="background:${tone}"></span><h2>${esc(meta.label)}</h2></div>`;
     html+=`<div class="b11-rolesub">${esc(meta.blurb)}</div>`;
     html+=(_activeRole==="ASSURANCE")?assuranceBody(b):confirmerBody(b,_activeRole);
@@ -3641,8 +3645,14 @@ function _checkCounts(observed,badgeId,label,expected){
 
   function confirmerBody(b,role){
     const ad=b.active_decision;
-    if(!b.is_scenario_port) return roleContext(role)+`<div class="b11-card"><div class="b11-empty">The pinned demonstration scenario runs at ${esc(b.scenario_port)}. No coordinated decision is active for your operation at the current port.</div></div>`;
-    if(!ad) return roleContext(role)+`<div class="b11-card"><div class="b11-empty">No coordinated decision is active right now. Your standing operational context is shown above.</div></div>`;
+    if(!b.is_scenario_port){
+      if(role==="TOWAGE") return towageMorningBrief(b);
+      return roleContext(role)+`<div class="b11-card"><div class="b11-empty">The pinned demonstration scenario runs at ${esc(b.scenario_port)}. No coordinated decision is active for your operation at the current port.</div></div>`;
+    }
+    if(!ad){
+      if(role==="TOWAGE") return towageMorningBrief(b);
+      return roleContext(role)+`<div class="b11-card"><div class="b11-empty">No coordinated decision is active right now. Your standing operational context is shown above.</div></div>`;
+    }
     const line=ad.required_stakeholders.find(s=>s.role===role);
     if(!line) return b11DecisionContext(b,role)+`<div class="b11-card"><div class="b11-empty">This coordinated decision does not require an action from your operation.</div></div>`+b11CoordStatus(b,role);
     // §2 Required Action
