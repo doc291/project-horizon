@@ -3124,16 +3124,29 @@ function _checkCounts(observed,badgeId,label,expected){
   function injectCSS(){
     if(document.getElementById("b11-css"))return;
     const css=`
-    #b11-bar{display:flex;align-items:center;gap:8px;padding:6px 14px;background:#0a1422;border-bottom:1px solid rgba(56,189,248,.25);font-size:12px;}
+    /* Role bar is sticky AND above the overlay (z 9500 > overlay 9000) so the
+       role selector + Return control stay visible inside every lens. */
+    #b11-bar{position:sticky;top:0;z-index:9500;display:flex;align-items:center;gap:8px;padding:6px 14px;background:#0a1422;border-bottom:1px solid rgba(56,189,248,.25);font-size:12px;}
     #b11-bar .b11-brand{height:22px;width:auto;margin-right:2px;}
     #b11-bar .b11-title{font-weight:700;letter-spacing:.6px;color:#38bdf8;text-transform:uppercase;font-size:11px;}
     #b11-bar select{background:rgba(255,255,255,.05);border:1px solid rgba(56,189,248,.3);color:#e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px;}
     #b11-bar .b11-blurb{color:#64748b;font-size:11px;margin-left:4px;}
+    #b11-bar .b11-roles-label{color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
+    #b11-return{background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.45);color:#7dd3fc;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;display:none;}
+    #b11-return:hover{background:rgba(56,189,248,.22);}
+    #b11-return.show{display:inline-block;}
+    .b11-ctx{background:#0d1b2e;border:1px dashed rgba(56,189,248,.3);border-radius:12px;padding:16px 20px;margin-bottom:16px;}
+    .b11-ctx h3{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#7dd3fc;margin:0 0 10px;}
+    .b11-ctx ul{margin:0;padding-left:18px;}
+    .b11-ctx li{font-size:12px;color:#cbd5e1;line-height:1.7;}
+    .b11-ctx .await{margin-top:12px;font-size:11px;color:#64748b;font-style:italic;}
     .b11-ovbrand{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(56,189,248,.15);}
     .b11-ovbrand img{height:30px;width:auto;}
     .b11-ovbrand .env{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#38bdf8;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.35);border-radius:5px;padding:3px 8px;}
     .b11-ovbrand .within{font-size:11px;color:#64748b;margin-left:auto;}
-    #b11-overlay{position:fixed;inset:0;z-index:9000;background:#070f1e;overflow:auto;display:none;}
+    /* Overlay starts BELOW the sticky role bar (top:41px) and sits under it in
+       z-order, so the selector + Return control are never covered. */
+    #b11-overlay{position:fixed;left:0;right:0;bottom:0;top:41px;z-index:9000;background:#070f1e;overflow:auto;display:none;}
     #b11-overlay.show{display:block;}
     .b11-wrap{max-width:1100px;margin:0 auto;padding:18px 22px 60px;}
     .b11-simbanner{background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.5);color:#fbbf24;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;letter-spacing:.4px;margin-bottom:16px;text-transform:uppercase;}
@@ -3190,7 +3203,12 @@ function _checkCounts(observed,badgeId,label,expected){
     injectCSS();
     const bar=document.createElement("div"); bar.id="b11-bar";
     const opts=(b.roles||[]).map(r=>`<option value="${esc(r.id)}">${esc(r.label)}</option>`).join("");
-    bar.innerHTML=`<img src="/logo" class="b11-brand" alt="Horizon"><span class="b11-title">Horizon Beta 11 · Role view</span><select id="b11-role">${opts}</select><span class="b11-blurb" id="b11-blurb"></span>`;
+    // Return control first (left), then logo, role selector (always visible),
+    // and the per-role blurb. The Return button only shows inside a lens.
+    bar.innerHTML=`<button id="b11-return" title="Return to the Horizon coordination view">← Return to Horizon Coordination View</button>`+
+      `<img src="/logo" class="b11-brand" alt="Horizon"><span class="b11-title">Horizon Beta 11</span>`+
+      `<span class="b11-roles-label">Role</span><select id="b11-role">${opts}</select>`+
+      `<span class="b11-blurb" id="b11-blurb"></span>`;
     // Governance: relabel the SHARED Beta 10 badge at runtime only (never edit
     // the static markup, which must stay byte identical when the flag is off).
     setBadge("Horizon Beta 11 Preview");
@@ -3199,6 +3217,8 @@ function _checkCounts(observed,badgeId,label,expected){
     const ov=document.createElement("div"); ov.id="b11-overlay"; ov.innerHTML=`<div class="b11-wrap" id="b11-wrap"></div>`;
     document.body.appendChild(ov);
     document.getElementById("b11-role").addEventListener("change",e=>setRole(e.target.value));
+    // Return = jump straight back to the VTSO coordination view (no browser Back).
+    document.getElementById("b11-return").addEventListener("click",()=>setRole("VTSO"));
     _built=true;
   }
 
@@ -3208,8 +3228,9 @@ function _checkCounts(observed,badgeId,label,expected){
     if(sel)sel.value=role;
     const meta=(_last&&_last.beta11&&(_last.beta11.roles||[]).find(r=>r.id===role))||null;
     const blurb=document.getElementById("b11-blurb"); if(blurb)blurb.textContent=meta?meta.blurb:"";
-    if(role==="VTSO"){ ov.classList.remove("show"); renderVtsoPanel(); }
-    else { ov.classList.add("show"); renderOverlay(); }
+    const ret=document.getElementById("b11-return");
+    if(role==="VTSO"){ ov.classList.remove("show"); if(ret)ret.classList.remove("show"); renderVtsoPanel(); }
+    else { ov.classList.add("show"); if(ret)ret.classList.add("show"); renderOverlay(); }
   }
 
   function renderVtsoPanel(){
@@ -3262,10 +3283,36 @@ function _checkCounts(observed,badgeId,label,expected){
     }
   }
 
+  // Per-role operational context shown when no decision is active, so a lens is
+  // never a blank page. All illustrative / simulated.
+  const ROLE_CONTEXT={
+    TOWAGE:{title:"Towage operations · standing context",items:[
+      "Your tugs and crews on shift for the Melbourne river and bay.",
+      "Forward vessel demand window where tug support will be requested.",
+      "Any double-booking risk Horizon is watching across the timeline."],
+      await_:"Standing by. When the VTSO issues a coordinated decision needing a tug change, it will appear here for you to acknowledge or flag."},
+    PILOTAGE:{title:"Pilotage operations · standing context",items:[
+      "Pilots on roster against the forward arrival and departure timeline.",
+      "Tide and under-keel windows that constrain transit timing.",
+      "Short-notice movements Horizon is flagging earlier than usual."],
+      await_:"Standing by. When the VTSO amends a boarding window, it will appear here for you to acknowledge or flag."},
+    TERMINAL:{title:"Terminal operations · standing context",items:[
+      "Berth handover timeline: current operation and predicted completion.",
+      "Next inbound vessel and the readiness time it implies.",
+      "Standby exposure if an arrival shifts against your readiness."],
+      await_:"Standing by. When the VTSO revises an arrival window, the readiness request will appear here for you to acknowledge or flag."},
+  };
+  function roleContext(role){
+    const c=ROLE_CONTEXT[role]; if(!c) return "";
+    return `<div class="b11-ctx"><h3>${esc(c.title)}</h3><ul>`+
+      c.items.map(i=>`<li>${esc(i)}</li>`).join("")+
+      `</ul><div class="await">${esc(c.await_)}</div></div>`;
+  }
+
   function confirmerBody(b,role){
     const ad=b.active_decision;
-    if(!b.is_scenario_port) return `<div class="b11-card"><div class="b11-empty">The pinned scenario runs at ${esc(b.scenario_port)}. No coordinated decision is active for your operation here.</div></div>`;
-    if(!ad) return `<div class="b11-card"><div class="b11-empty">No coordinated decision has been issued yet. When the VTSO issues one, your action will appear here.</div></div>`;
+    if(!b.is_scenario_port) return roleContext(role)+`<div class="b11-card"><div class="b11-empty">The pinned demonstration scenario runs at ${esc(b.scenario_port)}. No coordinated decision is active for your operation at the current port.</div></div>`;
+    if(!ad) return roleContext(role)+`<div class="b11-card"><div class="b11-empty">No coordinated decision is active right now. Your standing operational context is shown above.</div></div>`;
     const line=ad.required_stakeholders.find(s=>s.role===role);
     if(!line) return `<div class="b11-card"><div class="b11-empty">This decision does not require an action from your operation.</div></div>`;
     let html=`<div class="b11-card"><h3>Incoming coordination</h3><div class="b11-line"><strong>${esc(line.display_name)}</strong></div><div class="b11-line" style="margin-top:6px">${esc(line.action_label)}</div><div style="margin-top:12px"><span class="b11-stk-status b11-${esc(line.status)}">${esc(line.status)}</span>${line.flag_reason?` · <span style="color:#fbbf24">flag: ${esc(line.flag_reason)}</span>`:""}</div>`;
@@ -3300,7 +3347,11 @@ function _checkCounts(observed,badgeId,label,expected){
 
   function assuranceBody(b){
     const ad=b.active_decision;
-    if(!ad) return `<div class="b11-card"><div class="b11-empty">No decision loop has run yet. Once the VTSO issues a coordinated decision, the full detection to confirmation trail appears here.</div></div>`;
+    if(!ad) return `<div class="b11-ctx"><h3>Assurance · standing context</h3><ul>`+
+      `<li>This view records the full decision loop for audit and verification.</li>`+
+      `<li>Each decision is captured: detection, decision, propagation, confirmation.</li>`+
+      `<li>Predicted versus actual outcome is tracked once a loop completes.</li>`+
+      `</ul><div class="await">No decision loop is active yet. When the VTSO issues a coordinated decision, the full timeline will build here in real time.</div></div>`;
     const log=ad.propagation_log||[];
     let html=`<div class="b11-card"><h3>Decision loop timeline</h3><div style="margin-bottom:12px"><span class="b11-statepill b11-st-${esc(ad.decision_state)}">${esc(ad.decision_state)}</span>&nbsp;<span style="font-size:11px;color:#64748b">Decision ${esc(ad.decision_id)} · conflict ${esc(ad.conflict_id)}</span></div><div class="b11-tl">`;
     html+=`<div class="b11-tlrow"><span class="node" style="background:#94a3b8"></span><div class="ev">Detection</div><div class="meta">Conflict ${esc(ad.conflict_id)} surfaced by Horizon</div></div>`;
