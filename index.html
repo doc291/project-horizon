@@ -3402,18 +3402,20 @@ function _checkCounts(observed,badgeId,label,expected){
     html+=(_activeRole==="ASSURANCE")?assuranceBody(b):confirmerBody(b,_activeRole);
     wrap.innerHTML=html;
     const ad=b.active_decision;
-    if(_activeRole==="TOWAGE"&&b.is_scenario_port&&ad){
-      // Towage: action buttons live in the floating card, not the scroll area
-      showTmbActionCard(ad);
-      const ackb=document.getElementById("tmb-ack-btn"); if(ackb)ackb.addEventListener("click",()=>action({action:"acknowledge",decision_id:ad.decision_id,role:"TOWAGE"}));
-      const flagb=document.getElementById("tmb-flag-btn"); if(flagb)flagb.addEventListener("click",()=>{ const r=prompt("Describe the concern to flag to the VTSO:"); if(r&&r.trim())action({action:"flag",decision_id:ad.decision_id,role:"TOWAGE",flag_reason:r.trim()}); });
-    } else {
-      hideTmbActionCard();
+    // Safety: clear any stale fixed-position floating card from prior renders.
+    hideTmbActionCard();
+    if(_activeRole==="TOWAGE"){
+      // My Shift V1: Ack / Flag concern buttons live inside the
+      // coordinated_decision exception payload at the top of the shift view
+      // (rendered by renderTowageShift, IDs tms-ack-btn / tms-flag-btn).
       if(ad){
-        // All other roles: buttons are inline in confirmerBody scroll content
-        const ackb=document.getElementById("b11-ack"); if(ackb)ackb.addEventListener("click",()=>action({action:"acknowledge",decision_id:ad.decision_id,role:_activeRole}));
-        const flagb=document.getElementById("b11-flag"); if(flagb)flagb.addEventListener("click",()=>{ const r=prompt("Describe the concern to flag to the VTSO:"); if(r&&r.trim())action({action:"flag",decision_id:ad.decision_id,role:_activeRole,flag_reason:r.trim()}); });
+        const ackb=document.getElementById("tms-ack-btn"); if(ackb)ackb.addEventListener("click",()=>action({action:"acknowledge",decision_id:ad.decision_id,role:"TOWAGE"}));
+        const flagb=document.getElementById("tms-flag-btn"); if(flagb)flagb.addEventListener("click",()=>{ const r=prompt("Describe the concern to flag to the VTSO:"); if(r&&r.trim())action({action:"flag",decision_id:ad.decision_id,role:"TOWAGE",flag_reason:r.trim()}); });
       }
+    } else if(ad){
+      // Other roles: buttons inline in confirmerBody scroll content (b11-ack / b11-flag).
+      const ackb=document.getElementById("b11-ack"); if(ackb)ackb.addEventListener("click",()=>action({action:"acknowledge",decision_id:ad.decision_id,role:_activeRole}));
+      const flagb=document.getElementById("b11-flag"); if(flagb)flagb.addEventListener("click",()=>{ const r=prompt("Describe the concern to flag to the VTSO:"); if(r&&r.trim())action({action:"flag",decision_id:ad.decision_id,role:_activeRole,flag_reason:r.trim()}); });
     }
   }
 
