@@ -3181,7 +3181,20 @@ function _checkCounts(observed,badgeId,label,expected){
     .b11-tlrow .meta{font-size:11px;color:#64748b;margin-top:1px;}
     .b11-pva{display:flex;gap:24px;margin-top:8px;}
     .b11-pva div .k{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#64748b;}
-    .b11-pva div .v{font-size:14px;color:#cbd5e1;margin-top:3px;}`;
+    .b11-pva div .v{font-size:14px;color:#cbd5e1;margin-top:3px;}
+    .b11-kv{display:flex;gap:12px;margin-bottom:8px;font-size:13px;}
+    .b11-kv .k{flex:0 0 130px;color:#64748b;text-transform:uppercase;font-size:10px;letter-spacing:.5px;padding-top:2px;}
+    .b11-kv .v{color:#e2e8f0;flex:1;line-height:1.5;}
+    .b11-dctx{border-left:3px solid #38bdf8;}
+    .b11-simtag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#fbbf24;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);border-radius:4px;padding:1px 5px;margin-left:4px;}
+    .b11-realtag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6ee7b7;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.4);border-radius:4px;padding:1px 5px;margin-left:4px;}
+    .b11-youtag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#7dd3fc;background:rgba(56,189,248,.18);border-radius:4px;padding:1px 5px;margin-left:6px;}
+    .b11-coordrow{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid rgba(255,255,255,.07);border-radius:7px;margin-bottom:6px;}
+    .b11-coordrow.me{border-color:rgba(56,189,248,.5);background:rgba(56,189,248,.06);}
+    .b11-coordrow .who{font-size:12px;color:#e2e8f0;}
+    .b11-glist{margin:0;padding-left:18px;}
+    .b11-glist li{font-size:12px;color:#cbd5e1;line-height:1.7;margin-bottom:4px;}
+    .b11-glist ul{margin:4px 0;}`;
     const st=document.createElement("style"); st.id="b11-css"; st.textContent=css; document.head.appendChild(st);
   }
 
@@ -3309,25 +3322,131 @@ function _checkCounts(observed,badgeId,label,expected){
       `</ul><div class="await">${esc(c.await_)}</div></div>`;
   }
 
+  // ── WIIFM section builders. All read ONLY role-relevant slices of the
+  //    existing /api/summary; no new data path. Real signals where available,
+  //    everything else clearly labelled simulated. ──
+  function b11Money(n){ try{return "A$"+Number(n).toLocaleString();}catch(e){return "A$"+n;} }
+
+  function b11DecisionContext(b, role){
+    const ad=b.active_decision; if(!ad) return "";
+    // §1 — the decision's OWN originating conflict only (one conflict, not the list).
+    let conflictText="A coordinated decision is in progress.";
+    const d=_last||{};
+    const oc=(d.conflicts||[]).find(c=>c.id===ad.conflict_id);
+    if(oc&&oc.description) conflictText=oc.description;
+    const pi=ad.predicted_impact||{};
+    const line=(ad.required_stakeholders||[]).find(s=>s.role===role);
+    const yourRole=line?line.action_label:"Observe the coordinated decision.";
+    let urgency="";
+    if(ad.decision_deadline){
+      const mins=Math.round((new Date(ad.decision_deadline)-Date.now())/60000);
+      urgency = mins>0 ? `Decision window: ~${mins} min remaining` : "Decision window: now";
+    }
+    return `<div class="b11-card b11-dctx"><h3>Why you are seeing this · decision context</h3>
+      <div class="b11-kv"><span class="k">Conflict</span><span class="v">${esc(conflictText)}</span></div>
+      <div class="b11-kv"><span class="k">Predicted impact</span><span class="v">${esc(pi.headline||"Coordinated resolution")} <span class="b11-simtag">simulated</span></span></div>
+      <div class="b11-kv"><span class="k">Decision</span><span class="v">Coordinated change issued by the VTSO to towage, pilotage and terminal</span></div>
+      ${urgency?`<div class="b11-kv"><span class="k">Urgency</span><span class="v">${esc(urgency)}</span></div>`:""}
+      <div class="b11-kv"><span class="k">Your role</span><span class="v" style="color:#7dd3fc;font-weight:600">${esc(yourRole)}</span></div>
+    </div>`;
+  }
+
+  function b11CoordStatus(b, role){
+    const ad=b.active_decision; if(!ad) return "";
+    // §3 — loop progress across the three confirmers; "you" highlighted.
+    const rows=(ad.required_stakeholders||[]).map(s=>{
+      const me=s.role===role;
+      return `<div class="b11-coordrow${me?" me":""}">
+        <span class="who">${esc(s.display_name.replace(/ \(simulated\)/,''))}${me?' <span class="b11-youtag">you</span>':''}</span>
+        <span class="b11-stk-status b11-${esc(s.status)}">${esc(s.status)}</span></div>`;
+    }).join("");
+    const acks=(ad.required_stakeholders||[]).filter(s=>s.status==="ACKNOWLEDGED").length;
+    const tot=(ad.required_stakeholders||[]).length;
+    return `<div class="b11-card"><h3>What happens next · coordination status</h3>
+      <div class="b11-line" style="margin-bottom:10px">You are 1 of ${tot} confirmations on this coordinated decision. ${acks} of ${tot} acknowledged so far.</div>
+      ${rows}
+      <div class="b11-line" style="margin-top:8px;color:#64748b;font-size:11px">When all parties acknowledge, the decision is confirmed and the VTSO is notified.</div>
+    </div>`;
+  }
+
+  function b11RoleGuidance(b, role){
+    // §4 — role-specific guidance. Real Beta 10 signals filtered to this role's
+    // world where available; otherwise clearly labelled simulated.
+    const d=_last||{};
+    const ps=d.port_status||{};
+    let items=[];
+    let realNote="";
+    if(role==="TOWAGE"){
+      // REAL: tug double-booking signals (towage_resource conflicts) + tug count.
+      const dbl=(d.conflicts||[]).filter(c=>c.conflict_type==="towage_resource");
+      items.push(`<li><strong>Tug availability:</strong> ${ps.tugs_available!=null?ps.tugs_available+" tugs available":"—"} <span class="b11-realtag">live</span></li>`);
+      if(dbl.length){
+        items.push(`<li><strong>Double-booking watch (${dbl.length}):</strong> <span class="b11-realtag">live</span><ul>`+
+          dbl.slice(0,3).map(c=>`<li>${esc(c.description)}</li>`).join("")+`</ul></li>`);
+      } else {
+        items.push(`<li><strong>Double-booking watch:</strong> none flagged <span class="b11-realtag">live</span></li>`);
+      }
+      items.push(`<li><strong>Standby utilisation:</strong> within normal range <span class="b11-simtag">simulated</span></li>`);
+    } else if(role==="PILOTAGE"){
+      // REAL: tide window (BOM), arrival UKC, pilotage_window short-notice, pilot count.
+      const t=d.tides||{};
+      const auk=d.arrival_ukc||{};
+      const pw=(d.conflicts||[]).filter(c=>c.conflict_type==="pilotage_window");
+      if(t.state){
+        const ne=t.next_event_type?`${t.next_event_type} at ${new Date(t.next_event_time).toLocaleTimeString()} (${t.next_event_height_m}m)`:"";
+        items.push(`<li><strong>Tide window:</strong> ${esc(t.state)}${ne?", next "+esc(ne):""} <span class="b11-realtag">${t.data_source==="bom"?"live BOM":"live"}</span></li>`);
+      }
+      if(auk.min_ukc_m!=null){
+        items.push(`<li><strong>Under-keel clearance (arrivals):</strong> min ${auk.min_ukc_m}m${auk.critical_vessel?" · "+esc(auk.critical_vessel):""} · ${esc(auk.status||"")} <span class="b11-realtag">live</span></li>`);
+      }
+      if(pw.length){
+        items.push(`<li><strong>Short-notice pilotage (${pw.length}):</strong> <span class="b11-realtag">live</span><ul>`+
+          pw.slice(0,3).map(c=>`<li>${esc(c.description)}</li>`).join("")+`</ul></li>`);
+      } else {
+        items.push(`<li><strong>Short-notice pilotage:</strong> none flagged <span class="b11-realtag">live</span></li>`);
+      }
+      items.push(`<li><strong>Pilots available:</strong> ${ps.pilots_available!=null?ps.pilots_available:"—"} <span class="b11-realtag">live</span></li>`);
+    } else if(role==="TERMINAL"){
+      // Readiness + standby exposure: simulated, clearly labelled (per scope).
+      const ad=b.active_decision; const pi=(ad&&ad.predicted_impact)||{};
+      const rate=pi.cost_per_hour_aud||0;
+      items.push(`<li><strong>Readiness window:</strong> berth handover to the revised arrival window <span class="b11-simtag">simulated</span></li>`);
+      items.push(`<li><strong>Revised ETA:</strong> aligned to the coordinated tidal window <span class="b11-simtag">simulated</span></li>`);
+      const guide = `<div class="b11-card"><h3>What value you get · terminal guidance</h3><ul class="b11-glist">`+items.join("")+`</ul>`+
+        `<div style="margin-top:12px;border-top:1px solid rgba(255,255,255,.08);padding-top:12px">`+
+        `<div class="b11-line" style="font-size:11px;color:#a78bfa;text-transform:uppercase;letter-spacing:.5px">Simulated standby exposure</div>`+
+        `<div class="b11-cost" id="b11-cost">A$0</div>`+
+        `<div class="b11-cost-lbl">${esc(pi.label||"Simulated illustrative value")} · ${b11Money(rate)}/hr (illustrative)</div>`+
+        `<div class="b11-line" style="margin-top:6px;color:#64748b;font-size:11px">${esc(pi.cost_text||"Illustrative only. Not a verified figure.")}</div></div></div>`;
+      return guide;
+    }
+    if(!items.length) return "";
+    return `<div class="b11-card"><h3>What value you get · ${esc(role.toLowerCase())} guidance</h3><ul class="b11-glist">`+items.join("")+`</ul></div>`;
+  }
+
   function confirmerBody(b,role){
     const ad=b.active_decision;
     if(!b.is_scenario_port) return roleContext(role)+`<div class="b11-card"><div class="b11-empty">The pinned demonstration scenario runs at ${esc(b.scenario_port)}. No coordinated decision is active for your operation at the current port.</div></div>`;
     if(!ad) return roleContext(role)+`<div class="b11-card"><div class="b11-empty">No coordinated decision is active right now. Your standing operational context is shown above.</div></div>`;
     const line=ad.required_stakeholders.find(s=>s.role===role);
-    if(!line) return `<div class="b11-card"><div class="b11-empty">This decision does not require an action from your operation.</div></div>`;
-    let html=`<div class="b11-card"><h3>Incoming coordination</h3><div class="b11-line"><strong>${esc(line.display_name)}</strong></div><div class="b11-line" style="margin-top:6px">${esc(line.action_label)}</div><div style="margin-top:12px"><span class="b11-stk-status b11-${esc(line.status)}">${esc(line.status)}</span>${line.flag_reason?` · <span style="color:#fbbf24">flag: ${esc(line.flag_reason)}</span>`:""}</div>`;
+    if(!line) return b11DecisionContext(b,role)+`<div class="b11-card"><div class="b11-empty">This coordinated decision does not require an action from your operation.</div></div>`+b11CoordStatus(b,role);
+    // §2 Required Action
+    let act=`<div class="b11-card"><h3>What you need to do · required action</h3>
+      <div class="b11-line"><strong>${esc(line.display_name)}</strong></div>
+      <div class="b11-line" style="margin-top:6px">${esc(line.action_label)}</div>
+      <div style="margin-top:12px"><span class="b11-stk-status b11-${esc(line.status)}">${esc(line.status)}</span>${line.flag_reason?` · <span style="color:#fbbf24">flag: ${esc(line.flag_reason)}</span>`:""}</div>`;
     const terminal=(ad.decision_state==="SUPERSEDED"||ad.decision_state==="EXPIRED");
     if(!terminal){
-      html+=`<div style="margin-top:16px"><button class="b11-btn" id="b11-ack" ${line.status==="ACKNOWLEDGED"?"disabled":""}>Acknowledge</button><button class="b11-btn ghost" id="b11-flag">Flag concern</button></div>`;
+      act+=`<div style="margin-top:16px">
+        <button class="b11-btn" id="b11-ack" ${line.status==="ACKNOWLEDGED"?"disabled":""}>Acknowledge</button>
+        <button class="b11-btn ghost" id="b11-flag">Flag concern</button></div>`;
     } else {
-      html+=`<div class="b11-line" style="margin-top:14px;color:#64748b">This decision is ${esc(ad.decision_state.toLowerCase())}. No further action required.</div>`;
+      act+=`<div class="b11-line" style="margin-top:14px;color:#64748b">This decision is ${esc(ad.decision_state.toLowerCase())}. No further action required.</div>`;
     }
-    html+=`</div>`;
-    if(role==="TERMINAL"){
-      const pi=b.predicted_impact||{}; const rate=pi.cost_per_hour_aud||0;
-      html+=`<div class="b11-card"><h3>Standby cost exposure</h3><div class="b11-cost" id="b11-cost">A$0</div><div class="b11-cost-lbl">${esc(pi.label||"Simulated illustrative value")} · A$${rate.toLocaleString()}/hr (illustrative)</div><div class="b11-line" style="margin-top:8px;color:#64748b;font-size:11px">${esc(pi.cost_text||"Illustrative only. Not a verified figure.")}</div></div>`;
-      startCostCounter(ad,rate);
-    }
+    act+=`</div>`;
+    // Compose §1 + §2 + §3 + §4
+    let html=b11DecisionContext(b,role)+act+b11CoordStatus(b,role)+b11RoleGuidance(b,role);
+    if(role==="TERMINAL"){ startCostCounter(ad, (ad.predicted_impact||{}).cost_per_hour_aud||0); }
     return html;
   }
 
@@ -3352,13 +3471,24 @@ function _checkCounts(observed,badgeId,label,expected){
       `<li>Each decision is captured: detection, decision, propagation, confirmation.</li>`+
       `<li>Predicted versus actual outcome is tracked once a loop completes.</li>`+
       `</ul><div class="await">No decision loop is active yet. When the VTSO issues a coordinated decision, the full timeline will build here in real time.</div></div>`;
+    // §1 context (observer framing)
+    let html=b11DecisionContext(b,"ASSURANCE");
+    html+=`<div class="b11-card"><div class="b11-line" style="color:#64748b">Observer view · this lens records and verifies the coordinated decision. No action is taken from here.</div></div>`;
+    // §3 full loop timeline (the real Beta 12 decision loop)
     const log=ad.propagation_log||[];
-    let html=`<div class="b11-card"><h3>Decision loop timeline</h3><div style="margin-bottom:12px"><span class="b11-statepill b11-st-${esc(ad.decision_state)}">${esc(ad.decision_state)}</span>&nbsp;<span style="font-size:11px;color:#64748b">Decision ${esc(ad.decision_id)} · conflict ${esc(ad.conflict_id)}</span></div><div class="b11-tl">`;
+    html+=`<div class="b11-card"><h3>What happens next · decision loop timeline</h3>
+      <div style="margin-bottom:12px"><span class="b11-statepill b11-st-${esc(ad.decision_state)}">${esc(ad.decision_state)}</span>
+      &nbsp;<span style="font-size:11px;color:#64748b">Decision ${esc(ad.decision_id)} · conflict ${esc(ad.conflict_id)}</span></div>
+      <div class="b11-tl">`;
     html+=`<div class="b11-tlrow"><span class="node" style="background:#94a3b8"></span><div class="ev">Detection</div><div class="meta">Conflict ${esc(ad.conflict_id)} surfaced by Horizon</div></div>`;
     html+=log.map(e=>`<div class="b11-tlrow"><span class="node"></span><div class="ev">${esc(e.event)}</div><div class="meta">${esc(e.role)} · ${esc(fmtTs(e.ts))}</div></div>`).join("");
     html+=`</div></div>`;
+    // §4 predicted vs actual (real loop, labelled pending actuals)
     const pi=b.predicted_impact||{};
-    html+=`<div class="b11-card"><h3>Predicted vs actual</h3><div class="b11-pva"><div><div class="k">Predicted</div><div class="v">${esc(pi.headline||"—")}</div></div><div><div class="k">Actual</div><div class="v" style="color:#64748b">Pending · no outcome feed yet</div></div></div><div class="b11-line" style="margin-top:10px;color:#64748b;font-size:11px">${esc(pi.cost_text||"Illustrative only. Not a verified figure.")}</div></div>`;
+    html+=`<div class="b11-card"><h3>What value you get · predicted vs actual</h3>
+      <div class="b11-pva"><div><div class="k">Predicted</div><div class="v">${esc(pi.headline||"—")}</div></div>
+      <div><div class="k">Actual</div><div class="v" style="color:#64748b">Pending · no outcome feed yet</div></div></div>
+      <div class="b11-line" style="margin-top:10px;color:#64748b;font-size:11px">${esc(pi.cost_text||"Illustrative only. Not a verified figure.")}</div></div>`;
     return html;
   }
 
