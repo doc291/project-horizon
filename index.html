@@ -3231,7 +3231,18 @@ function _checkCounts(observed,badgeId,label,expected){
     .tmb-cost-note{font-size:10px;color:#475569;font-style:italic;margin-top:4px;}
     .tmb-rec-card{border-color:rgba(245,158,11,.4)!important;background:rgba(245,158,11,.04)!important;}
     .tmb-rec-text{font-size:14px;color:#fbbf24;font-weight:600;line-height:1.5;}
-    .tmb-simbanner{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);color:#fbbf24;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;letter-spacing:.4px;margin-bottom:16px;}`;
+    .tmb-simbanner{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);color:#fbbf24;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;letter-spacing:.4px;margin-bottom:16px;}
+    /* ── Towage floating action card ── */
+    #tmb-action-card{position:fixed;top:58px;right:16px;width:300px;z-index:9100;background:#0d1b2e;border:1px solid rgba(245,158,11,.6);border-radius:12px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.65);display:none;}
+    #tmb-action-card.show{display:block;}
+    .tmb-ac-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,.25);}
+    .tmb-ac-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#f59e0b;}
+    .tmb-ac-time{font-size:10px;color:#475569;margin-top:1px;}
+    .tmb-ac-tug{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:4px;}
+    .tmb-ac-action{font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:10px;}
+    .tmb-ac-status-row{margin-bottom:12px;}
+    .tmb-ac-btns{display:flex;gap:8px;}
+    .tmb-ac-done{font-size:11px;color:#64748b;font-style:italic;}`;
     const st=document.createElement("style"); st.id="b11-css"; st.textContent=css; document.head.appendChild(st);
   }
 
@@ -3279,7 +3290,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const meta=(_last&&_last.beta11&&(_last.beta11.roles||[]).find(r=>r.id===role))||null;
     const blurb=document.getElementById("b11-blurb"); if(blurb)blurb.textContent=meta?meta.blurb:"";
     const ret=document.getElementById("b11-return");
-    if(role==="VTSO"){ ov.classList.remove("show"); if(ret)ret.classList.remove("show"); renderVtsoPanel(); }
+    if(role==="VTSO"){ ov.classList.remove("show"); if(ret)ret.classList.remove("show"); hideTmbActionCard(); renderVtsoPanel(); }
     else { ov.classList.add("show"); if(ret)ret.classList.add("show"); renderOverlay(); }
   }
 
@@ -3334,9 +3345,18 @@ function _checkCounts(observed,badgeId,label,expected){
     html+=(_activeRole==="ASSURANCE")?assuranceBody(b):confirmerBody(b,_activeRole);
     wrap.innerHTML=html;
     const ad=b.active_decision;
-    if(ad){
-      const ackb=document.getElementById("b11-ack"); if(ackb)ackb.addEventListener("click",()=>action({action:"acknowledge",decision_id:ad.decision_id,role:_activeRole}));
-      const flagb=document.getElementById("b11-flag"); if(flagb)flagb.addEventListener("click",()=>{ const r=prompt("Describe the concern to flag to the VTSO:"); if(r&&r.trim())action({action:"flag",decision_id:ad.decision_id,role:_activeRole,flag_reason:r.trim()}); });
+    if(_activeRole==="TOWAGE"&&b.is_scenario_port&&ad){
+      // Towage: action buttons live in the floating card, not the scroll area
+      showTmbActionCard(ad);
+      const ackb=document.getElementById("tmb-ack-btn"); if(ackb)ackb.addEventListener("click",()=>action({action:"acknowledge",decision_id:ad.decision_id,role:"TOWAGE"}));
+      const flagb=document.getElementById("tmb-flag-btn"); if(flagb)flagb.addEventListener("click",()=>{ const r=prompt("Describe the concern to flag to the VTSO:"); if(r&&r.trim())action({action:"flag",decision_id:ad.decision_id,role:"TOWAGE",flag_reason:r.trim()}); });
+    } else {
+      hideTmbActionCard();
+      if(ad){
+        // All other roles: buttons are inline in confirmerBody scroll content
+        const ackb=document.getElementById("b11-ack"); if(ackb)ackb.addEventListener("click",()=>action({action:"acknowledge",decision_id:ad.decision_id,role:_activeRole}));
+        const flagb=document.getElementById("b11-flag"); if(flagb)flagb.addEventListener("click",()=>{ const r=prompt("Describe the concern to flag to the VTSO:"); if(r&&r.trim())action({action:"flag",decision_id:ad.decision_id,role:_activeRole,flag_reason:r.trim()}); });
+      }
     }
   }
 
@@ -3643,6 +3663,36 @@ function _checkCounts(observed,badgeId,label,expected){
     return h;
   }
 
+  // ── Towage floating action card ─────────────────────────────────────────────
+  // Created once, appended to document.body (same pattern as b11-vtso-strip).
+  // renderOverlay() calls show/hide; setRole("VTSO") calls hide.
+  function showTmbActionCard(ad){
+    const tLine=ad.required_stakeholders.find(s=>s.role==="TOWAGE");
+    if(!tLine){hideTmbActionCard();return;}
+    let card=document.getElementById("tmb-action-card");
+    if(!card){card=document.createElement("div");card.id="tmb-action-card";document.body.appendChild(card);}
+    const tTerm=(ad.decision_state==="SUPERSEDED"||ad.decision_state==="EXPIRED");
+    const issuedStr=ad.issued_at?`Issued ${fmtTs(ad.issued_at)}`:"";
+    let h=`<div class="tmb-ac-hdr"><span class="tmb-ac-label">Coordinated action required</span><span class="tmb-ac-time">${esc(issuedStr)}</span></div>`;
+    h+=`<div class="tmb-ac-tug">${esc(tLine.display_name)}</div>`;
+    h+=`<div class="tmb-ac-action">${esc(tLine.action_label)}</div>`;
+    h+=`<div class="tmb-ac-status-row"><span class="b11-stk-status b11-${esc(tLine.status)}">${esc(tLine.status)}</span>`;
+    if(tLine.flag_reason)h+=` <span style="font-size:11px;color:#fbbf24">flag: ${esc(tLine.flag_reason)}</span>`;
+    h+=`</div>`;
+    if(!tTerm){
+      h+=`<div class="tmb-ac-btns"><button class="b11-btn" id="tmb-ack-btn" ${tLine.status==="ACKNOWLEDGED"?"disabled":""}>Acknowledge</button><button class="b11-btn ghost" id="tmb-flag-btn">Flag concern</button></div>`;
+    } else {
+      h+=`<div class="tmb-ac-done">This decision is ${esc(ad.decision_state.toLowerCase())}. No further action required.</div>`;
+    }
+    card.innerHTML=h;
+    card.classList.add("show");
+  }
+
+  function hideTmbActionCard(){
+    const card=document.getElementById("tmb-action-card");
+    if(card)card.classList.remove("show");
+  }
+
   function confirmerBody(b,role){
     const ad=b.active_decision;
 
@@ -3658,18 +3708,8 @@ function _checkCounts(observed,badgeId,label,expected){
       if(!tLine) return brief+b11DecisionContext(b,"TOWAGE")+
         `<div class="b11-card"><div class="b11-empty">This coordinated decision does not require an action from your operation.</div></div>`+
         b11CoordStatus(b,"TOWAGE");
-      let tAct=`<div class="b11-card"><h3>What you need to do · required action</h3>
-        <div class="b11-line"><strong>${esc(tLine.display_name)}</strong></div>
-        <div class="b11-line" style="margin-top:6px">${esc(tLine.action_label)}</div>
-        <div style="margin-top:12px"><span class="b11-stk-status b11-${esc(tLine.status)}">${esc(tLine.status)}</span>${tLine.flag_reason?` · <span style="color:#fbbf24">flag: ${esc(tLine.flag_reason)}</span>`:""}</div>`;
-      const tTerm=(ad.decision_state==="SUPERSEDED"||ad.decision_state==="EXPIRED");
-      if(!tTerm){
-        tAct+=`<div style="margin-top:16px"><button class="b11-btn" id="b11-ack" ${tLine.status==="ACKNOWLEDGED"?"disabled":""}>Acknowledge</button><button class="b11-btn ghost" id="b11-flag">Flag concern</button></div>`;
-      } else {
-        tAct+=`<div class="b11-line" style="margin-top:14px;color:#64748b">This decision is ${esc(ad.decision_state.toLowerCase())}. No further action required.</div>`;
-      }
-      tAct+=`</div>`;
-      return brief+b11DecisionContext(b,"TOWAGE")+tAct+b11CoordStatus(b,"TOWAGE");
+      // Action buttons live in the floating tmb-action-card (renderOverlay manages it).
+      return brief+b11DecisionContext(b,"TOWAGE")+b11CoordStatus(b,"TOWAGE");
     }
 
     // ── All other confirmer roles: existing behaviour unchanged ──────────────
