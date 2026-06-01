@@ -3278,9 +3278,64 @@ function _checkCounts(observed,badgeId,label,expected){
     .tms-ov-label{display:inline-block;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-right:6px;font-weight:700;}
     /* R4.7.1 — per-tug 24h load line */
     .tms-tug-load{font-size:10px;color:#94a3b8;margin-top:2px;font-style:italic;}
+    /* LV3 — shift-shape headline (lens-top) */
+    .tms-shape{font-size:14px;font-weight:700;color:#e2e8f0;line-height:1.4;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06);}
+    .tms-shape-heavy{color:#fbbf24;}
+    .tms-shape-steady{color:#7dd3fc;}
+    .tms-shape-quiet{color:#94a3b8;}
+    /* LV3 — fleet-readiness impact line */
+    .tms-tug-return{font-size:10px;color:#fca5a5;margin-top:2px;font-style:italic;}
+    /* LV3 — capacity-clash warnings (Section B) */
+    .tms-clash-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+    .tms-clash{display:flex;align-items:baseline;gap:8px;padding:8px 10px;border-radius:6px;background:rgba(245,158,11,.07);border-left:3px solid rgba(245,158,11,.6);}
+    .tms-clash-critical{background:rgba(239,68,68,.08);border-left-color:rgba(239,68,68,.65);}
+    .tms-clash-label{font-size:9px;font-weight:700;letter-spacing:.6px;color:#fbbf24;text-transform:uppercase;flex-shrink:0;}
+    .tms-clash-desc{font-size:12px;color:#cbd5e1;line-height:1.4;}
+    /* LV3 — lead job block (Section B) */
+    .tms-lead{border-radius:8px;padding:6px;margin-bottom:12px;border:1px solid rgba(125,211,252,.35);background:rgba(125,211,252,.05);}
+    .tms-lead-clash{border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.07);}
+    .tms-lead-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#7dd3fc;margin:0 0 6px 4px;}
+    .tms-lead-avail{font-size:11px;color:#94a3b8;margin:4px 0 2px 4px;}
+    /* LV4 — forward demand-vs-capacity curve (Section C) */
+    .tms-fwd-demand{display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:6px;margin-bottom:10px;background:rgba(255,255,255,.02);border-left:3px solid rgba(125,211,252,.5);}
+    .tms-fwd-steady{color:#94a3b8;border-left-color:rgba(125,211,252,.35);}
+    .tms-fwd-ok{border-left-color:rgba(125,211,252,.5);}
+    .tms-fwd-shortfall{background:rgba(245,158,11,.07);border-left-color:rgba(245,158,11,.6);}
+    .tms-fwd-peak{font-size:12px;font-weight:600;color:#cbd5e1;}
+    .tms-fwd-gap{font-size:12px;font-weight:600;color:#fbbf24;}
     /* Layer 2 — transits with inline confidence flags */
     .pwc-transits-list{display:flex;flex-direction:column;gap:8px;}
     .pwc-transit{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px 12px;}
+    /* LV1 — watch-shape headline (Section A lead line) */
+    .pwc-shape{font-size:14px;font-weight:700;color:#e2e8f0;line-height:1.4;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06);}
+    .pwc-shape-busy{color:#fbbf24;}
+    .pwc-shape-steady{color:#7dd3fc;}
+    .pwc-shape-quiet{color:#94a3b8;}
+    /* LV1 — lead block (Section B: next / highest-risk transit) */
+    .pwc-lead{border-radius:8px;padding:6px;margin-bottom:12px;border:1px solid rgba(125,211,252,.35);background:rgba(125,211,252,.05);}
+    .pwc-lead-warning{border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.07);}
+    .pwc-lead-critical{border-color:rgba(239,68,68,.55);background:rgba(239,68,68,.08);}
+    .pwc-lead-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#7dd3fc;margin:0 0 6px 4px;}
+    /* LV1 — per-transit will-it-hold verdict */
+    .pwc-verdict{font-size:12px;font-weight:600;margin:4px 0 2px;color:#6ee7b7;}
+    .pwc-verdict-warning{color:#fbbf24;}
+    .pwc-verdict-critical{color:#fca5a5;}
+    .pwc-verdict-advisory{color:#7dd3fc;}
+    /* LV2 — Section C forward-pressure items (distinct from Section B transits) */
+    .pwc-pressure-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+    .pwc-pressure{display:flex;align-items:baseline;gap:8px;padding:8px 10px;border-radius:6px;background:rgba(255,255,255,.02);border-left:3px solid rgba(125,211,252,.5);}
+    .pwc-pressure-advisory{border-left-color:rgba(125,211,252,.5);}
+    .pwc-pressure-warning{border-left-color:rgba(245,158,11,.6);background:rgba(245,158,11,.06);}
+    .pwc-pressure-critical{border-left-color:rgba(239,68,68,.65);background:rgba(239,68,68,.08);}
+    .pwc-pressure-type{font-size:9px;font-weight:700;letter-spacing:.6px;color:#64748b;text-transform:uppercase;flex-shrink:0;}
+    .pwc-pressure-desc{font-size:12px;color:#cbd5e1;line-height:1.4;}
+    /* LV2 — compact "forming" roster beneath pressure items */
+    .pwc-forming{margin-top:4px;padding-top:8px;border-top:1px solid rgba(255,255,255,.05);}
+    .pwc-forming-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:6px;}
+    .pwc-forming-item{font-size:11px;color:#94a3b8;padding:2px 0;display:flex;gap:8px;}
+    .pwc-forming-time{font-variant-numeric:tabular-nums;color:#cbd5e1;}
+    .pwc-forming-vessel{color:#e2e8f0;}
+    .pwc-forming-dir{color:#64748b;}
     .pwc-transit-flagged{border-color:rgba(251,191,36,.4);background:rgba(245,158,11,.04);}
     .pwc-transit-flagged.pwc-flag-critical{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.04);}
     .pwc-transit-hdr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
@@ -4281,6 +4336,131 @@ function _checkCounts(observed,badgeId,label,expected){
       }).sort((a,b) => new Date(a.scheduled_time) - new Date(b.scheduled_time))
     };
 
+    // ── LV3 — shift shape, lead job, capacity-clash. Derived ONLY from
+    // bookings[] (in-shift) and fleet[] (port_tugs + simulated
+    // operational_status). No travel time, berth distance, fatigue, crew, or
+    // despatch modelling. No instructions. Each clash: {type, severity,
+    // (tug_name|timestamp), description}.
+    const _CLASH_WIN = 60 * 60 * 1000;  // 60-minute practical overlap buffer
+    const _availTugs = fleet.filter(t =>
+      t.operational_status !== "MAINTENANCE" && t.operational_status !== "OFF_SHIFT");
+    const capacityClash = [];
+    const _clashBookingIds = new Set();
+
+    // (a) Same tug assigned to two jobs within 60 minutes.
+    const _byTug = {};
+    bookings.forEach(b => {
+      (b.tugs_assigned || []).forEach(t => {
+        const k = t.tug_id || t.tug_name;
+        if(!k) return;
+        (_byTug[k] = _byTug[k] || []).push({
+          name: t.tug_name || k,
+          time: new Date(b.scheduled_time).getTime(),
+          booking_id: b.booking_id
+        });
+      });
+    });
+    Object.keys(_byTug).forEach(k => {
+      const arr = _byTug[k].slice().filter(x => !isNaN(x.time)).sort((a, b) => a.time - b.time);
+      for(let i = 1; i < arr.length; i++){
+        if(arr[i].time - arr[i-1].time <= _CLASH_WIN){
+          capacityClash.push({ type: "tug_overlap", severity: "warning", tug_name: arr[i].name,
+            description: `${arr[i].name} assigned to two jobs within 60 minutes — capacity clash` });
+          _clashBookingIds.add(arr[i-1].booking_id);
+          _clashBookingIds.add(arr[i].booking_id);
+        }
+      }
+    });
+
+    // (b) Tug demand in a 60-min bucket exceeds available tug count.
+    {
+      const times = bookings.map(b => new Date(b.scheduled_time).getTime())
+        .filter(t => !isNaN(t)).sort((a, b) => a - b);
+      let worst = null;
+      times.forEach(s => {
+        const demand = bookings.filter(b => {
+          const x = new Date(b.scheduled_time).getTime();
+          return x >= s && x < s + _CLASH_WIN;
+        }).reduce((sum, b) => sum + ((b.tugs_assigned || []).length), 0);
+        if(demand > _availTugs.length && (!worst || demand > worst.demand)){
+          worst = { demand, start: s };
+        }
+      });
+      if(worst){
+        capacityClash.push({ type: "demand", severity: "warning", timestamp: new Date(worst.start).toISOString(),
+          description: `Peak demand exceeds available tug count in this window (${worst.demand} tug-assignments, ${_availTugs.length} available)` });
+      }
+    }
+
+    bookings.forEach(b => { b.clash = _clashBookingIds.has(b.booking_id); });
+
+    // Shift shape — load + fleet + peak demand window (densest 60-min bucket).
+    let _peakTow = null;
+    {
+      const times = bookings.map(b => new Date(b.scheduled_time).getTime())
+        .filter(t => !isNaN(t)).sort((a, b) => a - b);
+      let best = 0, bestStart = null;
+      times.forEach(s => {
+        const d = bookings.filter(b => {
+          const x = new Date(b.scheduled_time).getTime();
+          return x >= s && x < s + _CLASH_WIN;
+        }).reduce((sum, b) => sum + ((b.tugs_assigned || []).length), 0);
+        if(d > best){ best = d; bestStart = s; }
+      });
+      if(best >= 1 && bestStart != null) _peakTow = { demand: best, start: bestStart };
+    }
+    const _loadTow = bookings.length === 0 ? "quiet" : bookings.length <= 3 ? "steady" : "heavy";
+    const shiftShape = {
+      load: _loadTow,
+      job_count: bookings.length,
+      tug_count: fleet.length,
+      available_count: _availTugs.length,
+      peak: _peakTow
+    };
+
+    // ── LV4 — forward demand-vs-capacity over the 12–24h window. Sliding 2h
+    // buckets over the forward jobs (forwardPressure.items); demand = sum of
+    // tug-assignments in the bucket; compared against available fleet count.
+    // Surfaces the peak bucket and any shortfall. No travel time, berth
+    // distance, crew, fatigue, or despatch modelling; no recommendations.
+    const _FWD_BUCKET = 2 * 60 * 60 * 1000;  // 2-hour practical bucket
+    let forwardDemand = { has_jobs: false, peak: null, available: _availTugs.length, shortfall: 0 };
+    {
+      const fitems = (forwardPressure.items || []);
+      if(fitems.length){
+        const times = fitems.map(b => new Date(b.scheduled_time).getTime())
+          .filter(t => !isNaN(t)).sort((a, b) => a - b);
+        let best = 0, bestStart = null;
+        times.forEach(s => {
+          const demand = fitems.filter(b => {
+            const x = new Date(b.scheduled_time).getTime();
+            return x >= s && x < s + _FWD_BUCKET;
+          }).reduce((sum, b) => sum + ((b.tugs_assigned || []).length), 0);
+          if(demand > best){ best = demand; bestStart = s; }
+        });
+        forwardDemand = {
+          has_jobs: true,
+          peak: (best > 0 && bestStart != null) ? { start: new Date(bestStart).toISOString(), demand: best } : null,
+          available: _availTugs.length,
+          shortfall: Math.max(0, best - _availTugs.length)
+        };
+      }
+    }
+
+    // Lead job — clash-involved first, then flagged severity, then earliest.
+    const _sevScoreTow = s => s === "critical" ? 3 : s === "warning" ? 2 : s === "advisory" ? 1 : 0;
+    let leadJob = null;
+    if(bookings.length){
+      leadJob = bookings.slice().sort((a, b) => {
+        const cd = (b.clash ? 1 : 0) - (a.clash ? 1 : 0);
+        if(cd !== 0) return cd;
+        const sd = _sevScoreTow(b.flag_severity) - _sevScoreTow(a.flag_severity);
+        if(sd !== 0) return sd;
+        return new Date(a.scheduled_time) - new Date(b.scheduled_time);
+      })[0];
+    }
+    const tow_lead_id = leadJob ? leadJob.booking_id : null;
+
     return {
       port_id: portId,
       port_name: portName,
@@ -4292,6 +4472,10 @@ function _checkCounts(observed,badgeId,label,expected){
       },
       fleet: fleet,
       operationalContext: operationalContext,
+      shiftShape: shiftShape,
+      lead_id: tow_lead_id,
+      capacityClash: capacityClash,
+      forwardDemand: forwardDemand,
       bookings: bookings,
       forward: forward,
       forwardPressure: forwardPressure,
@@ -4737,6 +4921,150 @@ function _checkCounts(observed,badgeId,label,expected){
       }
     };
 
+    // ── LV2 — forward pressure: operational constraints forming over the
+    // watch / next watch, derived ONLY from facts already present in summary.
+    // No recommendations, no instructions, no sequencing, no decision
+    // generation, no late-arrival compression, no assumptions. Each item:
+    // {type, severity, timestamp, description}.
+    const pressure = [];
+    const _ctxEnd24p = now + 24*3600*1000;
+
+    // 1. UKC / tide pressure — per-vessel UKC margin facts within the next
+    //    24h (the tide half is the predicted_tide_m carried in each entry).
+    arrivalUkc.forEach(a => {
+      if(!a) return;
+      const hrs = a.hrs_to_eta;
+      if(hrs == null || hrs < -0.5 || hrs > 24) return;  // forward-looking only
+      const m = a.ukc_m;
+      const inH = Math.max(0, Math.round(hrs));
+      if(a.ukc_status === "UNSAFE" || (m != null && m < 0)){
+        pressure.push({ type: "ukc", severity: "critical", timestamp: a.eta || null,
+          description: `${a.vessel_name || "Vessel"} arrives with UKC below safe limit${m != null ? ` (${m}m)` : ""} in ${inH}h` });
+      } else if(a.ukc_status === "TIGHT" || (m != null && m < 0.5)){
+        pressure.push({ type: "ukc", severity: "warning", timestamp: a.eta || null,
+          description: `${a.vessel_name || "Vessel"} arrives with UKC margin ${m != null ? m + "m" : "tight"} in ${inH}h` });
+      }
+    });
+
+    // 2. Weather pressure — current conditions rating vs pilotage limits.
+    //    summary carries no forecast time-series, so we state the current
+    //    condition fact (no fabricated future times).
+    {
+      const wbits = [];
+      if(weather.wind_speed_kts != null) wbits.push(`wind ${Math.round(weather.wind_speed_kts)}kt`);
+      if(weather.swell_height_m != null) wbits.push(`swell ${weather.swell_height_m}m`);
+      if(weather.visibility_nm != null)  wbits.push(`vis ${weather.visibility_nm}nm`);
+      if(conditions === "Poor"){
+        pressure.push({ type: "weather", severity: "warning", timestamp: new Date(now).toISOString(),
+          description: `Conditions Poor — ${wbits.join(", ")} (pilotage limits at risk)` });
+      } else if(conditions === "Moderate"){
+        pressure.push({ type: "weather", severity: "advisory", timestamp: new Date(now).toISOString(),
+          description: `Conditions Moderate — ${wbits.join(", ")}` });
+      }
+    }
+
+    // 3. Transit density pressure — clusters of pilotage movements in the
+    //    24h horizon. Sliding 1h window over scheduled_times; report the
+    //    densest window when >= 2 movements.
+    {
+      const sched = pilotage
+        .map(p => (p && p.scheduled_time) ? new Date(p.scheduled_time).getTime() : NaN)
+        .filter(t => !isNaN(t) && t >= now - 3600*1000 && t <= _ctxEnd24p)
+        .sort((a, b) => a - b);
+      let best = 0, bestStart = null;
+      sched.forEach(s => {
+        const inWin = sched.filter(x => x >= s && x < s + 3600*1000).length;
+        if(inWin > best){ best = inWin; bestStart = s; }
+      });
+      const hm = x => String(new Date(x).getHours()).padStart(2,"0") + ":" + String(new Date(x).getMinutes()).padStart(2,"0");
+      if(best >= 3 && bestStart != null){
+        pressure.push({ type: "density", severity: "warning", timestamp: new Date(bestStart).toISOString(),
+          description: `${best} pilotage movements between ${hm(bestStart)} and ${hm(bestStart + 3600*1000)}` });
+      } else if(best === 2 && bestStart != null){
+        pressure.push({ type: "density", severity: "advisory", timestamp: new Date(bestStart).toISOString(),
+          description: `2 pilotage movements around ${hm(bestStart)}` });
+      }
+    }
+
+    // Order: severity desc, then time asc.
+    const _psev = s => s === "critical" ? 3 : s === "warning" ? 2 : 1;
+    pressure.sort((a, b) => {
+      const d = _psev(b.severity) - _psev(a.severity);
+      if(d !== 0) return d;
+      return new Date(a.timestamp || 0) - new Date(b.timestamp || 0);
+    });
+
+    // ── LV1 — per-transit verdict (will-it-hold), watch shape, lead ────────
+    // Verdict is a short, fact-only "will it hold" read derived from the
+    // confidence data already computed on the transit (UKC window + flags).
+    // No Horizon-as-actor phrasing; no orders. Severity rank: critical >
+    // warning > advisory.
+    transits.forEach(t => {
+      const w = t.window || {};
+      let verdict = "Windows hold";
+      let verdictClass = "ok";
+      if(w.ukc_status === "UNSAFE" || (w.ukc_m != null && w.ukc_m < 0)){
+        verdict = "UKC unsafe at predicted arrival" + (w.ukc_m != null ? ` (${w.ukc_m}m)` : "");
+        verdictClass = "critical";
+      } else if(w.ukc_status === "TIGHT" || (w.ukc_m != null && w.ukc_m < 0.5)){
+        verdict = "UKC tight" + (w.ukc_m != null ? ` (${w.ukc_m}m)` : "") + " — watch the window";
+        verdictClass = "warning";
+      } else if(t.flag && (t.flag_reasons||[]).length){
+        // Surface the strongest non-UKC reason verbatim (already fact-only).
+        verdict = t.flag_reasons[0].description || "Confidence flagged";
+        verdictClass = t.flag_severity === "critical" ? "critical"
+                     : t.flag_severity === "warning" ? "warning" : "advisory";
+      }
+      t.verdict = { text: verdict, level: verdictClass };
+    });
+
+    // ── LV1 — watch shape: load classification + tide-constrained count +
+    // peak 2h window. A pre-flight characterisation, not a count manifest.
+    const _tideConstrained = transits.filter(t => {
+      const w = t.window || {};
+      return w.ukc_status === "TIGHT" || w.ukc_status === "UNSAFE"
+          || (w.ukc_m != null && w.ukc_m < 0.5);
+    }).length;
+    // Densest 2h window across transit scheduled_times.
+    let _peak = null;
+    if(transits.length >= 2){
+      let best = 0, bestStart = null;
+      transits.forEach(anchor => {
+        const a = new Date(anchor.scheduled_time).getTime();
+        const inWin = transits.filter(t2 => {
+          const x = new Date(t2.scheduled_time).getTime();
+          return x >= a && x < a + 2*3600*1000;
+        }).length;
+        if(inWin > best){ best = inWin; bestStart = a; }
+      });
+      if(best >= 2 && bestStart != null){
+        _peak = { count: best, start: bestStart, end: bestStart + 2*3600*1000 };
+      }
+    }
+    const _load = transits.length === 0 ? "quiet"
+                : transits.length <= 2 ? "steady" : "busy";
+    const watchShape = {
+      load: _load,
+      transit_count: transits.length,
+      tide_constrained: _tideConstrained,
+      peak: _peak  // {count,start,end} or null
+    };
+
+    // ── LV1 — lead transit: highest-risk flagged (critical > warning >
+    // advisory), tie-broken by earliest; else the next transit by time.
+    const _sevScore = s => s === "critical" ? 3 : s === "warning" ? 2 : s === "advisory" ? 1 : 0;
+    let lead = null;
+    if(transits.length){
+      const flagged = transits.filter(t => t.flag);
+      const pool = flagged.length ? flagged : transits;
+      lead = pool.slice().sort((a, b) => {
+        const d = _sevScore(b.flag_severity) - _sevScore(a.flag_severity);
+        if(d !== 0) return d;
+        return new Date(a.scheduled_time) - new Date(b.scheduled_time);
+      })[0];
+    }
+    const lead_id = lead ? lead.transit_id : null;
+
     return {
       port_id: portId,
       port_name: portName,
@@ -4751,6 +5079,9 @@ function _checkCounts(observed,badgeId,label,expected){
       // their team by name; we do not, and we will not pretend.
       pilots_available: ps.pilots_available != null ? ps.pilots_available : null,
       operationalContext: operationalContext,
+      watchShape: watchShape,
+      lead_id: lead_id,
+      pressure: pressure,
       transits: transits,
       forward: forward,
       forwardPressure: forwardPressure,
@@ -4976,10 +5307,36 @@ function _checkCounts(observed,badgeId,label,expected){
     return `<div class="pwc-ov-ukc"><span class="pwc-ov-label">UKC posture (24h)</span> ${c.count} ${noun} at UKC risk in the next 24 hours — ${labelled}${tail}.</div>`;
   }
 
+  // LV1 — Section A watch-shape headline. A one-line pre-flight
+  // characterisation of the watch: load, tide-constrained count, peak window.
+  // Fact-only; no orders. Renders above the persistent context rows.
+  function _pwcShapeHeadline(watch){
+    const s = watch.watchShape || { load: "quiet", transit_count: 0, tide_constrained: 0, peak: null };
+    const n = s.transit_count;
+    const loadWord = s.load === "busy" ? "Busy watch"
+                   : s.load === "steady" ? "Steady watch" : "Quiet watch";
+    const bits = [];
+    if(n === 0){
+      bits.push("no transits in the current window");
+    } else {
+      bits.push(`${n} transit${n === 1 ? "" : "s"}`);
+      if(s.tide_constrained > 0) bits.push(`${s.tide_constrained} tide-constrained`);
+      else bits.push("clear windows");
+      if(s.peak){
+        const p = x => String(new Date(x).getHours()).padStart(2,"0");
+        bits.push(`peak ${p(s.peak.start)}:00–${p(s.peak.end)}:00`);
+      }
+    }
+    return `<div class="pwc-shape pwc-shape-${esc(s.load)}">${esc(loadWord)} — ${esc(bits.join(" · "))}</div>`;
+  }
+
   function _pwcRenderWatchOverview(watch){
     // R1 — Section A: pilot's persistent operational world. All rows read
     // from data independent of the 8h watch window so Section A does not
-    // collapse when Section B is empty (LC-2).
+    // collapse when Section B is empty (LC-2). The watch-shape headline is
+    // deliberately rendered OUTSIDE this container (at lens top, in
+    // renderPilotageWatch) because it characterises the watch (Section B's
+    // window) and must not make Section A depend on Section B.
     let h = `<div class="pwc-section pwc-overview">`;
     h += _pwcOvBerthed(watch);        // Dimension 1: vessels at berth requiring outbound pilotage
     h += _pwcOvInbound24(watch);      // Dimension 2: inbound 24h requiring pilotage
@@ -5005,6 +5362,14 @@ function _checkCounts(observed,badgeId,label,expected){
     return `<div class="${cls}">${esc(bits.join(" · "))}</div>`;
   }
 
+  // LV1 — per-transit will-it-hold verdict line. Derived from t.verdict
+  // (data layer). Fact-only; no orders.
+  function _pwcVerdictLine(t){
+    const v = t.verdict;
+    if(!v || !v.text) return "";
+    return `<div class="pwc-verdict pwc-verdict-${esc(v.level||"ok")}">${esc(v.text)}</div>`;
+  }
+
   function _pwcRenderTransit(t){
     const flagged = !!t.flag;
     const sev = t.flag_severity || "";
@@ -5017,6 +5382,7 @@ function _checkCounts(observed,badgeId,label,expected){
     h += `<span class="pwc-transit-dir">${esc(_pwcDirLabel(t.direction))}</span>`;
     if(flagged) h += `<span class="pwc-transit-flag pwc-flag-pill-${sev}">${esc(sev)}</span>`;
     h += `</div>`;
+    h += _pwcVerdictLine(t);  // LV1 — will-it-hold verdict
     // Boarding station + transit_status (no pilot name — synthetic).
     const metaBits = [];
     if(t.boarding_station) metaBits.push(esc(t.boarding_station));
@@ -5047,34 +5413,71 @@ function _checkCounts(observed,badgeId,label,expected){
       h += `<div class="pwc-empty">No transits scheduled in the current watch window.</div></div>`;
       return h;
     }
+    // LV1 — lead block: the next/highest-risk transit, floated to the top in a
+    // distinct .pwc-lead block. The remaining transits follow, ordered
+    // at-risk-first (flagged before clear) then by time within each group, so
+    // a pilot scanning for 30s sees the one that matters first.
+    const leadId = watch.lead_id || null;
+    const lead = leadId ? transits.find(t => t.transit_id === leadId) : null;
+    if(lead){
+      h += `<div class="pwc-lead pwc-lead-${esc((lead.verdict && lead.verdict.level) || "ok")}">`;
+      h += `<div class="pwc-lead-label">Next / watch this</div>`;
+      h += _pwcRenderTransit(lead);
+      h += `</div>`;
+    }
+    const _sevScore = s => s === "critical" ? 3 : s === "warning" ? 2 : s === "advisory" ? 1 : 0;
+    const rest = transits.filter(t => t.transit_id !== leadId).slice().sort((a, b) => {
+      const d = _sevScore(b.flag_severity) - _sevScore(a.flag_severity);
+      if(d !== 0) return d;  // at-risk first
+      return new Date(a.scheduled_time) - new Date(b.scheduled_time);
+    });
     h += `<div class="pwc-transits-list">`;
-    transits.forEach(t => { h += _pwcRenderTransit(t); });
+    rest.forEach(t => { h += _pwcRenderTransit(t); });
     h += `</div></div>`;
     return h;
   }
 
   function _pwcRenderForward(watch){
-    // R2 — Section C "Forward Pressure": transits scheduled strictly LATER
-    // than Section B's 8-hour watch window and bounded at now + 24h.
-    // Environment context (tide/weather) is rendered in Section A only.
+    // LV2 — Section C "Forward Pressure": operational constraints forming over
+    // the watch / next watch, led by derived pressure items (UKC/tide, weather,
+    // transit density) and followed by a compact "forming" roster of the
+    // forward transits (8-24h) so every forward vessel stays addressable.
+    // Heading preserved ("Next 8–24 hours") for the forward-window contract.
+    const pressure = watch.pressure || [];
     const fp = watch.forwardPressure || { items: [] };
     const items = fp.items || [];
     let h = `<div class="pwc-section"><h3 class="pwc-section-h">Next 8–24 hours</h3>`;
-    if(items.length === 0){
-      h += `<div class="pwc-empty">Next watch quiet — no forward transits currently forming.</div></div>`;
+    if(pressure.length === 0 && items.length === 0){
+      h += `<div class="pwc-empty">Next watch quiet — no forward constraints forming.</div></div>`;
       return h;
     }
-    h += `<div class="pwc-forward-list">`;
-    items.forEach(t => {
-      const time = t.scheduled_time ? fmtTs(t.scheduled_time) : "—";
-      const dir  = _pwcDirLabel(t.direction);
-      h += `<div class="pwc-forward-item">`;
-      h += `<span class="pwc-forward-time">${esc(time)}</span>`;
-      h += `<span class="pwc-forward-vessel">${esc(t.vessel_name||"")}</span>`;
-      h += `<span class="pwc-forward-dir">${esc(dir)}</span>`;
+    // Pressure items first — the derived "what's building" (fact-only).
+    if(pressure.length){
+      h += `<div class="pwc-pressure-list">`;
+      pressure.forEach(p => {
+        h += `<div class="pwc-pressure pwc-pressure-${esc(p.severity||"advisory")}">`;
+        h += `<span class="pwc-pressure-type">${esc((p.type||"").toUpperCase())}</span>`;
+        h += `<span class="pwc-pressure-desc">${esc(p.description||"")}</span>`;
+        h += `</div>`;
+      });
       h += `</div>`;
-    });
-    h += `</div></div>`;
+    }
+    // Forming transits — compact roster of forward movements (preserves
+    // addressability + shows what's scheduled in the next watch).
+    if(items.length){
+      h += `<div class="pwc-forming">`;
+      h += `<div class="pwc-forming-label">Forming in the next watch</div>`;
+      items.forEach(t => {
+        const time = t.scheduled_time ? fmtTs(t.scheduled_time) : "—";
+        h += `<div class="pwc-forming-item">`;
+        h += `<span class="pwc-forming-time">${esc(time)}</span>`;
+        h += `<span class="pwc-forming-vessel">${esc(t.vessel_name||"")}</span>`;
+        h += `<span class="pwc-forming-dir">${esc(_pwcDirLabel(t.direction))}</span>`;
+        h += `</div>`;
+      });
+      h += `</div>`;
+    }
+    h += `</div>`;
     return h;
   }
 
@@ -5158,6 +5561,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const w = watch || {};
     let h = `<div class="pwc-watch">`;
     h += _pwcRenderExceptions(w.exceptions || [], w);   // Layer 5 — interrupt above
+    h += _pwcShapeHeadline(w);                           // LV1 — watch-shape headline (lens-top; not inside Section A, preserves LC-2)
     h += _pwcRenderWatchOverview(w);                     // Layer 1 — Watch Overview (pre-flight scan)
     h += _pwcRenderTransits(w);                          // Layer 2 + Layer 3 (inline flags)
     h += _pwcRenderForward(w);                           // Layer 4
@@ -5241,14 +5645,36 @@ function _checkCounts(observed,badgeId,label,expected){
     return `<div class="tms-ov-weather"><span class="tms-ov-label">Weather</span> ${esc(parts.join(" · "))} ${prov}</div>`;
   }
 
+  // LV3 — Towage shift-shape headline. One-line pre-flight characterisation:
+  // load, fleet readiness, peak demand window. Fact-only; no orders. Rendered
+  // OUTSIDE Section A (at lens top, in renderTowageShift) so Section A stays
+  // independent of bookings[] (LC-2).
+  function _tmsShapeHeadline(shift){
+    const s = shift.shiftShape || { load: "quiet", job_count: 0, tug_count: 0, available_count: 0, peak: null };
+    const loadWord = s.load === "heavy" ? "Heavy shift"
+                   : s.load === "steady" ? "Steady shift" : "Quiet shift";
+    const bits = [];
+    if(s.job_count === 0){
+      bits.push("no jobs in the current shift");
+      bits.push(`${s.tug_count} tug${s.tug_count === 1 ? "" : "s"}`);
+    } else {
+      bits.push(`${s.job_count} job${s.job_count === 1 ? "" : "s"}`);
+      bits.push(`${s.available_count}/${s.tug_count} tugs available`);
+      if(s.peak){
+        const p = x => String(new Date(x).getHours()).padStart(2,"0") + ":" + String(new Date(x).getMinutes()).padStart(2,"0");
+        bits.push(`peak demand ${p(s.peak.start)}`);
+      }
+    }
+    return `<div class="tms-shape tms-shape-${esc(s.load)}">${esc(loadWord)} — ${esc(bits.join(" · "))}</div>`;
+  }
+
   function _tmsRenderFleet(shift){
     // R1 — Section A: tug master's persistent operational world. Five
     // dimensions: fleet, vessels at berth requiring towage, inbound 24h
     // requiring towage, terminal readiness baseline, weather envelope.
-    // R4.7.1 — Each tug card now carries a "jobs planned next 24h"
-    // line derived from the 24h operational-context horizon (NOT the
-    // 12h shift window). Different axis from Section B, distinct
-    // wording from the pre-R4.4 "this shift" aggregate.
+    // R4.7.1 — per-tug "jobs planned next 24h". LV3 — fleet-readiness impact
+    // line for tugs not ON_SHIFT (derived from operational_status only; no
+    // invented return times).
     const fleet = shift.fleet || [];
     let h = `<div class="tms-section"><h3 class="tms-section-h">My fleet</h3>`;
     if(fleet.length === 0){
@@ -5267,6 +5693,14 @@ function _checkCounts(observed,badgeId,label,expected){
         if(t.bollard_pull_t != null) h += `${esc(String(t.bollard_pull_t))} t bollard pull`;
         h += `</div>`;
         h += `<div class="tms-tug-load">${load24} job${load24===1?"":"s"} planned next 24h</div>`;
+        // LV3 — fleet-readiness impact for non-ON_SHIFT tugs. No invented
+        // return time exists in data, so honest language is used.
+        const st = t.operational_status;
+        if(st === "MAINTENANCE" || st === "OFF_SHIFT"){
+          h += `<div class="tms-tug-return">Unavailable in current simulated fleet state</div>`;
+        } else if(st === "STANDBY"){
+          h += `<div class="tms-tug-return">On standby in current simulated fleet state</div>`;
+        }
         h += `</div>`;
       });
       h += `</div>`;
@@ -5309,15 +5743,61 @@ function _checkCounts(observed,badgeId,label,expected){
     return h;
   }
 
+  // LV3 — availability state of a booking's assigned tugs, from fleet status.
+  function _tmsLeadTugAvailability(bk, fleet){
+    const byId = {};
+    (fleet || []).forEach(t => { byId[t.tug_id] = t.operational_status; });
+    const states = (bk.tugs_assigned || []).map(t => {
+      const st = byId[t.tug_id];
+      const label = st === "ON_SHIFT" ? "on shift"
+                  : st === "STANDBY" ? "standby"
+                  : st === "MAINTENANCE" ? "unavailable"
+                  : st === "OFF_SHIFT" ? "off shift" : "status unknown";
+      return `${t.tug_name || t.tug_id}: ${label}`;
+    });
+    return states.length ? states.join(" · ") : "no tugs assigned";
+  }
+
   function _tmsRenderJobs(shift){
     const bookings = shift.bookings || [];
+    const fleet = shift.fleet || [];
     let h = `<div class="tms-section"><h3 class="tms-section-h">My jobs — next 12 hours</h3>`;
+
+    // LV3 — capacity-clash warnings (fact-only; no instructions).
+    const clashes = shift.capacityClash || [];
+    if(clashes.length){
+      h += `<div class="tms-clash-list">`;
+      clashes.forEach(c => {
+        h += `<div class="tms-clash tms-clash-${esc(c.severity||"warning")}">`;
+        h += `<span class="tms-clash-label">Capacity clash</span>`;
+        h += `<span class="tms-clash-desc">${esc(c.description||"")}</span>`;
+        h += `</div>`;
+      });
+      h += `</div>`;
+    }
+
     if(bookings.length === 0){
       h += `<div class="tms-empty">No jobs scheduled for the current shift.</div></div>`;
       return h;
     }
+
+    // LV3 — lead job: clash-involved / highest-risk / next, floated to top.
+    const leadId = shift.lead_id || null;
+    const lead = leadId ? bookings.find(b => b.booking_id === leadId) : null;
+    if(lead){
+      h += `<div class="tms-lead${lead.clash ? " tms-lead-clash" : ""}">`;
+      h += `<div class="tms-lead-label">Next job</div>`;
+      h += _tmsRenderBooking(lead);
+      h += `<div class="tms-lead-avail">Tug availability: ${esc(_tmsLeadTugAvailability(lead, fleet))}</div>`;
+      h += `</div>`;
+    }
+    const rest = bookings.filter(b => b.booking_id !== leadId).slice().sort((a, b) => {
+      const cd = (b.clash ? 1 : 0) - (a.clash ? 1 : 0);
+      if(cd !== 0) return cd;  // clash-involved first
+      return new Date(a.scheduled_time) - new Date(b.scheduled_time);
+    });
     h += `<div class="tms-bookings-list">`;
-    bookings.forEach(bk => { h += _tmsRenderBooking(bk); });
+    rest.forEach(bk => { h += _tmsRenderBooking(bk); });
     h += `</div></div>`;
     return h;
   }
@@ -5333,8 +5813,22 @@ function _checkCounts(observed,badgeId,label,expected){
     const fwd = shift.forward || {};
     const env = fwd.environment || {};
     let h = `<div class="tms-section"><h3 class="tms-section-h">Next 12–24 hours</h3>`;
+    // LV4 — forward demand-vs-capacity curve (fact-only; no recommendations).
+    const fd = shift.forwardDemand || { has_jobs: false, peak: null, available: 0, shortfall: 0 };
+    if(!fd.has_jobs || !fd.peak){
+      h += `<div class="tms-fwd-demand tms-fwd-steady">Next shift steady — no forward capacity pressure.</div>`;
+    } else {
+      const hm = ts => { try { return fmtTs(ts); } catch(e){ return String(ts); } };
+      const sevCls = fd.shortfall > 0 ? "tms-fwd-shortfall" : "tms-fwd-ok";
+      h += `<div class="tms-fwd-demand ${sevCls}">`;
+      h += `<span class="tms-fwd-peak">Forward peak ${esc(hm(fd.peak.start))} — ${fd.peak.demand} tug assignment${fd.peak.demand===1?"":"s"}, ${fd.available} available</span>`;
+      if(fd.shortfall > 0){
+        h += `<span class="tms-fwd-gap">Shortfall risk — demand exceeds available fleet by ${fd.shortfall} tug${fd.shortfall===1?"":"s"}</span>`;
+      }
+      h += `</div>`;
+    }
     if(items.length === 0){
-      h += `<div class="tms-empty">Next shift quiet — no forward jobs currently forming.</div>`;
+      h += `<div class="tms-empty">No forward jobs currently forming.</div>`;
     } else {
       h += `<div class="tms-forward-list">`;
       items.forEach(b => {
@@ -5455,6 +5949,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const s = shift || {};
     let h = `<div class="tms-shift">`;
     h += _tmsRenderExceptions(s.exceptions || [], s);   // Layer 5 — interrupt above
+    h += _tmsShapeHeadline(s);                           // LV3 — shift-shape headline (lens-top; not inside Section A, preserves LC-2)
     h += _tmsRenderFleet(s);                             // Layer 1
     h += _tmsRenderJobs(s);                              // Layer 2 + Layer 3 (flags on jobs)
     h += _tmsRenderShiftLoad(s);                         // Layer 4

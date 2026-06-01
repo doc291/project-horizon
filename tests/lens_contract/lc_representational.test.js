@@ -205,7 +205,7 @@ const RESULTS_LC7 = [];
 const RESULTS_LC8 = [];
 
 function runFixture(port, fixturePath){
-  const summary = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'));
+  const summary = require('./_rebase').loadFixtureRebased(fixturePath); // rebase stale fixture timestamps to runtime now (deterministic windows)
   const hasActivity = Array.isArray(summary.vessels) && summary.vessels.length > 0;
 
   // PILOTAGE
@@ -305,7 +305,7 @@ report('LC-8 (Towage required counts)',      RESULTS_LC8);
 
 // Per-dimension diagnostic block (first fixture only, for clarity).
 console.log('── Per-dimension probe (MELBOURNE fixture, both lenses) ─────');
-const sampleSummary = JSON.parse(fs.readFileSync(path.join(FIXTURE_DIR, 'wo_MELBOURNE.json'), 'utf-8'));
+const sampleSummary = require('./_rebase').loadFixtureRebased(path.join(FIXTURE_DIR, 'wo_MELBOURNE.json')); // rebase stale fixture timestamps
 const samplePilA = findPilotageA(ctx.renderPilotageWatch(ctx.buildPilotageWatch(sampleSummary)));
 const sampleTowA = findTowageA(ctx.renderTowageShift(ctx.buildTowageShift(sampleSummary)));
 const sP = probePilotageDimensions(samplePilA);

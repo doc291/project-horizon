@@ -256,7 +256,7 @@ console.log('Mutation applied: summary.pilotage = []; summary.towage = []');
 console.log('');
 
 FIXTURES.forEach(([port, fp]) => {
-  const summary = JSON.parse(fs.readFileSync(fp, 'utf-8'));
+  const summary = require('./_rebase').loadFixtureRebased(fp); // rebase stale fixture timestamps to runtime now (deterministic windows)
   checkPilotage(port, summary);
   checkTowage(port, summary);
 });

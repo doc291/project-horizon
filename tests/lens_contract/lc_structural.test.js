@@ -259,7 +259,7 @@ function checkLens(lensName, sections, port){
 }
 
 function runFixture(port, fixturePath){
-  const summary = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'));
+  const summary = require('./_rebase').loadFixtureRebased(fixturePath); // rebase stale fixture timestamps to runtime now (deterministic windows)
   const hasExceptions = !!(summary.beta11 && summary.beta11.active_decision);
 
   const watch = ctx.buildPilotageWatch(summary);

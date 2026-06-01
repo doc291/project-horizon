@@ -216,7 +216,7 @@ console.log('=== G6 — LC-3 (Section C strictly later) + LC-9 (empty-B resilien
 console.log('');
 
 FIXTURES.forEach(([port, fp]) => {
-  const summary = JSON.parse(fs.readFileSync(fp, 'utf-8'));
+  const summary = require('./_rebase').loadFixtureRebased(fp); // rebase stale fixture timestamps to runtime now (deterministic windows)
 
   // LC-3 — normal render, inspect Section C declared window
   const pilRender = ctx.renderPilotageWatch(ctx.buildPilotageWatch(summary));

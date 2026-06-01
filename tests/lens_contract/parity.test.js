@@ -364,8 +364,15 @@ function checkLC10Towage(summary, rendered){
 const RESULTS_LC10 = [];
 const RESULTS_LC11 = [];
 
+const { loadFixtureRebased } = require('./_rebase');
+
 function run(port, fixturePath){
-  const summary = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'));
+  // Rebase fixture timestamps to runtime now (shared _rebase helper) so the
+  // 8h/12h/24h window math is deterministic across wall-clock time. Without
+  // this, LC-11 silently flipped 10/10 -> 7/10 as the clock crossed a stale
+  // eta. Does not weaken LC-11: the same vessels land in the same windows
+  // every run; addressability is then a true test of the lens, not the clock.
+  const summary = loadFixtureRebased(fixturePath);
 
   const pilRender = ctx.renderPilotageWatch(ctx.buildPilotageWatch(summary));
   const towRender = ctx.renderTowageShift(ctx.buildTowageShift(summary));
