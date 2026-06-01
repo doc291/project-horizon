@@ -1976,7 +1976,7 @@ function updateMapMarkers(d){
     if(!v.lat||!v.lon)return;
     const col=statusColor(v.status),isC=cvids.has(v.id);
     const m=L.marker([v.lat,v.lon],{icon:L.divIcon({className:'',html:`<div style="width:10px;height:10px;background:${col};border-radius:50%;border:2px solid ${isC?'#ef4444':col};box-shadow:0 0 ${isC?'8px #ef4444':'4px '+col}88;opacity:.92"></div>`,iconSize:[10,10],iconAnchor:[5,5]})}).addTo(_map);
-    m.bindPopup(`<strong>${v.name}</strong><br>Status: <span style="color:${col}">${v.status}</span><br>LOA: ${v.loa||'–'}m &nbsp;|&nbsp; Berth: ${_berthName(v.berth_id)}<br>ETA: ${fmtTime(v.eta)}${isC?'<br><span style="color:#ef4444;font-weight:600">⚠ Active conflict</span>':''}`);
+    m.bindPopup(`<strong>${v.name}</strong><br>Status: <span style="color:${col}">${v.status}</span><br>LOA: ${v.loa||'–'}m &nbsp;|&nbsp; Berth: ${_berthName(v.berth_id)}<br>ETA: ${fmtTimeRel(v.eta)}${isC?'<br><span style="color:#ef4444;font-weight:600">⚠ Active conflict</span>':''}`);
     _vesselMarkers[v.id]=m;
     if(isC){const ring=L.circle([v.lat,v.lon],{radius:200,color:'#ef4444',fillColor:'#ef4444',fillOpacity:.05,weight:1.5,opacity:.45}).addTo(_map);_conflictRings.push(ring)}
   });
@@ -2730,8 +2730,8 @@ function renderVesselTable(vessels, etdRisk){
     <td><strong style="color:var(--text-bright)">${esc(v.name)}</strong><br><span style="color:var(--text-dim);font-size:10px">${esc(v.vessel_type||'')}</span></td>
     <td><span class="status-pill status-${v.status}">${v.status}</span></td>
     <td>${rCell}</td>
-    <td style="font-variant-numeric:tabular-nums">${fmtTime(v.eta)}</td>
-    <td style="font-variant-numeric:tabular-nums">${fmtTime(v.etd)}</td>
+    <td style="font-variant-numeric:tabular-nums">${fmtTimeRel(v.eta)}</td>
+    <td style="font-variant-numeric:tabular-nums">${fmtTimeRel(v.etd)}</td>
     <td>${esc(_berthName(v.berth_id))}</td>
     <td>${v.loa?v.loa+'m':'–'}</td>
     <td>${v.draught?v.draught+'m':'–'}</td>
@@ -2759,11 +2759,33 @@ function _localParts(d){
   return{h:g('hour'),m:g('minute'),s:g('second'),abbr:g('timeZoneName')};
 }
 function _hmAEST(d){const p=_localParts(d);return`${p.h}:${p.m}`}
+// Shared relative-time suffix — "how long until/since this event affects me".
+// Returns a compact secondary-context string ("(+13h)", "(+45m)", "(-2h)",
+// "(now)") computed from the current browser clock, or "" when no/invalid
+// time. The absolute local time stays the primary value; this is appended.
+// Used by BOTH fmtTime (Beta 10) and fmtTs (Beta 12 IIFE) so there is a
+// single implementation across both lens stacks (no duplication).
+function relTime(iso){
+  if(!iso) return '';
+  try{
+    const diffMin = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
+    if(isNaN(diffMin)) return '';
+    const a = Math.abs(diffMin);
+    if(a < 1) return ' (now)';
+    const sign = diffMin < 0 ? '-' : '+';
+    if(a < 60) return ` (${sign}${a}m)`;
+    return ` (${sign}${Math.round(a / 60)}h)`;
+  }catch(e){ return ''; }
+}
 function fmtTime(iso){
   if(!iso)return'–';
   try{const d=new Date(iso);const p=_localParts(d);return`${_hmUTC(d)} UTC / ${p.h}:${p.m} ${p.abbr}`}
   catch(e){return String(iso)}
 }
+// ETA/ETD-scoped formatter: absolute local time + relative suffix. Applied
+// ONLY at operational ETA/ETD/deadline sites (roster, map popup ETA, decision
+// deadline) — NOT at tide/audit/general timestamps, which keep plain fmtTime.
+function fmtTimeRel(iso){ return fmtTime(iso) + relTime(iso); }
 function fmtShort(iso){
   if(!iso)return'–';
   const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -2855,7 +2877,7 @@ function openDSW(conflictId) {
 
   // Deadline label
   document.getElementById('dsw-deadline-label').textContent = ds.decision_deadline
-    ? `Deadline: ${fmtTime(ds.decision_deadline)}` : '–';
+    ? `Deadline: ${fmtTimeRel(ds.decision_deadline)}` : '–';
 
   // Impact grid
   const grid = document.getElementById('dsw-impact-grid');
@@ -3120,6 +3142,9 @@ function _checkCounts(observed,badgeId,label,expected){
 
   function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
   function fmtTs(ts){ try{return new Date(ts).toLocaleTimeString();}catch(e){return ts;} }
+  // ETA/ETD-scoped variant for transit/job times only (NOT tide/audit/
+  // watch-overview rows). Calls the shared top-level relTime helper.
+  function fmtTsRel(ts){ try{return new Date(ts).toLocaleTimeString()+relTime(ts);}catch(e){return ts;} }
 
   function injectCSS(){
     if(document.getElementById("b11-css"))return;
@@ -5374,7 +5399,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const flagged = !!t.flag;
     const sev = t.flag_severity || "";
     const cls = flagged ? `pwc-transit-flagged pwc-flag-${sev}` : "";
-    const timeStr = t.scheduled_time ? fmtTs(t.scheduled_time) : "—";
+    const timeStr = t.scheduled_time ? fmtTsRel(t.scheduled_time) : "—";
     let h = `<div class="pwc-transit ${cls}">`;
     h += `<div class="pwc-transit-hdr">`;
     h += `<span class="pwc-transit-time">${esc(timeStr)}</span>`;
@@ -5468,7 +5493,7 @@ function _checkCounts(observed,badgeId,label,expected){
       h += `<div class="pwc-forming">`;
       h += `<div class="pwc-forming-label">Forming in the next watch</div>`;
       items.forEach(t => {
-        const time = t.scheduled_time ? fmtTs(t.scheduled_time) : "—";
+        const time = t.scheduled_time ? fmtTsRel(t.scheduled_time) : "—";
         h += `<div class="pwc-forming-item">`;
         h += `<span class="pwc-forming-time">${esc(time)}</span>`;
         h += `<span class="pwc-forming-vessel">${esc(t.vessel_name||"")}</span>`;
@@ -5717,7 +5742,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const flagged = !!bk.flag;
     const sev = bk.flag_severity || "";
     const cls = flagged ? `tms-job-flagged tms-flag-${sev}` : "";
-    const timeStr = bk.scheduled_time ? fmtTs(bk.scheduled_time) : "—";
+    const timeStr = bk.scheduled_time ? fmtTsRel(bk.scheduled_time) : "—";
     let h = `<div class="tms-job ${cls}">`;
     h += `<div class="tms-job-hdr">`;
     h += `<span class="tms-job-time">${esc(timeStr)}</span>`;
@@ -5832,7 +5857,7 @@ function _checkCounts(observed,badgeId,label,expected){
     } else {
       h += `<div class="tms-forward-list">`;
       items.forEach(b => {
-        const time = b.scheduled_time ? fmtTs(b.scheduled_time) : "—";
+        const time = b.scheduled_time ? fmtTsRel(b.scheduled_time) : "—";
         const tugs = (b.tugs_assigned||[]).map(t => esc(t.tug_name||"")).filter(Boolean).join(", ") || "—";
         h += `<div class="tms-forward-item">`;
         h += `<span class="tms-forward-time">${esc(time)}</span>`;

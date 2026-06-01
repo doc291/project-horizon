@@ -75,6 +75,7 @@ function compile() {
   const src = `
     function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
     function fmtTs(ts){ try{ return new Date(ts).toISOString().slice(11,16); }catch(e){ return String(ts); } }
+    function fmtTsRel(ts){ return fmtTs(ts); }  // stub: production appends relTime() suffix; not asserted here
     ${extractTowage()}
     ${extractPilotage()}
     return { buildPilotageWatch, renderPilotageWatch, buildTowageShift, renderTowageShift };
