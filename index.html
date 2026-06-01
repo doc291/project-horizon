@@ -3662,34 +3662,72 @@ function _checkCounts(observed,badgeId,label,expected){
     else { ov.classList.add("show"); if(ret)ret.classList.add("show"); renderOverlay(); }
   }
 
+  // Collapsed by default — presentation state for the VTSO Decision Loop
+  // panel. Persisted across polls so a re-render does not reset the user's
+  // expand/collapse choice.
+  let _vtsoExpanded = false;
   function renderVtsoPanel(){
     const b=_last&&_last.beta11; if(!b)return;
     let strip=document.getElementById("b11-vtso-strip");
     if(!strip){
       strip=document.createElement("div"); strip.id="b11-vtso-strip";
-      strip.style.cssText="position:fixed;right:14px;bottom:14px;width:330px;z-index:8000;background:#0d1b2e;border:1px solid rgba(56,189,248,.3);border-radius:12px;padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.5);";
+      // Relocated from bottom-right (overlapping the Vessel Roster) to a
+      // collapsible top-right panel near the decision area — pattern aligned
+      // with the Data Confidence overlay. z-index below dc-overlay (9700) so
+      // the transient DC popover sits above when opened.
+      strip.style.cssText="position:fixed;right:14px;top:62px;width:330px;max-height:calc(100vh - 80px);overflow-y:auto;z-index:7900;background:#0d1b2e;border:1px solid rgba(56,189,248,.3);border-radius:10px;box-shadow:0 12px 36px rgba(0,0,0,.5);";
       document.body.appendChild(strip);
     }
     strip.style.display="block";
     const ad=b.active_decision, pid=b.pinned_conflict_id;
-    let inner=`<div style="font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:#38bdf8;font-weight:700;margin-bottom:8px;">VTSO · Decision loop</div>`;
+
+    // Compact header state hint (shown even when collapsed) so the operator
+    // can see at a glance whether the loop is idle / pinned / in a decision.
+    const stateHint = ad
+      ? `<span class="b11-statepill b11-st-${esc(ad.decision_state)}" style="font-size:9px;padding:1px 6px">${esc(ad.decision_state)}</span>`
+      : (b.is_scenario_port && pid
+          ? `<span style="font-size:10px;color:#fbbf24">conflict pinned</span>`
+          : `<span style="font-size:10px;color:#64748b">idle</span>`);
+
+    // Body content (unchanged decision logic — only moved into a collapsible
+    // body beneath the header).
+    let body=``;
     if(!b.is_scenario_port){
-      inner+=`<div class="b11-line" style="font-size:12px;color:#64748b">Pinned scenario runs at ${esc(b.scenario_port)}. Switch the port to Melbourne to run the loop.</div>`;
+      body+=`<div class="b11-line" style="font-size:12px;color:#64748b">Pinned scenario runs at ${esc(b.scenario_port)}. Switch the port to Melbourne to run the loop.</div>`;
     } else if(!pid){
-      inner+=`<div class="b11-line" style="font-size:12px;color:#64748b">No eligible conflict to coordinate.</div>`;
+      body+=`<div class="b11-line" style="font-size:12px;color:#64748b">No eligible conflict to coordinate.</div>`;
     } else if(!ad){
-      inner+=`<div class="b11-line" style="font-size:12px;margin-bottom:10px">Conflict <strong>${esc(pid)}</strong> detected. Issue a coordinated decision to towage, pilotage and terminal.</div><button class="b11-btn" id="b11-issue">Issue coordinated decision</button>`;
+      body+=`<div class="b11-line" style="font-size:12px;margin-bottom:10px">Conflict <strong>${esc(pid)}</strong> detected. Issue a coordinated decision to towage, pilotage and terminal.</div><button class="b11-btn" id="b11-issue">Issue coordinated decision</button>`;
     } else {
       const acks=ad.required_stakeholders.filter(s=>s.status==="ACKNOWLEDGED").length;
       const _pi=ad.predicted_impact||{};
-      inner+=`<div style="margin-bottom:8px"><span class="b11-statepill b11-st-${esc(ad.decision_state)}">${esc(ad.decision_state)}</span></div>`;
-      if(_pi.total_impact_aud) inner+=`<div class="b11-line" style="font-size:12px;margin-bottom:6px">Predicted impact <strong>${b11Money(_pi.total_impact_aud)}</strong> <span class="b11-simtag">simulated</span></div>`;
-      inner+=`<div class="b11-line" style="font-size:12px;margin-bottom:8px">${acks} of ${ad.required_stakeholders.length} stakeholders confirmed.</div>`;
-      inner+=ad.required_stakeholders.map(s=>`<div style="font-size:11px;color:#94a3b8;margin-bottom:3px">${esc(s.display_name)} · <span class="b11-stk-status b11-${esc(s.status)}">${esc(s.status)}</span>${s.flag_reason?` · flag: ${esc(s.flag_reason)}`:""}</div>`).join("");
+      body+=`<div style="margin-bottom:8px"><span class="b11-statepill b11-st-${esc(ad.decision_state)}">${esc(ad.decision_state)}</span></div>`;
+      if(_pi.total_impact_aud) body+=`<div class="b11-line" style="font-size:12px;margin-bottom:6px">Predicted impact <strong>${b11Money(_pi.total_impact_aud)}</strong> <span class="b11-simtag">simulated</span></div>`;
+      body+=`<div class="b11-line" style="font-size:12px;margin-bottom:8px">${acks} of ${ad.required_stakeholders.length} stakeholders confirmed.</div>`;
+      body+=ad.required_stakeholders.map(s=>`<div style="font-size:11px;color:#94a3b8;margin-bottom:3px">${esc(s.display_name)} · <span class="b11-stk-status b11-${esc(s.status)}">${esc(s.status)}</span>${s.flag_reason?` · flag: ${esc(s.flag_reason)}`:""}</div>`).join("");
       if(ad.decision_state!=="SUPERSEDED"&&ad.decision_state!=="EXPIRED")
-        inner+=`<div style="margin-top:10px"><button class="b11-btn ghost" id="b11-supersede">Supersede</button></div>`;
+        body+=`<div style="margin-top:10px"><button class="b11-btn ghost" id="b11-supersede">Supersede</button></div>`;
     }
-    strip.innerHTML=inner;
+
+    strip.innerHTML=
+      `<div id="b11-vtso-toggle" role="button" tabindex="0" aria-expanded="${_vtsoExpanded}" `
+        +`style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:12px 16px;">`
+        +`<span style="font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:#38bdf8;font-weight:700;">VTSO Decision Loop</span>`
+        +`<span style="display:flex;align-items:center;gap:8px;">${stateHint}<span id="b11-vtso-chev" style="color:#64748b;font-size:11px;">${_vtsoExpanded?'▲':'▼'}</span></span>`
+      +`</div>`
+      +`<div id="b11-vtso-body" style="display:${_vtsoExpanded?'block':'none'};padding:0 16px 14px;">${body}</div>`;
+
+    // Expand/collapse toggle — presentation only.
+    const tog=document.getElementById("b11-vtso-toggle");
+    if(tog){
+      const _toggle=()=>{ _vtsoExpanded=!_vtsoExpanded;
+        const bd=document.getElementById("b11-vtso-body"); if(bd)bd.style.display=_vtsoExpanded?'block':'none';
+        const cv=document.getElementById("b11-vtso-chev"); if(cv)cv.textContent=_vtsoExpanded?'▲':'▼';
+        tog.setAttribute("aria-expanded", _vtsoExpanded); };
+      tog.addEventListener("click",_toggle);
+      tog.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); _toggle(); } });
+    }
+    // Decision actions — logic unchanged.
     const ib=document.getElementById("b11-issue"); if(ib)ib.addEventListener("click",()=>action({action:"issue",use_pinned:true,conflict_id:pid}));
     const sb=document.getElementById("b11-supersede"); if(sb)sb.addEventListener("click",()=>{ if(ad)action({action:"supersede",decision_id:ad.decision_id}); });
   }
