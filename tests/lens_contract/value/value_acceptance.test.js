@@ -160,6 +160,15 @@ console.log('RED here is expected and is the objective measure of the regression
   const r5 = safe(() => pilotage('pil_cluster.json'));
   record('VAL-P5', 'LV1', r5.ok && /class="pwc-shape/.test(r5.out),
     'Section A watch-shape headline (marker .pwc-shape)');
+
+  // VAL-P6 sequence awareness: tightly-spaced transits (12 min apart) yield a
+  // .pwc-sequence pressure item; well-spaced transits (>60 min apart) do NOT.
+  const seqPos = safe(() => pilotage('pil_sequence.json'));
+  const seqNeg = safe(() => pilotage('pil_no_sequence.json'));
+  const presentPos = seqPos.ok && /class="pwc-sequence/.test(seqPos.out);
+  const absentNeg  = seqNeg.ok && !/class="pwc-sequence/.test(seqNeg.out);
+  record('VAL-P6', 'S1', presentPos && absentNeg,
+    `sequence pressure present on 12-min fixture (${presentPos}) AND absent on >60-min fixture (${absentNeg}) (marker .pwc-sequence)`);
 }
 
 // ── Towage value checks ────────────────────────────────────────────────────

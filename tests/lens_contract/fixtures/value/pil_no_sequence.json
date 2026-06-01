@@ -1,0 +1,108 @@
+{
+  "port_name": "Port of Melbourne",
+  "generated_at": "2026-06-01T00:00:00Z",
+  "lookahead_hours": 48,
+  "data_source": "mock",
+  "data_source_label": "Melbourne — Simulation",
+  "port_status": {
+    "berths_occupied": 1,
+    "berths_available": 5,
+    "berths_total": 6,
+    "vessels_in_port": 1,
+    "vessels_expected_24h": 2,
+    "vessels_departing_24h": 0,
+    "active_conflicts": 0,
+    "critical_conflicts": 0,
+    "pilots_available": 3,
+    "tugs_available": 5
+  },
+  "vessels": [
+    {
+      "id": "VS1",
+      "name": "BASS STRAIT",
+      "vessel_type": "Bulk carrier",
+      "loa": 195.0,
+      "draught": 11.0,
+      "status": "confirmed",
+      "berth_id": "B03",
+      "eta": "2026-06-01T02:00:00Z",
+      "etd": "2026-06-01T16:00:00Z",
+      "pilotage_required": true,
+      "towage_required": true
+    },
+    {
+      "id": "VS2",
+      "name": "PACIFIC NAVIGATOR",
+      "vessel_type": "Container ship",
+      "loa": 210.0,
+      "draught": 11.5,
+      "status": "confirmed",
+      "berth_id": "B05",
+      "eta": "2026-06-01T03:30:00Z",
+      "etd": "2026-06-01T17:00:00Z",
+      "pilotage_required": true,
+      "towage_required": true
+    },
+    {
+      "id": "VB1",
+      "name": "HARBOUR RESIDENT",
+      "vessel_type": "Tanker",
+      "loa": 180.0,
+      "draught": 10.5,
+      "status": "berthed",
+      "berth_id": "B01",
+      "eta": "2026-05-31T20:00:00Z",
+      "etd": "2026-06-01T20:00:00Z",
+      "pilotage_required": true,
+      "towage_required": true
+    }
+  ],
+  "pilotage": [
+    {
+      "id": "PIL-VS1-IN",
+      "vessel_id": "VS1",
+      "vessel_name": "BASS STRAIT",
+      "pilot_name": "PILOT_MEL_PSP_01",
+      "scheduled_time": "2026-06-01T02:00:00Z",
+      "boarding_station": "Point Lonsdale Pilot Station",
+      "direction": "inbound",
+      "status": "confirmed"
+    },
+    {
+      "id": "PIL-VS2-IN",
+      "vessel_id": "VS2",
+      "vessel_name": "PACIFIC NAVIGATOR",
+      "pilot_name": "PILOT_MEL_PSP_02",
+      "scheduled_time": "2026-06-01T03:30:00Z",
+      "boarding_station": "Point Lonsdale Pilot Station",
+      "direction": "inbound",
+      "status": "confirmed"
+    }
+  ],
+  "towage": [],
+  "port_tugs": [
+    { "name": "SVR Apex", "bollard_pull_t": 72 },
+    { "name": "SVR Mercury", "bollard_pull_t": 65 },
+    { "name": "SVR Orion", "bollard_pull_t": 80 }
+  ],
+  "conflicts": [],
+  "weather": {
+    "wind_speed_kts": 12,
+    "wind_direction_label": "SE",
+    "swell_height_m": 0.6,
+    "visibility_nm": 10,
+    "conditions": "Good",
+    "source": "simulation"
+  },
+  "tides": {
+    "current_height_m": 0.4,
+    "state": "Rising",
+    "next_event_type": "HW",
+    "next_event_time": "2026-06-01T05:00:00Z",
+    "next_event_height_m": 0.8,
+    "mean_height_m": 0.45,
+    "amplitude_m": 0.25,
+    "berth_restrictions": [],
+    "data_source": "bom"
+  }
+}

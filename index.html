@@ -3366,6 +3366,18 @@ function _checkCounts(observed,badgeId,label,expected){
     .pwc-forming-time{font-variant-numeric:tabular-nums;color:#cbd5e1;}
     .pwc-forming-vessel{color:#e2e8f0;}
     .pwc-forming-dir{color:#64748b;}
+    /* Sprint 1 — transit sequence pressure. Reuses the pwc-pressure severity
+       palette (no new colour system). */
+    .pwc-sequence-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+    .pwc-sequence{padding:8px 10px;border-radius:6px;background:rgba(255,255,255,.02);border-left:3px solid rgba(125,211,252,.5);}
+    .pwc-sequence-info{border-left-color:rgba(148,163,184,.5);}
+    .pwc-sequence-advisory{border-left-color:rgba(125,211,252,.5);}
+    .pwc-sequence-warning{border-left-color:rgba(245,158,11,.6);background:rgba(245,158,11,.06);}
+    .pwc-sequence-hdr{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:3px;}
+    .pwc-sequence-type{font-size:9px;font-weight:700;letter-spacing:.6px;color:#64748b;text-transform:uppercase;}
+    .pwc-sequence-gap{font-size:11px;font-weight:700;color:#cbd5e1;font-variant-numeric:tabular-nums;}
+    .pwc-sequence-pair{font-size:12px;color:#e2e8f0;margin-bottom:3px;}
+    .pwc-sequence-note{font-size:11px;color:#94a3b8;line-height:1.4;}
     .pwc-transit-flagged{border-color:rgba(251,191,36,.4);background:rgba(245,158,11,.04);}
     .pwc-transit-flagged.pwc-flag-critical{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.04);}
     .pwc-transit-hdr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
@@ -4587,6 +4599,14 @@ function _checkCounts(observed,badgeId,label,expected){
   // P2: per-transit Layer 3 confidence rules (UKC, ETA drift, eta_variance,
   //     pilotage_window, berth_side, boarding_conditions, bridge_restriction).
   // P3: forward shape. P4: exceptions. pilot_name never exposed.
+  //
+  // Sprint 1 — Pilotage sequence-pressure thresholds (minutes between two
+  // consecutive in-watch transits). ISOLATED here for easy adjustment.
+  // NOTE: this is NOT a visibility gate — every transit remains fully
+  // addressable in Section B regardless of these values; the thresholds only
+  // tier an annotation in Section C. LC-12 / APPROVED-THRESHOLDS (which govern
+  // thresholds that gate stakeholder VISIBILITY) therefore do not apply.
+  const _PWC_SEQ_GAP_MIN = { warning: 15, advisory: 30, info: 60 };
   function buildPilotageWatch(summary){
     const d = summary || {};
     const pilotage = d.pilotage || [];
@@ -5131,6 +5151,34 @@ function _checkCounts(observed,badgeId,label,expected){
     }
     const lead_id = lead ? lead.transit_id : null;
 
+    // ── Sprint 1 — transit sequence pressure ──────────────────────────────
+    // Two consecutive in-watch transits separated by a small gap create
+    // scheduling pressure the per-transit view cannot show. Derived purely
+    // from scheduled_time (data already present) over the in-watch transits,
+    // which are already sorted ascending. No roster read; no allocation
+    // assertion. Companion-not-authority: states the gap as a fact and frames
+    // turnaround conditionally.
+    const sequence = [];
+    for(let i = 0; i + 1 < transits.length; i++){
+      const a = transits[i], b = transits[i+1];
+      const ta = new Date(a.scheduled_time).getTime();
+      const tb = new Date(b.scheduled_time).getTime();
+      if(isNaN(ta) || isNaN(tb)) continue;
+      const gapMin = Math.round((tb - ta) / 60000);
+      if(gapMin < 0 || gapMin > _PWC_SEQ_GAP_MIN.info) continue;
+      const severity = gapMin <= _PWC_SEQ_GAP_MIN.warning ? "warning"
+                     : gapMin <= _PWC_SEQ_GAP_MIN.advisory ? "advisory"
+                     : "info";
+      sequence.push({
+        first:  { transit_id: a.transit_id, vessel_name: a.vessel_name,
+                  scheduled_time: a.scheduled_time, direction: a.direction },
+        second: { transit_id: b.transit_id, vessel_name: b.vessel_name,
+                  scheduled_time: b.scheduled_time, direction: b.direction },
+        gap_minutes: gapMin,
+        severity: severity
+      });
+    }
+
     return {
       port_id: portId,
       port_name: portName,
@@ -5148,6 +5196,7 @@ function _checkCounts(observed,badgeId,label,expected){
       watchShape: watchShape,
       lead_id: lead_id,
       pressure: pressure,
+      sequence: sequence,
       transits: transits,
       forward: forward,
       forwardPressure: forwardPressure,
@@ -5512,10 +5561,28 @@ function _checkCounts(observed,badgeId,label,expected){
     const pressure = watch.pressure || [];
     const fp = watch.forwardPressure || { items: [] };
     const items = fp.items || [];
+    const sequence = watch.sequence || [];
     let h = `<div class="pwc-section"><h3 class="pwc-section-h">Next 8–24 hours</h3>`;
-    if(pressure.length === 0 && items.length === 0){
+    if(pressure.length === 0 && items.length === 0 && sequence.length === 0){
       h += `<div class="pwc-empty">Next watch quiet — no forward constraints forming.</div></div>`;
       return h;
+    }
+    // Sprint 1 — transit sequence pressure. Rendered first: it is the most
+    // immediate scheduling pressure in the watch. Companion phrasing only —
+    // Horizon surfaces the gap; the roster remains authoritative for allocation.
+    if(sequence.length){
+      h += `<div class="pwc-sequence-list">`;
+      sequence.forEach(s => {
+        h += `<div class="pwc-sequence pwc-sequence-${esc(s.severity)}">`;
+        h += `<div class="pwc-sequence-hdr">`;
+        h += `<span class="pwc-sequence-type">Transit sequence pressure</span>`;
+        h += `<span class="pwc-sequence-gap">Gap: ${esc(String(s.gap_minutes))} min</span>`;
+        h += `</div>`;
+        h += `<div class="pwc-sequence-pair">${esc(s.first.vessel_name||"—")} → ${esc(s.second.vessel_name||"—")}</div>`;
+        h += `<div class="pwc-sequence-note">Potential tight turnaround if the same pilot allocation is used. Allocation, qualifications and fatigue remain with the roster.</div>`;
+        h += `</div>`;
+      });
+      h += `</div>`;
     }
     // Pressure items first — the derived "what's building" (fact-only).
     if(pressure.length){
