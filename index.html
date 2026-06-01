@@ -1242,6 +1242,11 @@
         <span>Decisions</span>
         <span class="count-badge zero" id="conflict-count">0</span>
       </div>
+      <!-- VTSO Decision Loop mounts here (Beta 12 / VTSO role only): an
+           integrated collapsible section of the Decisions column, directly
+           under the header and above the Decisions/Audit tab row. Empty (no
+           height) when the loop is inactive or in plain Beta 10. -->
+      <div id="b11-vtso-mount"></div>
       <div class="rpanel-tabs">
         <button class="rpanel-tab active" onclick="switchRTab('decisions')">⚡ Decisions</button>
         <button class="rpanel-tab" onclick="switchRTab('audit')">Audit</button>
@@ -3668,17 +3673,13 @@ function _checkCounts(observed,badgeId,label,expected){
   let _vtsoExpanded = false;
   function renderVtsoPanel(){
     const b=_last&&_last.beta11; if(!b)return;
-    let strip=document.getElementById("b11-vtso-strip");
-    if(!strip){
-      strip=document.createElement("div"); strip.id="b11-vtso-strip";
-      // Relocated from bottom-right (overlapping the Vessel Roster) to a
-      // collapsible top-right panel near the decision area — pattern aligned
-      // with the Data Confidence overlay. z-index below dc-overlay (9700) so
-      // the transient DC popover sits above when opened.
-      strip.style.cssText="position:fixed;right:14px;top:62px;width:330px;max-height:calc(100vh - 80px);overflow-y:auto;z-index:7900;background:#0d1b2e;border:1px solid rgba(56,189,248,.3);border-radius:10px;box-shadow:0 12px 36px rgba(0,0,0,.5);";
-      document.body.appendChild(strip);
-    }
-    strip.style.display="block";
+    // Embedded inside the Decisions column (no longer a floating overlay):
+    // renders into the in-column mount that sits under the DECISIONS header
+    // and above the Decisions/Audit tab row. Expanding pushes the tab row and
+    // decision cards down naturally rather than overlaying the dashboard.
+    const mount=document.getElementById("b11-vtso-mount");
+    if(!mount)return;
+    mount.style.display="block";
     const ad=b.active_decision, pid=b.pinned_conflict_id;
 
     // Compact header state hint (shown even when collapsed) so the operator
@@ -3709,13 +3710,15 @@ function _checkCounts(observed,badgeId,label,expected){
         body+=`<div style="margin-top:10px"><button class="b11-btn ghost" id="b11-supersede">Supersede</button></div>`;
     }
 
-    strip.innerHTML=
-      `<div id="b11-vtso-toggle" role="button" tabindex="0" aria-expanded="${_vtsoExpanded}" `
-        +`style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:12px 16px;">`
-        +`<span style="font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:#38bdf8;font-weight:700;">VTSO Decision Loop</span>`
-        +`<span style="display:flex;align-items:center;gap:8px;">${stateHint}<span id="b11-vtso-chev" style="color:#64748b;font-size:11px;">${_vtsoExpanded?'▲':'▼'}</span></span>`
+    mount.innerHTML=
+      `<div id="b11-vtso-strip" style="margin:8px 10px 0;background:#0d1b2e;border:1px solid rgba(56,189,248,.3);border-radius:8px;overflow:hidden;">`
+      +`<div id="b11-vtso-toggle" role="button" tabindex="0" aria-expanded="${_vtsoExpanded}" `
+        +`style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:9px 12px;">`
+        +`<span style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#38bdf8;font-weight:700;">VTSO Decision Loop</span>`
+        +`<span style="display:flex;align-items:center;gap:7px;">${stateHint}<span id="b11-vtso-chev" style="color:#64748b;font-size:10px;">${_vtsoExpanded?'▲':'▼'}</span></span>`
       +`</div>`
-      +`<div id="b11-vtso-body" style="display:${_vtsoExpanded?'block':'none'};padding:0 16px 14px;">${body}</div>`;
+      +`<div id="b11-vtso-body" style="display:${_vtsoExpanded?'block':'none'};padding:10px 12px 12px;border-top:1px solid rgba(56,189,248,.12);">${body}</div>`
+      +`</div>`;
 
     // Expand/collapse toggle — presentation only.
     const tog=document.getElementById("b11-vtso-toggle");
@@ -3731,7 +3734,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const ib=document.getElementById("b11-issue"); if(ib)ib.addEventListener("click",()=>action({action:"issue",use_pinned:true,conflict_id:pid}));
     const sb=document.getElementById("b11-supersede"); if(sb)sb.addEventListener("click",()=>{ if(ad)action({action:"supersede",decision_id:ad.decision_id}); });
   }
-  function hideVtsoStrip(){const s=document.getElementById("b11-vtso-strip");if(s)s.style.display="none";}
+  function hideVtsoStrip(){const m=document.getElementById("b11-vtso-mount");if(m){m.innerHTML="";m.style.display="none";}}
 
   function renderOverlay(){
     const b=_last&&_last.beta11; const wrap=document.getElementById("b11-wrap"); if(!b||!wrap)return;
