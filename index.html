@@ -3124,15 +3124,10 @@ function _checkCounts(observed,badgeId,label,expected){
   function injectCSS(){
     if(document.getElementById("b11-css"))return;
     const css=`
-    /* Role bar is sticky AND above the overlay (z 9500 > overlay 9000) so the
-       role selector + Return control stay visible inside every lens. */
-    #b11-bar{position:sticky;top:0;z-index:9500;display:flex;align-items:center;gap:8px;padding:6px 14px;background:#0a1422;border-bottom:1px solid rgba(56,189,248,.25);font-size:12px;}
-    #b11-bar .b11-brand{height:22px;width:auto;margin-right:2px;}
-    #b11-bar .b11-title{font-weight:700;letter-spacing:.6px;color:#38bdf8;text-transform:uppercase;font-size:11px;}
-    #b11-bar select{background:rgba(255,255,255,.05);border:1px solid rgba(56,189,248,.3);color:#e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px;}
-    #b11-bar .b11-blurb{color:#64748b;font-size:11px;margin-left:4px;}
-    #b11-bar .b11-roles-label{color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
-    #b11-return{background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.45);color:#7dd3fc;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;display:none;}
+    /* Role controls inline in the primary header (no secondary row). */
+    #b11-role{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.4);color:#e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px;font-weight:600;cursor:pointer;}
+    #b11-role:hover{background:rgba(56,189,248,.14);}
+    #b11-return{background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.45);color:#7dd3fc;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;display:none;white-space:nowrap;}
     #b11-return:hover{background:rgba(56,189,248,.22);}
     #b11-return.show{display:inline-block;}
     .b11-ctx{background:#0d1b2e;border:1px dashed rgba(56,189,248,.3);border-radius:12px;padding:16px 20px;margin-bottom:16px;}
@@ -3144,9 +3139,10 @@ function _checkCounts(observed,badgeId,label,expected){
     .b11-ovbrand img{height:30px;width:auto;}
     .b11-ovbrand .env{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#38bdf8;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.35);border-radius:5px;padding:3px 8px;}
     .b11-ovbrand .within{font-size:11px;color:#64748b;margin-left:auto;}
-    /* Overlay starts BELOW the sticky role bar (top:41px) and sits under it in
-       z-order, so the selector + Return control are never covered. */
-    #b11-overlay{position:fixed;left:0;right:0;bottom:0;top:41px;z-index:9000;background:#070f1e;overflow:auto;display:none;}
+    /* Overlay starts BELOW the primary header (which now hosts the role
+       selector + Return control inline). Header is position:relative with
+       z-index 200; overlay is position:fixed below it at z-index 9000. */
+    #b11-overlay{position:fixed;left:0;right:0;bottom:0;top:var(--header-h);z-index:9000;background:#070f1e;overflow:auto;display:none;}
     #b11-overlay.show{display:block;}
     .b11-wrap{max-width:1100px;margin:0 auto;padding:18px 22px 60px;}
     .b11-simbanner{background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.5);color:#fbbf24;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;letter-spacing:.4px;margin-bottom:16px;text-transform:uppercase;}
@@ -3264,24 +3260,29 @@ function _checkCounts(observed,badgeId,label,expected){
 
   function buildShell(b){
     injectCSS();
-    const bar=document.createElement("div"); bar.id="b11-bar";
-    const opts=(b.roles||[]).map(r=>`<option value="${esc(r.id)}">${esc(r.label)}</option>`).join("");
-    // Return control first (left), then logo, role selector (always visible),
-    // and the per-role blurb. The Return button only shows inside a lens.
-    bar.innerHTML=`<button id="b11-return" title="Return to the Horizon coordination view">← Return to Horizon Coordination View</button>`+
-      `<img src="/logo" class="b11-brand" alt="Horizon"><span class="b11-title">Horizon Beta 12</span>`+
-      `<span class="b11-roles-label">Role</span><select id="b11-role">${opts}</select>`+
-      `<span class="b11-blurb" id="b11-blurb"></span>`;
     // Governance: relabel the SHARED Beta 10 badge at runtime only (never edit
     // the static markup, which must stay byte identical when the flag is off).
     setBadge("Horizon Beta 12 Preview");
-    const hdr=document.querySelector("header");
-    if(hdr&&hdr.parentNode){hdr.parentNode.insertBefore(bar,hdr.nextSibling);}else{document.body.insertBefore(bar,document.body.firstChild);}
+    // Inject the role selector and Return button directly into the primary
+    // header's .logo group, immediately after #port-switcher. No secondary
+    // row is created. The role blurb is shown inside the overlay role
+    // header (b11-rolehdr), not in the global header.
+    const opts=(b.roles||[]).map(r=>`<option value="${esc(r.id)}">${esc(r.label)}</option>`).join("");
+    const portSel=document.getElementById("port-switcher");
+    if(portSel && portSel.parentNode){
+      const sel=document.createElement("select"); sel.id="b11-role";
+      sel.title="Switch stakeholder role"; sel.innerHTML=opts;
+      const ret=document.createElement("button"); ret.id="b11-return";
+      ret.title="Return to the Horizon coordination view";
+      ret.textContent="← Return to Horizon";
+      portSel.parentNode.insertBefore(sel, portSel.nextSibling);
+      portSel.parentNode.insertBefore(ret, sel.nextSibling);
+      sel.addEventListener("change",e=>setRole(e.target.value));
+      // Return = jump straight back to the VTSO coordination view.
+      ret.addEventListener("click",()=>setRole("VTSO"));
+    }
     const ov=document.createElement("div"); ov.id="b11-overlay"; ov.innerHTML=`<div class="b11-wrap" id="b11-wrap"></div>`;
     document.body.appendChild(ov);
-    document.getElementById("b11-role").addEventListener("change",e=>setRole(e.target.value));
-    // Return = jump straight back to the VTSO coordination view (no browser Back).
-    document.getElementById("b11-return").addEventListener("click",()=>setRole("VTSO"));
     _built=true;
   }
 
@@ -3289,8 +3290,8 @@ function _checkCounts(observed,badgeId,label,expected){
     _activeRole=role;
     const ov=document.getElementById("b11-overlay"); const sel=document.getElementById("b11-role");
     if(sel)sel.value=role;
-    const meta=(_last&&_last.beta11&&(_last.beta11.roles||[]).find(r=>r.id===role))||null;
-    const blurb=document.getElementById("b11-blurb"); if(blurb)blurb.textContent=meta?meta.blurb:"";
+    // (Role blurb is rendered inside the overlay's role header (b11-rolesub),
+    // not in the primary header — see renderOverlay for that path.)
     const ret=document.getElementById("b11-return");
     if(role==="VTSO"){ ov.classList.remove("show"); if(ret)ret.classList.remove("show"); renderVtsoPanel(); }
     else { ov.classList.add("show"); if(ret)ret.classList.add("show"); renderOverlay(); }
