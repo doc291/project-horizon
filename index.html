@@ -3401,6 +3401,11 @@ function _checkCounts(observed,badgeId,label,expected){
     // Click handler on the existing header badge.
     const trig = document.getElementById("ds-indicator");
     if(trig){
+      // Clear the inline display:none from the static markup so the
+      // existing CSS rule (#ds-indicator { display:flex; ... }) takes
+      // effect. Only runs inside the Beta 12 IIFE — Beta 10 flag-off
+      // path leaves the badge exactly as it has always been (hidden).
+      trig.style.display = "";
       // Make the badge keyboard-focusable + obviously interactive.
       trig.style.cursor = "pointer";
       trig.setAttribute("role", "button");
