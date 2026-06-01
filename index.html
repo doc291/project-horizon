@@ -3258,11 +3258,17 @@ function _checkCounts(observed,badgeId,label,expected){
     .pwc-ex-btns{display:flex;gap:8px;margin-top:12px;}
     .pwc-ex-done{font-size:11px;color:#64748b;font-style:italic;margin-top:10px;}
     .pwc-ex-meta{font-size:10px;color:#64748b;margin-top:4px;}
-    /* Layer 1 — count only, deliberately compact. No enumeration. */
-    .pwc-pilots-card{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:14px;}
-    .pwc-pilots-count{font-size:22px;font-weight:800;color:#e2e8f0;font-variant-numeric:tabular-nums;}
-    .pwc-pilots-label{font-size:11px;color:#94a3b8;}
-    .pwc-pilots-note{font-size:10px;color:#475569;margin-left:auto;font-style:italic;max-width:48ch;text-align:right;}
+    /* Layer 1 — Watch Overview. Pre-flight scan. No section header.
+       Visual gradient from large headline to quiet roster footnote. */
+    .pwc-overview{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;}
+    .pwc-ov-demand{font-size:15px;font-weight:700;color:#e2e8f0;line-height:1.4;}
+    .pwc-ov-pressure{font-size:12px;font-weight:600;padding:6px 10px;border-radius:6px;}
+    .pwc-ov-pressure-critical{color:#fca5a5;background:rgba(239,68,68,.10);border-left:3px solid rgba(239,68,68,.55);}
+    .pwc-ov-pressure-warning{color:#fbbf24;background:rgba(245,158,11,.08);border-left:3px solid rgba(245,158,11,.50);}
+    .pwc-ov-env{font-size:11px;color:#94a3b8;display:flex;flex-direction:column;gap:2px;margin-top:2px;}
+    .pwc-ov-env-row{padding:2px 0;}
+    .pwc-ov-env-breach{color:#fca5a5;font-weight:700;text-transform:uppercase;letter-spacing:.4px;font-size:10px;margin-left:4px;}
+    .pwc-ov-roster{font-size:10px;color:#64748b;font-style:italic;margin-top:4px;padding-top:6px;border-top:1px solid rgba(255,255,255,.04);}
     /* Layer 2 — transits with inline confidence flags */
     .pwc-transits-list{display:flex;flex-direction:column;gap:8px;}
     .pwc-transit{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px 12px;}
@@ -4370,14 +4376,154 @@ function _checkCounts(observed,badgeId,label,expected){
     return d || "—";
   }
 
-  function _pwcRenderPilotsLayer(watch){
-    let h = `<div class="pwc-section"><h3 class="pwc-section-h">Pilots available this watch</h3>`;
+  // Layer 1 — Watch Overview.
+  // The pre-flight scan before the scheduler enters the transit list. Each row
+  // must change how they approach the watch; nothing is here for show.
+  // Five rows, no section header, no analytics, no Horizon-as-actor framing.
+  //   1. Demand headline       — always: shape of the watch
+  //   2. Window pressure       — conditional: where Horizon sees highest risk
+  //   3. Short-notice pressure — conditional: where the watch is reactive
+  //   4. Environment           — always: tide + boarding-condition posture
+  //   5. Companion-system note — subordinate: pilot count + roster pointer
+
+  function _pwcOvDemand(watch){
+    const ts = watch.transits || [];
+    const total = (watch.forward && watch.forward.transit_count != null)
+                  ? watch.forward.transit_count : ts.length;
+    const inbound  = ts.filter(t => t.direction === "inbound").length;
+    const outbound = ts.filter(t => t.direction === "outbound").length;
+
+    // Pick next or in-progress transit: earliest scheduled_time within
+    // [now - 30 min, +∞). "now:" prefix when in the past 30 min window;
+    // "next:" otherwise. Omit clause entirely when no candidate.
+    let nextClause = "";
+    if(ts.length > 0){
+      const nowMs = watch.window ? new Date(watch.window.now).getTime() : Date.now();
+      const cutoff = nowMs - 30*60*1000;
+      const upcoming = ts
+        .filter(t => { try { return new Date(t.scheduled_time).getTime() >= cutoff; } catch(e){ return false; } })
+        .sort((a,b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
+      if(upcoming.length > 0){
+        const n = upcoming[0];
+        const tMs = new Date(n.scheduled_time).getTime();
+        const prefix = (tMs < nowMs) ? "now" : "next";
+        nextClause = ` · ${prefix}: ${esc(n.vessel_name || "—")} at ${esc(fmtTs(n.scheduled_time))}`;
+      }
+    }
+
+    if(total === 0){
+      return `<div class="pwc-ov-demand">No transits scheduled in this watch.</div>`;
+    }
+    const noun = total === 1 ? "transit" : "transits";
+    return `<div class="pwc-ov-demand">${total} ${noun} this watch · ${inbound} inbound · ${outbound} outbound${nextClause}</div>`;
+  }
+
+  function _pwcOvWindow(watch){
+    const ts = watch.transits || [];
+    // Affected = any transit carrying ukc_tight or ukc_unsafe flag reason.
+    const affected = ts.filter(t => (t.flag_reasons || [])
+      .some(r => r.source === "ukc_tight" || r.source === "ukc_unsafe"));
+    if(affected.length === 0) return "";
+
+    // Worst-case = transit with the minimum ukc_m (lowest = most unsafe).
+    // Ties broken by earliest scheduled_time.
+    let worst = null;
+    affected.forEach(t => {
+      const u = (t.window && t.window.ukc_m != null) ? t.window.ukc_m : null;
+      if(u == null) return;
+      if(worst === null){ worst = t; return; }
+      const w = (worst.window && worst.window.ukc_m != null) ? worst.window.ukc_m : null;
+      if(u < w){ worst = t; }
+      else if(u === w && new Date(t.scheduled_time) < new Date(worst.scheduled_time)){ worst = t; }
+    });
+
+    const severityCls = (worst && worst.window && worst.window.ukc_m != null && worst.window.ukc_m < 0)
+      ? "pwc-ov-pressure-critical" : "pwc-ov-pressure-warning";
+    const noun = affected.length === 1 ? "tight UKC margin" : "tight UKC margins";
+    let body = `${affected.length} ${noun}`;
+    if(worst && worst.window && worst.window.ukc_m != null){
+      body += ` · ${esc(worst.vessel_name || "—")} ${worst.window.ukc_m}m`;
+    }
+    return `<div class="pwc-ov-pressure ${severityCls}">${body}</div>`;
+  }
+
+  function _pwcOvShortNotice(watch){
+    const ts = watch.transits || [];
+    const affected = ts.filter(t => (t.flag_reasons || [])
+      .some(r => r.source === "short_notice"));
+    if(affected.length === 0) return "";
+
+    // Earliest affected transit by scheduled_time.
+    const soonest = affected.slice().sort((a,b) =>
+      new Date(a.scheduled_time) - new Date(b.scheduled_time))[0];
+    const noun = affected.length === 1 ? "short-notice request" : "short-notice requests";
+    let body = `${affected.length} ${noun}`;
+    if(soonest){
+      body += ` · ${esc(soonest.vessel_name || "—")} at ${esc(fmtTs(soonest.scheduled_time))}`;
+    }
+    return `<div class="pwc-ov-pressure pwc-ov-pressure-warning">${body}</div>`;
+  }
+
+  function _pwcOvEnvironment(watch){
+    const fwd = watch.forward || {};
+    const env = fwd.environment || {};
+    const tide = env.tide || {};
+    const wx   = env.weather || {};
+
+    let h = `<div class="pwc-ov-env">`;
+    // Tide line
+    if(tide.state){
+      const ne = tide.next_event_type
+        ? `, next ${esc(tide.next_event_type)} at ${esc(fmtTs(tide.next_event_time))}`
+        : "";
+      const tp = tide.provenance === "live_bom"
+        ? `<span class="b11-realtag">live BOM</span>`
+        : `<span class="b11-simtag">${esc(tide.provenance || "simulated")}</span>`;
+      h += `<div class="pwc-ov-env-row">Tide: ${esc(tide.state)}${ne} ${tp}</div>`;
+    }
+    // Conditions line — conditions + wind + (swell only if meaningful) + provenance + inline breach marker
+    if(wx.conditions || wx.wind_speed_kts != null){
+      const parts = [];
+      if(wx.conditions) parts.push(wx.conditions);
+      if(wx.wind_speed_kts != null) parts.push(`wind ${Math.round(wx.wind_speed_kts)} kts`);
+      // Swell only when the data layer's threshold logic considers it relevant.
+      if(wx.swell_height_m != null && wx.swell_height_m > 2.0){
+        parts.push(`swell ${wx.swell_height_m}m`);
+      }
+      const wp = wx.provenance === "live"
+        ? `<span class="b11-realtag">live</span>`
+        : `<span class="b11-simtag">${esc(wx.provenance || "simulated")}</span>`;
+      const breach = wx.threshold_breach
+        ? ` <span class="pwc-ov-env-breach">deteriorating</span>`
+        : "";
+      h += `<div class="pwc-ov-env-row">Conditions: ${esc(parts.join(" · "))} ${wp}${breach}</div>`;
+    }
+    h += `</div>`;
+    return h;
+  }
+
+  function _pwcOvRoster(watch){
     const n = watch.pilots_available;
-    h += `<div class="pwc-pilots-card">`;
-    h += `<span class="pwc-pilots-count">${n != null ? esc(String(n)) : "—"}</span>`;
-    h += `<span class="pwc-pilots-label">pilot${n === 1 ? "" : "s"} available</span>`;
-    h += `<span class="pwc-pilots-note">Count from port status. Names, qualifications, fatigue and rest sit in your roster system.</span>`;
-    h += `</div></div>`;
+    let text;
+    if(n == null){
+      text = "Roster reference: pilot availability remains in your pilotage system.";
+    } else {
+      const noun = n === 1 ? "pilot" : "pilots";
+      text = `Roster reference: ${n} ${noun} available. Names, qualifications, fatigue and assignments remain in your pilotage system.`;
+    }
+    return `<div class="pwc-ov-roster">${esc(text)}</div>`;
+  }
+
+  function _pwcRenderWatchOverview(watch){
+    // Single section, no header. Five rows in priority order. Pressure rows
+    // (window, short-notice) self-hide when their count is zero.
+    let h = `<div class="pwc-section pwc-overview">`;
+    h += _pwcOvDemand(watch);
+    h += _pwcOvWindow(watch);
+    h += _pwcOvShortNotice(watch);
+    h += _pwcOvEnvironment(watch);
+    h += _pwcOvRoster(watch);
+    h += `</div>`;
     return h;
   }
 
@@ -4574,7 +4720,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const w = watch || {};
     let h = `<div class="pwc-watch">`;
     h += _pwcRenderExceptions(w.exceptions || [], w);   // Layer 5 — interrupt above
-    h += _pwcRenderPilotsLayer(w);                       // Layer 1 — count only
+    h += _pwcRenderWatchOverview(w);                     // Layer 1 — Watch Overview (pre-flight scan)
     h += _pwcRenderTransits(w);                          // Layer 2 + Layer 3 (inline flags)
     h += _pwcRenderForward(w);                           // Layer 4
     h += `</div>`;
