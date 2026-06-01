@@ -3605,8 +3605,24 @@ setInterval(refresh, 30000);
         self.end_headers()
         self.wfile.write(body)
 
+    @staticmethod
+    def _sanitise_finite(o):
+        # Recursively replace non-finite floats (NaN, Infinity, -Infinity)
+        # with None. Python's json.dumps default (allow_nan=True) emits these
+        # as bare NaN/Infinity tokens, which are NOT valid JSON per RFC 8259
+        # and are rejected by browser JSON.parse (Safari: "The string did not
+        # match the expected pattern"). A single non-finite float anywhere in
+        # the payload would otherwise break the entire client refresh loop.
+        if isinstance(o, float):
+            return o if math.isfinite(o) else None
+        if isinstance(o, dict):
+            return {k: HorizonHandler._sanitise_finite(v) for k, v in o.items()}
+        if isinstance(o, (list, tuple)):
+            return [HorizonHandler._sanitise_finite(x) for x in o]
+        return o
+
     def _json(self, data, status=200):
-        body = json.dumps(data, default=str).encode()
+        body = json.dumps(self._sanitise_finite(data), default=str).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
