@@ -76,6 +76,48 @@ PORT_PROFILES = {
                 {"lat": -27.370, "lon": 153.161},
             ],
         },
+
+        # ── Towage demand model (R4.1 — REPRESENTATIVE / PLACEHOLDER) ─────────
+        # Estimated tug-demand bands for Horizon Beta 12 capacity coordination
+        # and conflict detection. NOT a towage requirement. NOT a substitute
+        # for Brisbane's Harbour Master's Directions. Authoritative minimum
+        # towage requirements live in:
+        #   Brisbane Port Procedures and Information for Shipping,
+        #   Section 8: Harbour Towage and Support Vessel Procedures
+        #   (Maritime Safety Queensland, October 2024 edition).
+        # Values below are placeholders calibrated from the Australian Port
+        # Towage Requirements research (Beta 12) and the existing `loa > 200`
+        # demo behaviour. They MUST be reviewed by Brisbane towage operations
+        # and the Regional Harbour Master (MSQ) before any operational use.
+        # Wind / berth / beam modifiers and pilot/HMR discretion are NOT
+        # modelled — those are the pilot and Harbour Master's call. R4.1
+        # adds data only; no code consumes this field yet (wired in R4.3+).
+        "towage_rule": {
+            "status":         "PLACEHOLDER — operator-review-required",
+            "model":          "representative_demand",  # never "operational_rule" until V1
+            "source":         "Beta 12 representative demand model; not HMD-derived",
+            "ui_label":       "estimated tug demand",
+            "ui_disclaimer":  "Estimated demand only. Actual towage requirement set by pilot and Harbour Master per published Directions.",
+            "bands": [
+                {"loa_max": 100, "n_tugs": 0},   # ~Coastal traders / small general cargo
+                {"loa_max": 180, "n_tugs": 1},   # ~Handysize / small Panamax
+                {"loa_max": 240, "n_tugs": 2},   # ~Panamax to Post Panamax
+                {"loa_max": 300, "n_tugs": 3},   # ~Larger Post Panamax containers
+                {"loa_max": 999, "n_tugs": 4},   # Catch-all for the largest visitors
+            ],
+            "vessel_type_floor": {
+                "Car carrier":  2,   # High windage (PCTC) — research §7.3
+                "Tanker":       2,   # Brisbane crude/clean berths
+                "LNG carrier":  3,
+            },
+            "vessel_name_override":  {},
+            "loa_epsilon_m":         0.5,  # AIS rounding tolerance — admits 199.5–200.0 m hairline cases
+            "review_required_by": [
+                "Brisbane towage operations",
+                "Regional Harbour Master, Maritime Safety Queensland",
+            ],
+            "v1_target": "Replace with per-berth HMD-derived matrix (MSQ Section 8). See LENS-CONTRACT.md §5.3.",
+        },
     },
 
     # ── Port of Melbourne ─────────────────────────────────────────────────────
@@ -204,6 +246,55 @@ PORT_PROFILES = {
                 {"lat": -37.822, "lon": 144.923},
             ],
         },
+
+        # ── Towage demand model (R4.1 — REPRESENTATIVE / PLACEHOLDER) ─────────
+        # Estimated tug-demand bands for Horizon Beta 12 capacity coordination
+        # and conflict detection. NOT a towage requirement. NOT a substitute
+        # for the Port of Melbourne Harbour Master's Directions. Authoritative
+        # minimum towage requirements live in:
+        #   Ports Victoria Harbour Master's Directions, Edition 13.1,
+        #   September 2023, Section 3.21 ("Towage and minimum requirements")
+        #   plus the berth-specific Minimum Towage Table referenced therein.
+        #   The HMD is berth-specific (Swanson Dock, Webb Dock, Appleton Dock,
+        #   Gellibrand Pier, Station Pier, Holden Dock, river berths) and
+        #   uses beam thresholds (Post Panamax >32.5 m beam, Bosphorus Max
+        #   >45.6 m beam) and air-draught constraints (Bolte Bridge) that
+        #   are NOT modelled here. The research note explicitly records that
+        #   the Melbourne HMD §3.21 table was not fully extractable from the
+        #   PDF; this placeholder approximates demand only.
+        # Values below are placeholders calibrated from the Australian Port
+        # Towage Requirements research (Beta 12). They MUST be reviewed by
+        # Melbourne towage operations and the Harbour Master (Ports Victoria)
+        # before any operational use. Wind / berth / beam modifiers and
+        # pilot/HMR discretion are NOT modelled. R4.1 adds data only; no
+        # code consumes this field yet (wired in R4.3+).
+        "towage_rule": {
+            "status":         "PLACEHOLDER — operator-review-required",
+            "model":          "representative_demand",
+            "source":         "Beta 12 representative demand model; not HMD-derived",
+            "ui_label":       "estimated tug demand",
+            "ui_disclaimer":  "Estimated demand only. Actual towage requirement set by pilot and Harbour Master per published Directions.",
+            "bands": [
+                {"loa_max": 120, "n_tugs": 0},   # ~Coastal traders
+                {"loa_max": 170, "n_tugs": 1},   # ~Small general cargo
+                {"loa_max": 250, "n_tugs": 2},   # ~Panamax / containers (Swanson + Webb)
+                {"loa_max": 310, "n_tugs": 3},   # ~Post Panamax (HMD §3.16.15-3.16.17)
+                {"loa_max": 999, "n_tugs": 4},   # Bosphorus Max (HMD definition; individual assessment)
+            ],
+            "vessel_type_floor": {
+                "Car carrier":  2,   # PCTC — high windage; research §1 / §7.3
+                "Tanker":       2,   # Port Phillip petroleum berths
+                "LNG carrier":  3,
+                "LPG carrier":  2,
+            },
+            "vessel_name_override":  {},
+            "loa_epsilon_m":         0.5,  # AIS rounding tolerance — admits BYD ZHENGZHOU-class (199.9 m)
+            "review_required_by": [
+                "Port of Melbourne towage operations",
+                "Harbour Master, Ports Victoria",
+            ],
+            "v1_target": "Replace with HMD §3.21 berth-specific Minimum Towage Table; add beam tier (Post Panamax / Bosphorus Max) and Bolte Bridge air-draught modifier. See LENS-CONTRACT.md §5.3.",
+        },
     },
     # ── Port of Darwin ────────────────────────────────────────────────────────
     # Values sourced from Darwin Port Handbook 2026 (Darwin Port Corporation)
@@ -326,6 +417,51 @@ PORT_PROFILES = {
                 {"lat": -12.470, "lon": 130.845},
             ],
         },
+
+        # ── Towage demand model (R4.1 — REPRESENTATIVE / PLACEHOLDER) ─────────
+        # Estimated tug-demand bands for Horizon Beta 12 capacity coordination
+        # and conflict detection. NOT a towage requirement. NOT a substitute
+        # for the Darwin Regional Harbour Master's directions. Authoritative
+        # minimum towage requirements live in:
+        #   Darwin Port Handbook (November 2023), Harbour Towage section, and
+        #   Northern Territory Government Regional Harbour Master directions.
+        #   Specific LNG terminal towage at Bladin Point is governed by the
+        #   INPEX Onshore Terminal Regulations.
+        #   Darwin does not publish a single berth-by-berth matrix; current
+        #   towage is by port notice plus Harbour Master assessment, with
+        #   significant weight given to tidal range (~8 m springs) and
+        #   monsoonal weather (cyclone season Nov–Apr).
+        # Values below are placeholders calibrated from the Australian Port
+        # Towage Requirements research (Beta 12). They MUST be reviewed by
+        # Darwin Port towage operations and the NT Regional Harbour Master
+        # before any operational use. Tidal / weather / berth modifiers and
+        # pilot discretion are NOT modelled. R4.1 adds data only; no code
+        # consumes this field yet (wired in R4.3+).
+        "towage_rule": {
+            "status":         "PLACEHOLDER — operator-review-required",
+            "model":          "representative_demand",
+            "source":         "Beta 12 representative demand model; not HMR-derived",
+            "ui_label":       "estimated tug demand",
+            "ui_disclaimer":  "Estimated demand only. Actual towage requirement set by pilot and Harbour Master per Darwin Port directions.",
+            "bands": [
+                {"loa_max": 100, "n_tugs": 0},   # ~Offshore support vessels, smaller craft
+                {"loa_max": 190, "n_tugs": 1},   # ~General cargo / smaller bulk at East Arm
+                {"loa_max": 260, "n_tugs": 2},   # ~Larger bulk / tankers / cruise at Fort Hill
+                {"loa_max": 999, "n_tugs": 3},   # ~Largest cruise (up to 350 m at Fort Hill)
+            ],
+            "vessel_type_floor": {
+                "LNG carrier":  3,   # Bladin Point INPEX terminal expectations
+                "Tanker":       2,
+                "Car carrier":  2,
+            },
+            "vessel_name_override":  {},
+            "loa_epsilon_m":         0.5,
+            "review_required_by": [
+                "Darwin Port towage operations",
+                "Regional Harbour Master, Northern Territory Government",
+            ],
+            "v1_target": "Replace with NT RHM directions + INPEX terminal rules; add tidal-state and cyclone-season modifiers. See LENS-CONTRACT.md §5.3.",
+        },
     },
 
     # ── Port of Geelong ───────────────────────────────────────────────────────
@@ -422,6 +558,51 @@ PORT_PROFILES = {
                 {"lat": -38.060, "lon": 144.365},   # Corio Bay approach
                 {"lat": -38.128, "lon": 144.352},   # Corio Quay
             ],
+        },
+
+        # ── Towage demand model (R4.1 — REPRESENTATIVE / PLACEHOLDER) ─────────
+        # Estimated tug-demand bands for Horizon Beta 12 capacity coordination
+        # and conflict detection. NOT a towage requirement. NOT a substitute
+        # for the Geelong Harbour Master's Directions. Authoritative minimum
+        # towage requirements live in:
+        #   Ports Victoria Harbour Master's Directions 2020 (Geelong),
+        #   Section 4.6 "Towage and wind speeds" — Minimum Towage Table,
+        #   referenced in the Port Information Guide 2020.
+        #   The HMD baseline is "steady winds up to 15 knots and a fully
+        #   manoeuvrable vessel"; conditions above that require risk
+        #   assessment and may add tugs. Tanker / OBO vessels at non-tanker
+        #   berths have specific additional requirements (HMD §9.5). None
+        #   of these modifiers are encoded here.
+        # Values below are placeholders calibrated from the Australian Port
+        # Towage Requirements research (Beta 12). They MUST be reviewed by
+        # Geelong towage operations and the Harbour Master (Ports Victoria)
+        # before any operational use. R4.1 adds data only; no code consumes
+        # this field yet (wired in R4.3+).
+        "towage_rule": {
+            "status":         "PLACEHOLDER — operator-review-required",
+            "model":          "representative_demand",
+            "source":         "Beta 12 representative demand model; not HMD-derived",
+            "ui_label":       "estimated tug demand",
+            "ui_disclaimer":  "Estimated demand only. Actual towage requirement set by pilot and Harbour Master per published Directions.",
+            "bands": [
+                {"loa_max": 90,  "n_tugs": 0},   # ~Coastal small craft
+                {"loa_max": 160, "n_tugs": 1},   # ~Medium vessels (research §3)
+                {"loa_max": 230, "n_tugs": 2},   # ~Panamax bulk carriers
+                {"loa_max": 270, "n_tugs": 3},   # ~Capesize / larger tankers at Refinery Pier
+                {"loa_max": 999, "n_tugs": 4},   # Catch-all (rare at Geelong)
+            ],
+            "vessel_type_floor": {
+                "Car carrier":  2,   # High windage; PCTC visits do occur at Geelong
+                "Tanker":       2,   # Refinery Pier / petroleum exposure
+                # Geelong does not currently handle LNG (research §3) — no LNG floor.
+            },
+            "vessel_name_override":  {},
+            "loa_epsilon_m":         0.5,
+            "review_required_by": [
+                "Geelong towage operations",
+                "Harbour Master, Ports Victoria",
+            ],
+            "v1_target": "Replace with HMD §4.6 Minimum Towage Table; add wind escalation above 15 kt baseline (HMD-mandated risk assessment). See LENS-CONTRACT.md §5.3.",
         },
     },
 

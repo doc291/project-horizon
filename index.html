@@ -3271,6 +3271,13 @@ function _checkCounts(observed,badgeId,label,expected){
     .pwc-ov-env-row{padding:2px 0;}
     .pwc-ov-env-breach{color:#fca5a5;font-weight:700;text-transform:uppercase;letter-spacing:.4px;font-size:10px;margin-left:4px;}
     .pwc-ov-roster{font-size:10px;color:#64748b;font-style:italic;margin-top:4px;padding-top:6px;border-top:1px solid rgba(255,255,255,.04);}
+    /* R1 — operational-context rows (Section A). Compact, label-prefixed. */
+    .pwc-ov-berthed,.pwc-ov-inbound,.pwc-ov-ukc{font-size:12px;line-height:1.5;color:#cbd5e1;padding:2px 0;}
+    .pwc-ov-label{display:inline-block;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-right:6px;font-weight:700;}
+    .tms-ov-berthed,.tms-ov-inbound,.tms-ov-terminal,.tms-ov-weather{font-size:12px;line-height:1.5;color:#cbd5e1;padding:2px 0;}
+    .tms-ov-label{display:inline-block;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-right:6px;font-weight:700;}
+    /* R4.7.1 — per-tug 24h load line */
+    .tms-tug-load{font-size:10px;color:#94a3b8;margin-top:2px;font-style:italic;}
     /* Layer 2 — transits with inline confidence flags */
     .pwc-transits-list{display:flex;flex-direction:column;gap:8px;}
     .pwc-transit{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px 12px;}
@@ -4187,6 +4194,93 @@ function _checkCounts(observed,badgeId,label,expected){
       }
     }
 
+    // R1 — Operational Context (Section A). Derived from FULL vessels[]
+    // and weather, INDEPENDENT of the 12h shift window. The tug master's
+    // pre-flight scan: which vessels need tugs, fleet status, weather,
+    // terminal readiness baseline. Survives Section B mutation (LC-2).
+    const _ctxEnd24 = now + 24*3600*1000;
+    const _berthedTow = vessels.filter(v =>
+      v && v.status === "berthed" && v.towage_required === true);
+    const _inbound24hTow = vessels.filter(v => {
+      if(!v || !v.eta || v.towage_required !== true) return false;
+      if(v.status !== "expected" && v.status !== "confirmed") return false;
+      const t = new Date(v.eta).getTime();
+      return !isNaN(t) && t > now && t <= _ctxEnd24;
+    });
+    const _wx = (d && d.weather) || {};
+
+    // R4.7.1 — Per-tug 24h load. Counts towage[] events scheduled in
+    // [now - 1h, now + 24h] (the operational-context 24h horizon, NOT
+    // the 12h shift window). Phrased "jobs planned next 24h" — distinct
+    // from "this shift" so the rendered text does not collapse onto
+    // the shift-window axis and Section A retains its independent
+    // operational signal.
+    const _tugLoad24h = {};
+    fleet.forEach(t => { _tugLoad24h[t.tug_id] = 0; });
+    (towage || []).forEach(b => {
+      if(!b || !b.scheduled_time) return;
+      const t = new Date(b.scheduled_time).getTime();
+      if(isNaN(t) || t < (now - 3600*1000) || t > _ctxEnd24) return;
+      (b.tugs || []).forEach(tug => {
+        const tid = (tug.tug_id || (tug.tug_name || "").replace(/\s+/g, "-").toUpperCase());
+        if(_tugLoad24h[tid] != null) _tugLoad24h[tid]++;
+      });
+    });
+    fleet.forEach(t => {
+      t.jobs_planned_24h = _tugLoad24h[t.tug_id] || 0;
+    });
+
+    const operationalContext = {
+      vesselsAtBerth: {
+        count: _berthedTow.length,
+        names: _berthedTow.map(v => v.name).filter(Boolean)
+      },
+      inbound24h: {
+        count: _inbound24hTow.length,
+        names: _inbound24hTow.map(v => v.name).filter(Boolean)
+      },
+      terminalReadiness: {
+        state: "assumed",
+        note: "Per-berth readiness lives in the terminal operating system. Horizon assumes ready."
+      },
+      weatherEnvelope: {
+        wind_kts:   _wx.wind_speed_kts  != null ? Math.round(_wx.wind_speed_kts) : null,
+        swell_m:    _wx.swell_height_m  != null ? _wx.swell_height_m  : null,
+        vis_nm:     _wx.visibility_nm   != null ? _wx.visibility_nm   : null,
+        conditions: _wx.conditions || null,
+        provenance: _wx.provenance || "simulated"
+      }
+    };
+
+    // R2 — Section C "Forward Pressure" data: towage events strictly later
+    // than Section B's 12-hour shift window and bounded at now + 24h. The
+    // renderer (_tmsRenderShiftLoad) consumes this and renders
+    // "Next 12–24 hours". The legacy `forward` field above remains
+    // populated for environment / shift-load uses elsewhere.
+    const fpWindow = {
+      start: new Date(winEnd).toISOString(),
+      end:   new Date(now + 24*3600*1000).toISOString()
+    };
+    const forwardPressure = {
+      window: fpWindow,
+      items: towage.filter(b => {
+        if(!b || !b.scheduled_time) return false;
+        const t = new Date(b.scheduled_time).getTime();
+        return !isNaN(t) && t > winEnd && t <= now + 24*3600*1000;
+      }).map(b => {
+        const v = vById[b.vessel_id] || {};
+        return {
+          booking_id:     b.id,
+          vessel_id:      b.vessel_id,
+          vessel_name:    b.vessel_name,
+          direction:      b.direction,
+          scheduled_time: b.scheduled_time,
+          tugs_assigned:  (b.tugs || []).map(t => ({tug_id: t.tug_id, tug_name: t.tug_name})),
+          vessel_eta:     v.eta || null
+        };
+      }).sort((a,b) => new Date(a.scheduled_time) - new Date(b.scheduled_time))
+    };
+
     return {
       port_id: portId,
       port_name: portName,
@@ -4197,8 +4291,10 @@ function _checkCounts(observed,badgeId,label,expected){
         now:   new Date(now).toISOString()
       },
       fleet: fleet,
+      operationalContext: operationalContext,
       bookings: bookings,
       forward: forward,
+      forwardPressure: forwardPressure,
       exceptions: exceptions
     };
   }
@@ -4562,6 +4658,85 @@ function _checkCounts(observed,badgeId,label,expected){
       }
     }
 
+    // R2 — Section C "Forward Pressure" data: pilotage events strictly later
+    // than Section B's window end and bounded at now + 24h. The renderer
+    // (_pwcRenderForward) consumes this and renders "Next 8–24 hours". The
+    // legacy `forward` field above remains populated for Section A's
+    // environment row in _pwcOvEnvironment.
+    const fpWindow = {
+      start: new Date(winEnd).toISOString(),
+      end:   new Date(now + 24*3600*1000).toISOString()
+    };
+    const forwardPressure = {
+      window: fpWindow,
+      items: pilotage.filter(p => {
+        if(!p || !p.scheduled_time) return false;
+        const t = new Date(p.scheduled_time).getTime();
+        return !isNaN(t) && t > winEnd && t <= now + 24*3600*1000;
+      }).map(p => {
+        const v = vById[p.vessel_id] || {};
+        return {
+          transit_id:     p.id,
+          vessel_id:      p.vessel_id,
+          vessel_name:    p.vessel_name,
+          direction:      p.direction,
+          scheduled_time: p.scheduled_time,
+          transit_status: p.status,
+          vessel_loa:     v.loa != null ? v.loa : null,
+          berth_id:       v.berth_id || null
+        };
+      }).sort((a,b) => new Date(a.scheduled_time) - new Date(b.scheduled_time))
+    };
+
+    // R1 — Operational Context (Section A). Derived from FULL vessels[]
+    // and arrival_ukc, INDEPENDENT of the 8h watch window. The pilot's
+    // pre-flight scan: who's at berth, who's inbound, what's the UKC
+    // outlook for the day. Survives Section B mutation (LC-2).
+    const _ctxEnd24 = now + 24*3600*1000;
+    const _berthed = vessels.filter(v =>
+      v && v.status === "berthed" && v.pilotage_required === true);
+    const _inbound24h = vessels.filter(v => {
+      if(!v || !v.eta || v.pilotage_required !== true) return false;
+      if(v.status !== "expected" && v.status !== "confirmed") return false;
+      const t = new Date(v.eta).getTime();
+      return !isNaN(t) && t > now && t <= _ctxEnd24;
+    });
+    const _ukcAtRisk24h = arrivalUkc.filter(a => {
+      if(!a) return false;
+      if(a.status === "UNSAFE" || a.status === "TIGHT") return true;
+      return a.ukc_m != null && a.ukc_m < 0.5;
+    });
+    // R4.7.3 — UKC posture sorted by severity (UNSAFE > TIGHT > other),
+    // ties broken by smaller ukc_m (more unsafe first). The renderer
+    // surfaces the top three by severity with name + ETA.
+    const _ukcSevRank = s => s === "UNSAFE" ? 2 : s === "TIGHT" ? 1 : 0;
+    const _ukcSorted = _ukcAtRisk24h.slice().sort((a, b) => {
+      const da = _ukcSevRank(a.status), db = _ukcSevRank(b.status);
+      if(db !== da) return db - da;
+      const ma = a.ukc_m != null ? a.ukc_m : 999;
+      const mb = b.ukc_m != null ? b.ukc_m : 999;
+      return ma - mb;  // smaller (more unsafe) first
+    });
+    const operationalContext = {
+      vesselsAtBerth: {
+        count: _berthed.length,
+        names: _berthed.map(v => v.name).filter(Boolean)
+      },
+      inbound24h: {
+        count: _inbound24h.length,
+        names: _inbound24h.map(v => v.name).filter(Boolean)
+      },
+      ukcPosture24h: {
+        count: _ukcAtRisk24h.length,
+        items: _ukcSorted.map(a => ({
+          vessel_name: a.vessel_name || "",
+          ukc_status:  a.status || "",
+          ukc_m:       a.ukc_m != null ? a.ukc_m : null,
+          hrs_to_eta:  a.hrs_to_eta != null ? a.hrs_to_eta : null
+        }))
+      }
+    };
+
     return {
       port_id: portId,
       port_name: portName,
@@ -4575,8 +4750,10 @@ function _checkCounts(observed,badgeId,label,expected){
       // discovery report both require this restraint: real schedulers know
       // their team by name; we do not, and we will not pretend.
       pilots_available: ps.pilots_available != null ? ps.pilots_available : null,
+      operationalContext: operationalContext,
       transits: transits,
       forward: forward,
+      forwardPressure: forwardPressure,
       exceptions: exceptions
     };
   }
@@ -4735,15 +4912,80 @@ function _checkCounts(observed,badgeId,label,expected){
     return `<div class="pwc-ov-roster">${esc(text)}</div>`;
   }
 
+  // R1 — Operational Context rows (Section A). All five read from data
+  // independent of the 8h watch filter: vesselsAtBerth / inbound24h /
+  // ukcPosture24h derive from full summary.vessels[] + arrival_ukc.all[];
+  // environment from summary.tides / summary.weather; roster from port
+  // profile. Section A survives Section B mutation (LC-2).
+
+  // R4.7.2 — top-3 + "+N more" pattern. Visible text shows the first
+  // three named vessels and an "and +K more" tail; the full names list
+  // is carried in a `data-vessel-names` HTML attribute on the row so
+  // every vessel remains addressable by substring lookup (LC-11).
+  function _pwcOvBerthed(watch){
+    const c = (watch.operationalContext && watch.operationalContext.vesselsAtBerth) || {count:0, names:[]};
+    if(c.count === 0){
+      return `<div class="pwc-ov-berthed"><span class="pwc-ov-label">Vessels at berth</span> 0 vessels at berth requiring outbound pilotage.</div>`;
+    }
+    const names = c.names || [];
+    const top = names.slice(0, 3);
+    const extra = Math.max(0, names.length - top.length);
+    const visibleNames = top.length ? top.join(", ") + (extra > 0 ? `, +${extra} more` : "") : "";
+    const tail = visibleNames ? ` — ${esc(visibleNames)}` : "";
+    const noun = c.count === 1 ? "vessel" : "vessels";
+    const allNamesAttr = names.length ? ` data-vessel-names="${esc(names.join(", "))}"` : "";
+    return `<div class="pwc-ov-berthed"${allNamesAttr}><span class="pwc-ov-label">Vessels at berth</span> ${c.count} ${noun} at berth requiring outbound pilotage${tail}.</div>`;
+  }
+  function _pwcOvInbound24(watch){
+    const c = (watch.operationalContext && watch.operationalContext.inbound24h) || {count:0, names:[]};
+    if(c.count === 0){
+      return `<div class="pwc-ov-inbound"><span class="pwc-ov-label">Inbound 24h</span> 0 vessels inbound within 24h requiring pilotage.</div>`;
+    }
+    const names = c.names || [];
+    const top = names.slice(0, 3);
+    const extra = Math.max(0, names.length - top.length);
+    const visibleNames = top.length ? top.join(", ") + (extra > 0 ? `, +${extra} more` : "") : "";
+    const tail = visibleNames ? ` — ${esc(visibleNames)}` : "";
+    const noun = c.count === 1 ? "vessel" : "vessels";
+    const allNamesAttr = names.length ? ` data-vessel-names="${esc(names.join(", "))}"` : "";
+    return `<div class="pwc-ov-inbound"${allNamesAttr}><span class="pwc-ov-label">Inbound 24h</span> ${c.count} ${noun} inbound within 24h requiring pilotage${tail}.</div>`;
+  }
+  function _pwcOvUkcPosture(watch){
+    // R4.7.3 — Surfaces count + top three vessels by severity (UNSAFE
+    // before TIGHT before other), each labelled with name and an
+    // "in Nh" ETA cue. Quiet-state phrasing preserved.
+    const c = (watch.operationalContext && watch.operationalContext.ukcPosture24h) || {count:0, items:[]};
+    if(c.count === 0){
+      return `<div class="pwc-ov-ukc"><span class="pwc-ov-label">UKC posture (24h)</span> No vessels at UKC risk in the next 24 hours.</div>`;
+    }
+    const items = c.items || [];
+    const top = items.slice(0, 3);
+    const extra = Math.max(0, c.count - top.length);
+    const labelled = top.map(it => {
+      const name = it.vessel_name || "—";
+      const hrs = it.hrs_to_eta != null
+        ? ` in ${Math.max(0, Math.round(it.hrs_to_eta))}h`
+        : "";
+      const sev = it.ukc_status === "UNSAFE" ? " UNSAFE"
+                : it.ukc_status === "TIGHT"  ? " TIGHT"
+                : "";
+      return `${esc(name)}${esc(sev)}${esc(hrs)}`;
+    }).join(", ");
+    const tail = extra > 0 ? `, +${extra} more` : "";
+    const noun = c.count === 1 ? "vessel" : "vessels";
+    return `<div class="pwc-ov-ukc"><span class="pwc-ov-label">UKC posture (24h)</span> ${c.count} ${noun} at UKC risk in the next 24 hours — ${labelled}${tail}.</div>`;
+  }
+
   function _pwcRenderWatchOverview(watch){
-    // Single section, no header. Five rows in priority order. Pressure rows
-    // (window, short-notice) self-hide when their count is zero.
+    // R1 — Section A: pilot's persistent operational world. All rows read
+    // from data independent of the 8h watch window so Section A does not
+    // collapse when Section B is empty (LC-2).
     let h = `<div class="pwc-section pwc-overview">`;
-    h += _pwcOvDemand(watch);
-    h += _pwcOvWindow(watch);
-    h += _pwcOvShortNotice(watch);
-    h += _pwcOvEnvironment(watch);
-    h += _pwcOvRoster(watch);
+    h += _pwcOvBerthed(watch);        // Dimension 1: vessels at berth requiring outbound pilotage
+    h += _pwcOvInbound24(watch);      // Dimension 2: inbound 24h requiring pilotage
+    h += _pwcOvUkcPosture(watch);     // Dimension 5: UKC posture across 24h
+    h += _pwcOvEnvironment(watch);    // Dimension 4: tidal envelope (kept — independent of B)
+    h += _pwcOvRoster(watch);         // Dimension 3: pilot roster reference (kept — independent of B)
     h += `</div>`;
     return h;
   }
@@ -4800,7 +5042,7 @@ function _checkCounts(observed,badgeId,label,expected){
 
   function _pwcRenderTransits(watch){
     const transits = watch.transits || [];
-    let h = `<div class="pwc-section"><h3 class="pwc-section-h">My transits</h3>`;
+    let h = `<div class="pwc-section"><h3 class="pwc-section-h">My transits — next 8 hours</h3>`;
     if(transits.length === 0){
       h += `<div class="pwc-empty">No transits scheduled in the current watch window.</div></div>`;
       return h;
@@ -4812,51 +5054,26 @@ function _checkCounts(observed,badgeId,label,expected){
   }
 
   function _pwcRenderForward(watch){
-    const fwd = watch.forward || {};
-    const slots = fwd.slots || [];
-    const env = fwd.environment || {};
-    let h = `<div class="pwc-section"><h3 class="pwc-section-h">Next 8 hours</h3>`;
-    if(slots.length === 0){
-      h += `<div class="pwc-empty">No forward window data available.</div>`;
-    } else {
-      h += `<div class="pwc-slots">`;
-      const p = n => String(n).padStart(2,"0");
-      slots.forEach(slot => {
-        const hs = new Date(slot.start), he = new Date(slot.end);
-        const label = `${p(hs.getHours())}:00–${p(he.getHours())}:00`;
-        const cls = (slot.flagged_count > 0) ? "pwc-slot-flagged" : "";
-        h += `<div class="pwc-slot ${cls}">`;
-        h += `<span class="pwc-slot-time">${esc(label)}</span>`;
-        h += `<span class="pwc-slot-count">${slot.transit_count} transit${slot.transit_count===1?"":"s"}</span>`;
-        if(slot.flagged_count > 0){
-          h += `<span class="pwc-slot-flagged-count">${slot.flagged_count} flagged</span>`;
-        }
-        h += `</div>`;
-      });
+    // R2 — Section C "Forward Pressure": transits scheduled strictly LATER
+    // than Section B's 8-hour watch window and bounded at now + 24h.
+    // Environment context (tide/weather) is rendered in Section A only.
+    const fp = watch.forwardPressure || { items: [] };
+    const items = fp.items || [];
+    let h = `<div class="pwc-section"><h3 class="pwc-section-h">Next 8–24 hours</h3>`;
+    if(items.length === 0){
+      h += `<div class="pwc-empty">Next watch quiet — no forward transits currently forming.</div></div>`;
+      return h;
+    }
+    h += `<div class="pwc-forward-list">`;
+    items.forEach(t => {
+      const time = t.scheduled_time ? fmtTs(t.scheduled_time) : "—";
+      const dir  = _pwcDirLabel(t.direction);
+      h += `<div class="pwc-forward-item">`;
+      h += `<span class="pwc-forward-time">${esc(time)}</span>`;
+      h += `<span class="pwc-forward-vessel">${esc(t.vessel_name||"")}</span>`;
+      h += `<span class="pwc-forward-dir">${esc(dir)}</span>`;
       h += `</div>`;
-    }
-    const t = env.tide || {}, w = env.weather || {};
-    h += `<div class="pwc-env">`;
-    if(t.state){
-      const ne = t.next_event_type
-        ? `, next ${esc(t.next_event_type)} at ${esc(fmtTs(t.next_event_time))}`
-        : "";
-      const tp = t.provenance === "live_bom"
-        ? `<span class="b11-realtag">live BOM</span>`
-        : `<span class="b11-simtag">${esc(t.provenance||"simulated")}</span>`;
-      h += `<div class="pwc-env-row">Tide: ${esc(t.state)}${ne} ${tp}</div>`;
-    }
-    if(w.conditions || w.wind_speed_kts != null){
-      const parts = [];
-      if(w.wind_speed_kts != null) parts.push(`wind ${Math.round(w.wind_speed_kts)} kts`);
-      if(w.swell_height_m != null) parts.push(`swell ${w.swell_height_m}m`);
-      if(w.visibility_nm != null)  parts.push(`vis ${w.visibility_nm} nm`);
-      if(w.conditions)             parts.push(w.conditions);
-      const wp = w.provenance === "live"
-        ? `<span class="b11-realtag">live</span>`
-        : `<span class="b11-simtag">${esc(w.provenance||"simulated")}</span>`;
-      h += `<div class="pwc-env-row">Conditions: ${esc(parts.join(" · "))} ${wp}</div>`;
-    }
+    });
     h += `</div></div>`;
     return h;
   }
@@ -4970,27 +5187,95 @@ function _checkCounts(observed,badgeId,label,expected){
     return (t||[]).map(x => esc(x.tug_name||"")).filter(Boolean).join(", ") || "—";
   }
 
+  // R1 — Towage operational-context rows (Section A). All independent of
+  // the 12h shift window (LC-2 compliant): vessels-at-berth and inbound-24h
+  // derive from full summary.vessels[]; terminal readiness is a baseline
+  // assumption surfaced explicitly; weather reads summary.weather.
+
+  // R4.7.2 — top-3 + "+N more" pattern with data-vessel-names attribute.
+  function _tmsOvBerthed(shift){
+    const c = (shift.operationalContext && shift.operationalContext.vesselsAtBerth) || {count:0, names:[]};
+    if(c.count === 0){
+      return `<div class="tms-ov-berthed"><span class="tms-ov-label">Vessels at berth</span> 0 vessels at berth requiring outbound towage.</div>`;
+    }
+    const names = c.names || [];
+    const top = names.slice(0, 3);
+    const extra = Math.max(0, names.length - top.length);
+    const visibleNames = top.length ? top.join(", ") + (extra > 0 ? `, +${extra} more` : "") : "";
+    const tail = visibleNames ? ` — ${esc(visibleNames)}` : "";
+    const noun = c.count === 1 ? "vessel" : "vessels";
+    const allNamesAttr = names.length ? ` data-vessel-names="${esc(names.join(", "))}"` : "";
+    return `<div class="tms-ov-berthed"${allNamesAttr}><span class="tms-ov-label">Vessels at berth</span> ${c.count} ${noun} at berth requiring outbound towage${tail}.</div>`;
+  }
+  function _tmsOvInbound24(shift){
+    const c = (shift.operationalContext && shift.operationalContext.inbound24h) || {count:0, names:[]};
+    if(c.count === 0){
+      return `<div class="tms-ov-inbound"><span class="tms-ov-label">Inbound 24h</span> 0 vessels inbound within 24h requiring towage.</div>`;
+    }
+    const names = c.names || [];
+    const top = names.slice(0, 3);
+    const extra = Math.max(0, names.length - top.length);
+    const visibleNames = top.length ? top.join(", ") + (extra > 0 ? `, +${extra} more` : "") : "";
+    const tail = visibleNames ? ` — ${esc(visibleNames)}` : "";
+    const noun = c.count === 1 ? "vessel" : "vessels";
+    const allNamesAttr = names.length ? ` data-vessel-names="${esc(names.join(", "))}"` : "";
+    return `<div class="tms-ov-inbound"${allNamesAttr}><span class="tms-ov-label">Inbound 24h</span> ${c.count} ${noun} inbound within 24h requiring towage${tail}.</div>`;
+  }
+  function _tmsOvTerminalReadiness(shift){
+    const t = (shift.operationalContext && shift.operationalContext.terminalReadiness) || {state:"assumed"};
+    return `<div class="tms-ov-terminal"><span class="tms-ov-label">Terminal readiness</span> ${esc(t.state)} <span class="b11-simtag">assumed</span></div>`;
+  }
+  function _tmsOvWeatherEnvelope(shift){
+    const w = (shift.operationalContext && shift.operationalContext.weatherEnvelope) || {};
+    const parts = [];
+    if(w.wind_kts != null) parts.push(`wind ${w.wind_kts} kts`);
+    if(w.swell_m != null)  parts.push(`swell ${w.swell_m}m`);
+    if(w.vis_nm  != null)  parts.push(`vis ${w.vis_nm} nm`);
+    if(w.conditions)       parts.push(w.conditions);
+    if(parts.length === 0){
+      return `<div class="tms-ov-weather"><span class="tms-ov-label">Weather</span> no current observation.</div>`;
+    }
+    const prov = w.provenance === "live"
+      ? `<span class="b11-realtag">live</span>`
+      : `<span class="b11-simtag">${esc(w.provenance||"simulated")}</span>`;
+    return `<div class="tms-ov-weather"><span class="tms-ov-label">Weather</span> ${esc(parts.join(" · "))} ${prov}</div>`;
+  }
+
   function _tmsRenderFleet(shift){
+    // R1 — Section A: tug master's persistent operational world. Five
+    // dimensions: fleet, vessels at berth requiring towage, inbound 24h
+    // requiring towage, terminal readiness baseline, weather envelope.
+    // R4.7.1 — Each tug card now carries a "jobs planned next 24h"
+    // line derived from the 24h operational-context horizon (NOT the
+    // 12h shift window). Different axis from Section B, distinct
+    // wording from the pre-R4.4 "this shift" aggregate.
     const fleet = shift.fleet || [];
     let h = `<div class="tms-section"><h3 class="tms-section-h">My fleet</h3>`;
     if(fleet.length === 0){
-      h += `<div class="tms-empty">No tugs registered for this port.</div></div>`;
-      return h;
+      h += `<div class="tms-empty">No tugs registered for this port.</div>`;
+    } else {
+      h += `<div class="tms-fleet-list">`;
+      fleet.forEach(t => {
+        const cls = "tms-tug-" + (t.operational_status||"unknown").toLowerCase();
+        const prov = t.operational_status_provenance === "simulated"
+          ? ` <span class="b11-simtag">simulated</span>` : "";
+        const load24 = (t.jobs_planned_24h != null) ? t.jobs_planned_24h : 0;
+        h += `<div class="tms-tug ${cls}">`;
+        h += `<div class="tms-tug-name">${esc(t.tug_name)}</div>`;
+        h += `<div class="tms-tug-status">${esc(_tmsStatusLabel(t.operational_status))}${prov}</div>`;
+        h += `<div class="tms-tug-meta">`;
+        if(t.bollard_pull_t != null) h += `${esc(String(t.bollard_pull_t))} t bollard pull`;
+        h += `</div>`;
+        h += `<div class="tms-tug-load">${load24} job${load24===1?"":"s"} planned next 24h</div>`;
+        h += `</div>`;
+      });
+      h += `</div>`;
     }
-    h += `<div class="tms-fleet-list">`;
-    fleet.forEach(t => {
-      const cls = "tms-tug-" + (t.operational_status||"unknown").toLowerCase();
-      const prov = t.operational_status_provenance === "simulated"
-        ? ` <span class="b11-simtag">simulated</span>` : "";
-      h += `<div class="tms-tug ${cls}">`;
-      h += `<div class="tms-tug-name">${esc(t.tug_name)}</div>`;
-      h += `<div class="tms-tug-status">${esc(_tmsStatusLabel(t.operational_status))}${prov}</div>`;
-      h += `<div class="tms-tug-meta">`;
-      if(t.bollard_pull_t != null) h += `${esc(String(t.bollard_pull_t))} t bollard pull · `;
-      h += `${t.bookings_in_window} job${t.bookings_in_window===1?"":"s"} this shift`;
-      h += `</div></div>`;
-    });
-    h += `</div></div>`;
+    h += _tmsOvBerthed(shift);             // Dimension 2: vessels at berth requiring outbound towage
+    h += _tmsOvInbound24(shift);           // Dimension 3: inbound 24h requiring towage
+    h += _tmsOvTerminalReadiness(shift);   // Dimension 4: terminal readiness baseline (assumed)
+    h += _tmsOvWeatherEnvelope(shift);     // Dimension 5: weather envelope
+    h += `</div>`;
     return h;
   }
 
@@ -5026,7 +5311,7 @@ function _checkCounts(observed,badgeId,label,expected){
 
   function _tmsRenderJobs(shift){
     const bookings = shift.bookings || [];
-    let h = `<div class="tms-section"><h3 class="tms-section-h">My jobs</h3>`;
+    let h = `<div class="tms-section"><h3 class="tms-section-h">My jobs — next 12 hours</h3>`;
     if(bookings.length === 0){
       h += `<div class="tms-empty">No jobs scheduled for the current shift.</div></div>`;
       return h;
@@ -5038,24 +5323,28 @@ function _checkCounts(observed,badgeId,label,expected){
   }
 
   function _tmsRenderShiftLoad(shift){
+    // R2 — Section C "Forward Pressure": jobs scheduled strictly LATER than
+    // Section B's 12-hour shift window and bounded at now + 24h. Environment
+    // context (tide/weather) remains in this section for now; future R1
+    // work will migrate it to Section A so this block becomes purely
+    // forward-pressure events.
+    const fp = shift.forwardPressure || { items: [] };
+    const items = fp.items || [];
     const fwd = shift.forward || {};
-    const slots = fwd.slots || [];
     const env = fwd.environment || {};
-    let h = `<div class="tms-section"><h3 class="tms-section-h">Next 12 hours</h3>`;
-    if(slots.length === 0){
-      h += `<div class="tms-empty">No forward window data available.</div>`;
+    let h = `<div class="tms-section"><h3 class="tms-section-h">Next 12–24 hours</h3>`;
+    if(items.length === 0){
+      h += `<div class="tms-empty">Next shift quiet — no forward jobs currently forming.</div>`;
     } else {
-      h += `<div class="tms-slots">`;
-      const p = n => String(n).padStart(2,"0");
-      slots.forEach(slot => {
-        const hs = new Date(slot.start), he = new Date(slot.end);
-        const label = `${p(hs.getHours())}:00–${p(he.getHours())}:00`;
-        const cls = slot.at_capacity ? "tms-slot-at-cap" : "";
-        h += `<div class="tms-slot ${cls}">`;
-        h += `<span class="tms-slot-time">${esc(label)}</span>`;
-        h += `<span class="tms-slot-jobs">${slot.demand_jobs} job${slot.demand_jobs===1?"":"s"}</span>`;
-        h += `<span class="tms-slot-cap">${slot.demand_tugs} / ${slot.capacity_tugs} tugs</span>`;
-        if(slot.at_capacity) h += `<span class="tms-slot-marker">at capacity</span>`;
+      h += `<div class="tms-forward-list">`;
+      items.forEach(b => {
+        const time = b.scheduled_time ? fmtTs(b.scheduled_time) : "—";
+        const tugs = (b.tugs_assigned||[]).map(t => esc(t.tug_name||"")).filter(Boolean).join(", ") || "—";
+        h += `<div class="tms-forward-item">`;
+        h += `<span class="tms-forward-time">${esc(time)}</span>`;
+        h += `<span class="tms-forward-vessel">${esc(b.vessel_name||"")}</span>`;
+        h += `<span class="tms-forward-dir">${esc(b.direction||"")}</span>`;
+        h += `<span class="tms-forward-tugs">Tugs: ${tugs}</span>`;
         h += `</div>`;
       });
       h += `</div>`;

@@ -1,0 +1,18 @@
+{
+  "fixture_id": "B1_post_threshold",
+  "description": "Boundary fixture: 200.1 m car carrier under the Melbourne representative towage-demand rule. Tests that the helper produces a stable result just above the legacy threshold value.",
+  "model_note": "Representative tug-demand estimate ONLY. NOT an operational towage requirement. NOT a substitute for the Port of Melbourne Harbour Master's Directions (Edition 13.1, September 2023, §3.21).",
+  "rule_source": "port_profiles.PORT_PROFILES['MELBOURNE']['towage_rule']",
+  "vessel": {
+    "name": "TEST_CAR_CARRIER_200_1",
+    "mmsi": "999900201",
+    "loa_m": 200.1,
+    "vessel_type": "Car carrier",
+    "status": "berthed"
+  },
+  "expected": {
+    "n_tugs": 2,
+    "reasoning": "Melbourne band 170-250 m yields n_tugs=2. Vessel-type-floor for Car carrier is 2. Same result as B1_pre_threshold and B1_at_threshold."
+  },
+  "boundary_role": "value-plus-epsilon (the case the legacy `loa > 200` rule INCLUDED). Behaviour preserved under the new rule — vessels that were already towage_required=true remain so. The new rule does NOT silently flip any current-true vessel to false."
+}

@@ -17,6 +17,12 @@ import hashlib
 import random
 from datetime import datetime, timedelta, timezone
 
+# R4.3 — PORT_PROFILES is imported to resolve the per-port `towage_rule`
+# at vessel-build time. Used by build_horizon_vessels for AIS/cached
+# vessels only; the pure simulation fallback path (make_vessels) still
+# uses the legacy `loa > 200` literal until R4.4.
+from port_profiles import PORT_PROFILES
+
 
 def isoparse(s: str) -> datetime:
     return datetime.fromisoformat(s.replace("Z", "+00:00"))
@@ -160,8 +166,144 @@ def _seed(mmsi: str) -> random.Random:
     return random.Random(h)
 
 
+# Reverse-lookup cache: UNLOCODE -> towage_rule dict. Built lazily on first
+# access. The cache is invalidated only on module reload, which is
+# acceptable because PORT_PROFILES is a module-level constant.
+_UNLOCO_TO_TOWAGE_RULE: dict | None = None
+
+def _towage_rule_for_unloco(unloco: str) -> dict:
+    """
+    Resolve the representative towage-demand rule for an UNLOCODE.
+
+    Returns an empty dict when no profile matches the UNLOCODE. The caller
+    treats an empty rule as "no estimate available" and defaults to
+    n_tugs=0; this is consistent with the helper's safe-default behaviour.
+    """
+    global _UNLOCO_TO_TOWAGE_RULE
+    if _UNLOCO_TO_TOWAGE_RULE is None:
+        _UNLOCO_TO_TOWAGE_RULE = {
+            (p.get("unloco") or ""): (p.get("towage_rule") or {})
+            for p in PORT_PROFILES.values()
+        }
+    return _UNLOCO_TO_TOWAGE_RULE.get(unloco or "", {})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# R4.2 — Representative towage-demand helper.
+#
+# Compute an estimated tug demand for a vessel under a port's `towage_rule`
+# (see port_profiles.py). This is the Beta 12 representative demand model
+# only — NOT an operational towage requirement, NOT a substitute for the
+# port's published Harbour Master's Directions or the towage operator's
+# matrix. The legacy field `towage_required` (named for historical reasons)
+# remains derived elsewhere; this helper produces the primary `n_tugs`
+# value only.
+#
+# Helper is added at R4.2 and not yet wired into build_horizon_vessels or
+# make_vessels. Both legacy `loa > 200` sites remain unchanged. Wiring
+# happens at R4.3 / R4.4.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _n_tugs_for(rule: dict, vessel: dict) -> int:
+    """
+    Return estimated tug demand for `vessel` under `rule`.
+
+    `rule` is a port_profile['towage_rule'] block:
+      {
+        'bands': [{'loa_max': int, 'n_tugs': int}, ...],
+        'vessel_type_floor': {'<type>': int, ...},
+        'vessel_name_override': {'<UPPER NAME>': int, ...},
+        'loa_epsilon_m': float
+      }
+
+    `vessel` is a Horizon vessel dict; uses keys `name`, `loa_m`, and
+    `vessel_type`. Missing or unknown values fall back safely.
+
+    Resolution order:
+      1. Vessel-name override (rare; explicit operator allowlisting).
+      2. LOA band lookup with `loa_epsilon_m` tolerance — admits
+         hairline-below cases like the 199.9 m car carrier (BYD ZHENGZHOU
+         class) into the next band rather than excluding them via AIS
+         rounding.
+      3. Vessel-type floor — promotes n to the type minimum when the
+         vessel's type is listed in `vessel_type_floor` (e.g., car
+         carriers get a minimum of 2 regardless of LOA band).
+
+    Returns 0 when no rule, no LOA, no matching band, and no applicable
+    floor or override is present. Never returns negative.
+    """
+    if not isinstance(rule, dict) or not isinstance(vessel, dict):
+        return 0
+
+    # 1. Vessel-name override (absolute when present).
+    name = (vessel.get("name") or "")
+    if isinstance(name, str):
+        name_key = name.upper().strip()
+    else:
+        name_key = ""
+    overrides = rule.get("vessel_name_override") or {}
+    if name_key and name_key in overrides:
+        try:
+            return max(0, int(overrides[name_key]))
+        except (TypeError, ValueError):
+            pass  # malformed override entry — fall through to band lookup
+
+    # 2. LOA band lookup with epsilon tolerance.
+    loa = vessel.get("loa_m")
+    bands = rule.get("bands") or []
+    try:
+        eps = float(rule.get("loa_epsilon_m") or 0.0)
+    except (TypeError, ValueError):
+        eps = 0.0
+
+    n = 0
+    if loa is not None:
+        try:
+            loa_val = float(loa)
+            adjusted = loa_val + eps
+            matched = False
+            for band in bands:
+                band_max = band.get("loa_max") if isinstance(band, dict) else None
+                if band_max is None:
+                    continue
+                if adjusted <= float(band_max):
+                    n = int(band.get("n_tugs", 0) or 0)
+                    matched = True
+                    break
+            if not matched and bands:
+                last = bands[-1]
+                if isinstance(last, dict):
+                    n = int(last.get("n_tugs", 0) or 0)
+        except (TypeError, ValueError):
+            n = 0
+
+    # 3. Vessel-type floor.
+    vtype = vessel.get("vessel_type") or ""
+    if isinstance(vtype, str):
+        floors = rule.get("vessel_type_floor") or {}
+        if vtype in floors:
+            try:
+                floor_val = int(floors[vtype])
+                if floor_val > n:
+                    n = floor_val
+            except (TypeError, ValueError):
+                pass
+
+    return max(0, n)
+
+
 def _sim_vessel_props(mmsi: str, now: datetime) -> dict:
-    """Generate stable simulated properties from MMSI seed."""
+    """
+    Generate stable simulated properties from MMSI seed.
+
+    R4.4 — no longer carries `towage_required`. Tug-demand estimation
+    requires port context (per-port `towage_rule`); the helper
+    `_n_tugs_for(rule, vessel)` is the single authoritative source for
+    representative tug demand. Callers that need `n_tugs` /
+    `towage_required` must compute them from the port's `towage_rule`
+    after merging these props with the per-vessel context (notably the
+    vessel's UNLOCODE).
+    """
     rng = _seed(mmsi)
     vtype = rng.choice(_TYPES)
     loa   = round(rng.uniform(160, 310), 1)
@@ -171,13 +313,12 @@ def _sim_vessel_props(mmsi: str, now: datetime) -> dict:
     etd_h = rng.uniform(4, 72)
     etd   = now + timedelta(hours=etd_h)
     return {
-        "vessel_type":     vtype,
-        "loa":             loa,
-        "beam":            beam,
-        "draught":         draught,
-        "etd":             etd.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "towage_required": loa > 200,
-        "flag":            rng.choice(["SG", "HK", "LR", "PA", "MH", "BS"]),
+        "vessel_type": vtype,
+        "loa":         loa,
+        "beam":        beam,
+        "draught":     draught,
+        "etd":         etd.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "flag":        rng.choice(["SG", "HK", "LR", "PA", "MH", "BS"]),
     }
 
 
@@ -243,6 +384,20 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
             eta_dt = now - timedelta(hours=2)
         eta_str = eta_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
+        # R4.3 — Representative tug-demand estimate for this AIS/cached
+        # vessel under the port's towage_rule. NOT an operational towage
+        # requirement; NOT a substitute for the port's Harbour Master's
+        # Directions. The helper's primary output is `n_tugs`; the
+        # historically-named field `towage_required` is derived as
+        # `n_tugs >= 1` for downstream callers that still consume the
+        # legacy boolean. When the port has no towage_rule configured
+        # (unknown unloco, future port), n_tugs falls back to 0.
+        _towage_rule = _towage_rule_for_unloco(unloco)
+        _n_tugs = _n_tugs_for(_towage_rule, {
+            "name":        rv["name"],
+            "loa_m":       loa,
+            "vessel_type": vtype,
+        })
         vessels_out.append({
             "id":              f"MST-{mmsi}",
             "name":            rv["name"],
@@ -260,7 +415,8 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
             "draught":         draught,
             "vessel_type":     vtype,
             "flag":            props["flag"],
-            "towage_required": loa > 200,
+            "n_tugs":          _n_tugs,
+            "towage_required": _n_tugs >= 1,
             "destination":     dest,
             "at_anchorage":    False,
             "source":          source,
@@ -294,6 +450,14 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
         claimed_list = [b for b in assignable if b["id"] in claimed_berths]
         berth = claimed_list[j % len(claimed_list)] if claimed_list else None
         inbound_name = name_pool[j]
+        # R4.4 — Representative tug-demand estimate for synthetic-inbound
+        # arrivals, computed against the same port `towage_rule` the
+        # AIS path uses. NOT an operational towage requirement.
+        _inbound_n_tugs = _n_tugs_for(_towage_rule_for_unloco(unloco), {
+            "name":        inbound_name,
+            "loa_m":       props["loa"],
+            "vessel_type": props["vessel_type"],
+        })
         vessels_out.append({
             "id":              fake_mmsi,
             "name":            inbound_name,
@@ -309,7 +473,8 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
             "draught":         props["draught"],
             "vessel_type":     props["vessel_type"],
             "flag":            props["flag"],
-            "towage_required": props["towage_required"],
+            "n_tugs":          _inbound_n_tugs,
+            "towage_required": _inbound_n_tugs >= 1,
             "destination":     None,
             "at_anchorage":    False,
             "source":          "sim",

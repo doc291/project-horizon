@@ -1,0 +1,18 @@
+{
+  "fixture_id": "B1_pre_threshold",
+  "description": "Boundary fixture: 199.9 m car carrier (BYD ZHENGZHOU class) under the Melbourne representative towage-demand rule. Tests that the threshold-defensibility doctrine (LENS-CONTRACT.md §5) is satisfied at the LOA boundary that the legacy `loa > 200` rule mishandled.",
+  "model_note": "Representative tug-demand estimate ONLY. NOT an operational towage requirement. NOT a substitute for the Port of Melbourne Harbour Master's Directions (Edition 13.1, September 2023, §3.21). Authoritative requirements live in the HMD and the pilot/Harbour Master's assessment.",
+  "rule_source": "port_profiles.PORT_PROFILES['MELBOURNE']['towage_rule']",
+  "vessel": {
+    "name": "TEST_CAR_CARRIER_199_9",
+    "mmsi": "999900199",
+    "loa_m": 199.9,
+    "vessel_type": "Car carrier",
+    "status": "berthed"
+  },
+  "expected": {
+    "n_tugs": 2,
+    "reasoning": "Melbourne band 170-250 m yields n_tugs=2. Vessel-type-floor for Car carrier is 2. Either resolution path yields 2 — the result is stable under both. The 0.5 m loa_epsilon_m would also promote 199.9 into the higher band if the band onset were 200, but the Melbourne band onset for 2 tugs is 170, so epsilon is not exercised in this case."
+  },
+  "boundary_role": "value-minus-epsilon (the case the legacy `loa > 200` rule SILENTLY EXCLUDED). After R4.3 wiring, this vessel will have towage_required=true and become addressable in the Towage lens."
+}

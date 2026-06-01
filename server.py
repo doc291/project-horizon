@@ -370,14 +370,32 @@ def build_vessels_from_qships(data: dict) -> list:
             v_out["ata"] = v_out["eta"] if v_out.get("status") == "berthed" else None
         v_out.setdefault("atd", None)
 
-        # ── towage_required: derive from LOA + vessel type ───────────────────
-        if "towage_required" not in v_out:
-            loa_val = v_out["loa"]  # already numeric
-            vtype   = (v_out.get("type") or "").lower()
-            v_out["towage_required"] = bool(
-                loa_val > 100
-                or any(t in vtype for t in ("tanker", "bulk", "container", "ro-ro"))
+        # ── towage demand: representative estimate via the active port's
+        #    towage_rule (port_profile-sourced, not HMD-authoritative).
+        #    Sets `n_tugs` (primary) and derives the legacy `towage_required`
+        #    boolean as `n_tugs >= 1`. Pre-existing `n_tugs` on the input
+        #    vessel (e.g. emitted by mst_scraper.build_horizon_vessels) is
+        #    preserved; otherwise computed here. R4.6 — replaces the legacy
+        #    `loa_val > 100 or vtype in (...)` setdefault block.
+        _vn_existing = v_out.get("n_tugs")
+        try:
+            _vn_int = int(_vn_existing) if _vn_existing is not None else None
+        except (TypeError, ValueError):
+            _vn_int = None
+        if _vn_int is None or _vn_int < 0:
+            _vn_int = mst_scraper._n_tugs_for(
+                _PORT_PROFILE.get("towage_rule") or {},
+                {
+                    "name":        v_out.get("name"),
+                    "loa_m":       v_out.get("loa"),
+                    "vessel_type": v_out.get("vessel_type") or v_out.get("type"),
+                },
             )
+        v_out["n_tugs"] = _vn_int
+        # Preserve a pre-existing explicit `towage_required` boolean if the
+        # upstream caller set one; otherwise derive from n_tugs.
+        if "towage_required" not in v_out:
+            v_out["towage_required"] = bool(_vn_int >= 1)
 
         # ── pilotage_required: all large ships need a pilot ──────────────────
         v_out.setdefault("pilotage_required", True)
@@ -723,6 +741,13 @@ def make_vessels(now: datetime) -> list:
         flag_idx = int(hashlib.md5(name.encode()).hexdigest(), 16) % len(_FLAGS)
         imo      = str(9000000 + int(hashlib.md5(vid.encode()).hexdigest(), 16) % 999999)
 
+        # R4.6 — representative towage demand via the active port's
+        # towage_rule. NOT an operational towage requirement, NOT a
+        # substitute for the port's Harbour Master's Directions.
+        _v_n_tugs = mst_scraper._n_tugs_for(
+            _PORT_PROFILE.get("towage_rule") or {},
+            {"name": name, "loa_m": loa, "vessel_type": vtype},
+        )
         v = {
             "id": vid, "name": name, "imo": imo,
             "vessel_type": vtype, "flag": _FLAGS[flag_idx],
@@ -731,7 +756,8 @@ def make_vessels(now: datetime) -> list:
             "eta": fmt(eta), "etd": fmt(etd),
             "ata": fmt(ata) if ata else None, "atd": None,
             "pilotage_required": True,
-            "towage_required": loa > _PORT_PROFILE.get("compulsory_towage_loa_m", 170),
+            "n_tugs":          _v_n_tugs,
+            "towage_required": bool(_v_n_tugs >= 1),
             "agent": agent,
             "notes": note,
         }
@@ -782,7 +808,23 @@ def make_towage(vessels: list, now: datetime, profile: dict = None) -> list:
     events = []
     eligible = [v for v in vessels if v["towage_required"]]
     for v in eligible:
-        n_tugs = 2 if v["loa"] > 200 else 1
+        # R4.6 — consume the vessel-level `n_tugs` produced by the
+        # representative towage-demand model. After R4.6 every production
+        # vessel-producer path (mst_scraper.build_horizon_vessels,
+        # server.py:make_vessels, server.py:build_vessels_from_qships)
+        # writes `n_tugs` via the active port's `towage_rule`. The
+        # legacy `loa > 200` fallback that lived here at R4.5 has been
+        # removed. The clamp to 1 remains as a defensive booking-shape
+        # guarantee for any future caller that emits an incomplete record.
+        _vn = v.get("n_tugs")
+        try:
+            n_tugs = int(_vn) if _vn is not None else 1
+        except (TypeError, ValueError):
+            n_tugs = 1
+        if n_tugs < 1:
+            # Defensive clamp: vessel passed eligibility (towage_required
+            # is True) but rule produced 0 — keep the booking shape valid.
+            n_tugs = 1
         # Deterministic tug assignment from vessel ID hash
         h = int(hashlib.md5(v["id"].encode()).hexdigest(), 16)
         tug_indices = [(h + i) % len(tug_list) for i in range(n_tugs)]
