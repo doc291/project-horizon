@@ -3414,6 +3414,14 @@ function _checkCounts(observed,badgeId,label,expected){
         const ackb=document.getElementById("tms-ack-btn"); if(ackb)ackb.addEventListener("click",()=>action({action:"acknowledge",decision_id:ad.decision_id,role:"TOWAGE"}));
         const flagb=document.getElementById("tms-flag-btn"); if(flagb)flagb.addEventListener("click",()=>{ const r=prompt("Describe the concern to flag to the VTSO:"); if(r&&r.trim())action({action:"flag",decision_id:ad.decision_id,role:"TOWAGE",flag_reason:r.trim()}); });
       }
+    } else if(_activeRole==="PILOTAGE"){
+      // Window Confidence POC: Ack / Flag buttons live inside the
+      // coordinated_decision exception payload at the top of the watch view
+      // (rendered by renderPilotageWatch, IDs pwc-ack-btn / pwc-flag-btn).
+      if(ad){
+        const ackb=document.getElementById("pwc-ack-btn"); if(ackb)ackb.addEventListener("click",()=>action({action:"acknowledge",decision_id:ad.decision_id,role:"PILOTAGE"}));
+        const flagb=document.getElementById("pwc-flag-btn"); if(flagb)flagb.addEventListener("click",()=>{ const r=prompt("Describe the concern to flag to the VTSO:"); if(r&&r.trim())action({action:"flag",decision_id:ad.decision_id,role:"PILOTAGE",flag_reason:r.trim()}); });
+      }
     } else if(ad){
       // Other roles: buttons inline in confirmerBody scroll content (b11-ack / b11-flag).
       const ackb=document.getElementById("b11-ack"); if(ackb)ackb.addEventListener("click",()=>action({action:"acknowledge",decision_id:ad.decision_id,role:_activeRole}));
@@ -3547,6 +3555,16 @@ function _checkCounts(observed,badgeId,label,expected){
     // confidence flags, Layer 4 forward shape and environment.
     if(role==="TOWAGE"){
       return renderTowageShift(buildTowageShift(_last));
+    }
+
+    // ── PILOTAGE: Window Confidence POC — doctrine-aligned five-layer lens ──
+    // Layer 5 exceptions interrupt above; Layer 1 pilots-available count only
+    // (no enumeration, no qualifications, no fatigue, no rest, no dependency
+    // chain); Layer 2+3 transits with inline confidence flags; Layer 4 forward
+    // shape with tide/weather environment. Companion to the scheduler's
+    // roster system, not a replacement.
+    if(role==="PILOTAGE"){
+      return renderPilotageWatch(buildPilotageWatch(_last));
     }
 
     // ── All other confirmer roles: existing behaviour unchanged ──────────────
