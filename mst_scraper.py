@@ -417,6 +417,16 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
             "flag":            props["flag"],
             "n_tugs":          _n_tugs,
             "towage_required": _n_tugs >= 1,
+            # Pilotage assumed required for AIS/cached commercial vessels.
+            # Mirrors server.py:_patch_vessels (live QShips path) and
+            # server.py:make_vessels (pure-simulation fallback), both of
+            # which default `pilotage_required` to True. Per-port pilotage
+            # compulsion threshold lives in port_profile["compulsory_pilotage_loa_m"];
+            # a future refinement could read that threshold via a helper
+            # analogous to _n_tugs_for, but the boolean default here is
+            # representative-demand correct for every vessel that mst_scraper
+            # surfaces (AIS-tracked commercial traffic).
+            "pilotage_required": True,
             "destination":     dest,
             "at_anchorage":    False,
             "source":          source,
@@ -475,6 +485,9 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
             "flag":            props["flag"],
             "n_tugs":          _inbound_n_tugs,
             "towage_required": _inbound_n_tugs >= 1,
+            # Pilotage assumed required for synthetic-inbound commercial
+            # arrivals — mirrors the AIS path above.
+            "pilotage_required": True,
             "destination":     None,
             "at_anchorage":    False,
             "source":          "sim",
