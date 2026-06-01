@@ -3124,9 +3124,11 @@ function _checkCounts(observed,badgeId,label,expected){
   function injectCSS(){
     if(document.getElementById("b11-css"))return;
     const css=`
-    /* Role controls inline in the primary header (no secondary row). */
-    #b11-role{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.4);color:#e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px;font-weight:600;cursor:pointer;}
-    #b11-role:hover{background:rgba(56,189,248,.14);}
+    /* Role controls inline in the primary header (no secondary row).
+       #b11-role intentionally matches #port-switcher exactly so the two
+       dropdowns read as a single pair of header controls. */
+    #b11-role{background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;cursor:pointer;outline:none;letter-spacing:0.3px;appearance:none;-webkit-appearance:none;padding-right:16px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%234fc3f7' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;}
+    #b11-role:hover{border-color:var(--accent);opacity:0.85;}
     #b11-return{background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.45);color:#7dd3fc;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;display:none;white-space:nowrap;}
     #b11-return:hover{background:rgba(56,189,248,.22);}
     #b11-return.show{display:inline-block;}
@@ -3330,7 +3332,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const el=document.querySelector(".logo-badge"); if(!el)return;
     if(_origBadge===null)_origBadge=el.textContent;
     el.textContent=text;
-    el.title="Horizon Beta 12 Preview environment";
+    el.title="Horizon Beta 12 environment";
   }
   function restoreBadge(){
     const el=document.querySelector(".logo-badge");
@@ -3341,7 +3343,7 @@ function _checkCounts(observed,badgeId,label,expected){
     injectCSS();
     // Governance: relabel the SHARED Beta 10 badge at runtime only (never edit
     // the static markup, which must stay byte identical when the flag is off).
-    setBadge("Horizon Beta 12 Preview");
+    setBadge("Horizon Beta 12");
     // Inject the role selector and Return button directly into the primary
     // header's .logo group, immediately after #port-switcher. No secondary
     // row is created. The role blurb is shown inside the overlay role
@@ -3614,7 +3616,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const _withinText = (_activeRole==="TOWAGE")
       ? `${esc(meta.label)} lens`
       : `${esc(meta.label)} lens · a view within Horizon, not a separate product`;
-    let html=`<div class="b11-ovbrand"><img src="/logo" alt="Horizon"><span class="env">Horizon Beta 12 Preview</span><span class="within">${_withinText}</span></div>`;
+    let html=`<div class="b11-ovbrand"><img src="/logo" alt="Horizon"><span class="env">Horizon Beta 12</span><span class="within">${_withinText}</span></div>`;
     if(_activeRole==="TOWAGE"){
       // My Shift V1: no simbanner — provenance is carried on each value inline
       // via b11-simtag / b11-realtag pills inside the shift sections.
