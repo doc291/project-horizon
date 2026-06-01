@@ -4506,10 +4506,10 @@ function _checkCounts(observed,badgeId,label,expected){
     const n = watch.pilots_available;
     let text;
     if(n == null){
-      text = "Roster reference: pilot availability remains in your pilotage system.";
+      text = "Roster reference: pilot duty status lives in your roster.";
     } else {
       const noun = n === 1 ? "pilot" : "pilots";
-      text = `Roster reference: ${n} ${noun} available. Names, qualifications, fatigue and assignments remain in your pilotage system.`;
+      text = `Roster reference: ${n} ${noun} on duty. The roster holds allocation, qualifications and fatigue.`;
     }
     return `<div class="pwc-ov-roster">${esc(text)}</div>`;
   }
