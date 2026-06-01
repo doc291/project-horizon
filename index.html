@@ -3240,7 +3240,58 @@ function _checkCounts(observed,badgeId,label,expected){
     .tms-slot-cap{color:#94a3b8;}
     .tms-slot-marker{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#fca5a5;margin-left:auto;}
     .tms-env{font-size:11px;color:#94a3b8;display:flex;flex-direction:column;gap:4px;}
-    .tms-env-row{padding:4px 0;}`;
+    .tms-env-row{padding:4px 0;}
+    /* ── Pilotage Window Confidence renderer scaffolding ── */
+    .pwc-watch{font-size:13px;color:#cbd5e1;}
+    .pwc-section{margin-bottom:22px;}
+    .pwc-section-h{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#7dd3fc;margin:0 0 12px;}
+    .pwc-empty{color:#64748b;font-size:12px;padding:12px;font-style:italic;}
+    .pwc-exceptions{margin-bottom:22px;display:flex;flex-direction:column;gap:10px;}
+    .pwc-ex{padding:12px 16px;border-radius:8px;background:#0d1b2e;border-left:3px solid #f87171;}
+    .pwc-ex-coordinated{border-left-color:#f59e0b;background:rgba(245,158,11,.06);}
+    .pwc-ex-new-conflict{border-left-color:#fbbf24;}
+    .pwc-ex-weather{border-left-color:#7dd3fc;}
+    .pwc-ex-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#f59e0b;margin-bottom:8px;}
+    .pwc-ex-body{font-size:12px;line-height:1.6;color:#cbd5e1;}
+    .pwc-ex-line{margin-bottom:6px;}
+    .pwc-ex-k{color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-right:6px;}
+    .pwc-ex-btns{display:flex;gap:8px;margin-top:12px;}
+    .pwc-ex-done{font-size:11px;color:#64748b;font-style:italic;margin-top:10px;}
+    .pwc-ex-meta{font-size:10px;color:#64748b;margin-top:4px;}
+    /* Layer 1 — count only, deliberately compact. No enumeration. */
+    .pwc-pilots-card{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:14px;}
+    .pwc-pilots-count{font-size:22px;font-weight:800;color:#e2e8f0;font-variant-numeric:tabular-nums;}
+    .pwc-pilots-label{font-size:11px;color:#94a3b8;}
+    .pwc-pilots-note{font-size:10px;color:#475569;margin-left:auto;font-style:italic;max-width:48ch;text-align:right;}
+    /* Layer 2 — transits with inline confidence flags */
+    .pwc-transits-list{display:flex;flex-direction:column;gap:8px;}
+    .pwc-transit{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px 12px;}
+    .pwc-transit-flagged{border-color:rgba(251,191,36,.4);background:rgba(245,158,11,.04);}
+    .pwc-transit-flagged.pwc-flag-critical{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.04);}
+    .pwc-transit-hdr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+    .pwc-transit-time{font-family:monospace;font-size:12px;color:#94a3b8;}
+    .pwc-transit-vessel{font-size:13px;font-weight:700;color:#e2e8f0;}
+    .pwc-transit-dir{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;}
+    .pwc-transit-flag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 7px;border-radius:4px;margin-left:auto;}
+    .pwc-flag-pill-critical{background:rgba(239,68,68,.18);color:#fca5a5;}
+    .pwc-flag-pill-warning{background:rgba(251,191,36,.18);color:#fbbf24;}
+    .pwc-flag-pill-advisory{background:rgba(148,163,184,.18);color:#cbd5e1;}
+    .pwc-transit-meta{font-size:11px;color:#94a3b8;margin-bottom:4px;}
+    .pwc-transit-window{font-size:11px;color:#7dd3fc;margin-bottom:6px;font-family:monospace;}
+    .pwc-transit-window.pwc-window-tight{color:#fbbf24;}
+    .pwc-transit-window.pwc-window-unsafe{color:#fca5a5;font-weight:700;}
+    .pwc-transit-reasons{font-size:11px;color:#cbd5e1;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.05);}
+    .pwc-transit-reason{margin-bottom:3px;line-height:1.5;}
+    .pwc-reason-sev{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-right:6px;}
+    /* Layer 4 — forward shape + environment */
+    .pwc-slots{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+    .pwc-slot{display:flex;align-items:center;gap:14px;padding:6px 10px;background:rgba(255,255,255,.02);border-radius:6px;font-size:11px;}
+    .pwc-slot-flagged{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.25);}
+    .pwc-slot-time{font-family:monospace;color:#94a3b8;min-width:110px;}
+    .pwc-slot-count{color:#cbd5e1;}
+    .pwc-slot-flagged-count{color:#fbbf24;font-weight:700;margin-left:auto;}
+    .pwc-env{font-size:11px;color:#94a3b8;display:flex;flex-direction:column;gap:4px;}
+    .pwc-env-row{padding:4px 0;}`;
     const st=document.createElement("style"); st.id="b11-css"; st.textContent=css; document.head.appendChild(st);
   }
 
@@ -4305,6 +4356,233 @@ function _checkCounts(observed,badgeId,label,expected){
       forward: forward,
       exceptions: exceptions
     };
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // renderPilotageWatch(watch) -> HTML string.
+  // Pure function. Consumes only the watch object from buildPilotageWatch.
+  // Doctrine: operator-native vocabulary; intelligence attached to transits
+  // the scheduler owns; no Horizon-as-actor phrasing; no standalone
+  // analytical section; no commercial figures in Stage 1; no synthetic
+  // pilot identities; no qualifications, fatigue, rest, or dependency
+  // chains. Pilots are surfaced as a COUNT only.
+  // ════════════════════════════════════════════════════════════════════════
+
+  function _pwcDirLabel(d){
+    if(d === "inbound") return "inbound";
+    if(d === "outbound") return "outbound";
+    return d || "—";
+  }
+
+  function _pwcRenderPilotsLayer(watch){
+    let h = `<div class="pwc-section"><h3 class="pwc-section-h">Pilots available this watch</h3>`;
+    const n = watch.pilots_available;
+    h += `<div class="pwc-pilots-card">`;
+    h += `<span class="pwc-pilots-count">${n != null ? esc(String(n)) : "—"}</span>`;
+    h += `<span class="pwc-pilots-label">pilot${n === 1 ? "" : "s"} available</span>`;
+    h += `<span class="pwc-pilots-note">Count from port status. Names, qualifications, fatigue and rest sit in your roster system.</span>`;
+    h += `</div></div>`;
+    return h;
+  }
+
+  function _pwcRenderWindowSnapshot(t){
+    const w = t.window;
+    if(!w) return "";
+    let cls = "pwc-transit-window";
+    if(w.ukc_m != null && w.ukc_m < 0) cls += " pwc-window-unsafe";
+    else if(w.ukc_m != null && w.ukc_m < 0.5) cls += " pwc-window-tight";
+    let bits = [];
+    if(w.ukc_m != null) bits.push(`UKC ${w.ukc_m}m`);
+    if(w.predicted_tide_m != null) bits.push(`tide ${w.predicted_tide_m}m`);
+    if(w.vessel_draught_m != null) bits.push(`draught ${w.vessel_draught_m}m`);
+    if(w.hrs_to_eta != null) bits.push(`+${w.hrs_to_eta}h`);
+    if(bits.length === 0) return "";
+    return `<div class="${cls}">${esc(bits.join(" · "))}</div>`;
+  }
+
+  function _pwcRenderTransit(t){
+    const flagged = !!t.flag;
+    const sev = t.flag_severity || "";
+    const cls = flagged ? `pwc-transit-flagged pwc-flag-${sev}` : "";
+    const timeStr = t.scheduled_time ? fmtTs(t.scheduled_time) : "—";
+    let h = `<div class="pwc-transit ${cls}">`;
+    h += `<div class="pwc-transit-hdr">`;
+    h += `<span class="pwc-transit-time">${esc(timeStr)}</span>`;
+    h += `<span class="pwc-transit-vessel">${esc(t.vessel_name||"")}</span>`;
+    h += `<span class="pwc-transit-dir">${esc(_pwcDirLabel(t.direction))}</span>`;
+    if(flagged) h += `<span class="pwc-transit-flag pwc-flag-pill-${sev}">${esc(sev)}</span>`;
+    h += `</div>`;
+    // Boarding station + transit_status (no pilot name — synthetic).
+    const metaBits = [];
+    if(t.boarding_station) metaBits.push(esc(t.boarding_station));
+    if(t.transit_status) metaBits.push(esc(t.transit_status));
+    if(metaBits.length) h += `<div class="pwc-transit-meta">${metaBits.join(" · ")}</div>`;
+    h += _pwcRenderWindowSnapshot(t);
+    if(flagged && (t.flag_reasons||[]).length){
+      h += `<div class="pwc-transit-reasons">`;
+      t.flag_reasons.forEach(r => {
+        h += `<div class="pwc-transit-reason">`;
+        h += `<span class="pwc-reason-sev">${esc(r.severity||"")}</span>`;
+        h += `<span class="pwc-reason-desc">${esc(r.description||"")}</span>`;
+        if(r.provenance && r.provenance !== "live"){
+          h += ` <span class="b11-simtag">${esc(r.provenance)}</span>`;
+        }
+        h += `</div>`;
+      });
+      h += `</div>`;
+    }
+    h += `</div>`;
+    return h;
+  }
+
+  function _pwcRenderTransits(watch){
+    const transits = watch.transits || [];
+    let h = `<div class="pwc-section"><h3 class="pwc-section-h">My transits</h3>`;
+    if(transits.length === 0){
+      h += `<div class="pwc-empty">No transits scheduled in the current watch window.</div></div>`;
+      return h;
+    }
+    h += `<div class="pwc-transits-list">`;
+    transits.forEach(t => { h += _pwcRenderTransit(t); });
+    h += `</div></div>`;
+    return h;
+  }
+
+  function _pwcRenderForward(watch){
+    const fwd = watch.forward || {};
+    const slots = fwd.slots || [];
+    const env = fwd.environment || {};
+    let h = `<div class="pwc-section"><h3 class="pwc-section-h">Next 8 hours</h3>`;
+    if(slots.length === 0){
+      h += `<div class="pwc-empty">No forward window data available.</div>`;
+    } else {
+      h += `<div class="pwc-slots">`;
+      const p = n => String(n).padStart(2,"0");
+      slots.forEach(slot => {
+        const hs = new Date(slot.start), he = new Date(slot.end);
+        const label = `${p(hs.getHours())}:00–${p(he.getHours())}:00`;
+        const cls = (slot.flagged_count > 0) ? "pwc-slot-flagged" : "";
+        h += `<div class="pwc-slot ${cls}">`;
+        h += `<span class="pwc-slot-time">${esc(label)}</span>`;
+        h += `<span class="pwc-slot-count">${slot.transit_count} transit${slot.transit_count===1?"":"s"}</span>`;
+        if(slot.flagged_count > 0){
+          h += `<span class="pwc-slot-flagged-count">${slot.flagged_count} flagged</span>`;
+        }
+        h += `</div>`;
+      });
+      h += `</div>`;
+    }
+    const t = env.tide || {}, w = env.weather || {};
+    h += `<div class="pwc-env">`;
+    if(t.state){
+      const ne = t.next_event_type
+        ? `, next ${esc(t.next_event_type)} at ${esc(fmtTs(t.next_event_time))}`
+        : "";
+      const tp = t.provenance === "live_bom"
+        ? `<span class="b11-realtag">live BOM</span>`
+        : `<span class="b11-simtag">${esc(t.provenance||"simulated")}</span>`;
+      h += `<div class="pwc-env-row">Tide: ${esc(t.state)}${ne} ${tp}</div>`;
+    }
+    if(w.conditions || w.wind_speed_kts != null){
+      const parts = [];
+      if(w.wind_speed_kts != null) parts.push(`wind ${Math.round(w.wind_speed_kts)} kts`);
+      if(w.swell_height_m != null) parts.push(`swell ${w.swell_height_m}m`);
+      if(w.visibility_nm != null)  parts.push(`vis ${w.visibility_nm} nm`);
+      if(w.conditions)             parts.push(w.conditions);
+      const wp = w.provenance === "live"
+        ? `<span class="b11-realtag">live</span>`
+        : `<span class="b11-simtag">${esc(w.provenance||"simulated")}</span>`;
+      h += `<div class="pwc-env-row">Conditions: ${esc(parts.join(" · "))} ${wp}</div>`;
+    }
+    h += `</div></div>`;
+    return h;
+  }
+
+  function _pwcRenderCoordinatedDecision(ex, transitsById){
+    const p = ex.payload || {};
+    const affectedVessels = (ex.affects_transit_ids||[])
+      .map(id => (transitsById[id]||{}).vessel_name).filter(Boolean);
+    let h = `<div class="pwc-ex pwc-ex-coordinated">`;
+    h += `<div class="pwc-ex-label">Coordinated action required</div>`;
+    h += `<div class="pwc-ex-body">`;
+    if(affectedVessels.length){
+      h += `<div class="pwc-ex-line"><span class="pwc-ex-k">Affects</span> ${esc(affectedVessels.join(", "))}</div>`;
+    }
+    if(p.conflict_text){
+      h += `<div class="pwc-ex-line"><span class="pwc-ex-k">Conflict</span> ${esc(p.conflict_text)}</div>`;
+    }
+    h += `<div class="pwc-ex-line"><span class="pwc-ex-k">Action</span> <strong>${esc(p.action_label||"")}</strong></div>`;
+    h += `<div class="pwc-ex-line"><span class="pwc-ex-k">Status</span> <span class="b11-stk-status b11-${esc(p.status||"")}">${esc(p.status||"")}</span>`;
+    if(p.flag_reason) h += ` <span style="color:#fbbf24">flag: ${esc(p.flag_reason)}</span>`;
+    h += `</div>`;
+    if(!p.is_terminal){
+      h += `<div class="pwc-ex-btns">`;
+      h += `<button class="b11-btn" id="pwc-ack-btn"${p.status==="ACKNOWLEDGED"?" disabled":""}>Acknowledge</button>`;
+      h += `<button class="b11-btn ghost" id="pwc-flag-btn">Flag concern</button>`;
+      h += `</div>`;
+    } else {
+      h += `<div class="pwc-ex-done">This decision is ${esc((p.decision_state||"").toLowerCase())}. No further action required.</div>`;
+    }
+    h += `</div></div>`;
+    return h;
+  }
+
+  function _pwcRenderNewConflict(ex, transitsById){
+    const p = ex.payload || {};
+    const affectedVessels = (ex.affects_transit_ids||[])
+      .map(id => (transitsById[id]||{}).vessel_name).filter(Boolean);
+    let h = `<div class="pwc-ex pwc-ex-new-conflict">`;
+    h += `<div class="pwc-ex-label">New conflict</div>`;
+    h += `<div class="pwc-ex-body">`;
+    if(affectedVessels.length){
+      h += `<div class="pwc-ex-line"><span class="pwc-ex-k">Affects</span> ${esc(affectedVessels.join(", "))}</div>`;
+    }
+    h += `<div class="pwc-ex-line">${esc(p.description||"")}</div>`;
+    const prov = p.provenance === "live"
+      ? `<span class="b11-realtag">live</span>`
+      : `<span class="b11-simtag">${esc(p.provenance||"simulated")}</span>`;
+    h += `<div class="pwc-ex-meta">${prov}</div>`;
+    h += `</div></div>`;
+    return h;
+  }
+
+  function _pwcRenderWeather(ex){
+    const p = ex.payload || {};
+    let h = `<div class="pwc-ex pwc-ex-weather">`;
+    h += `<div class="pwc-ex-label">Conditions deteriorating</div>`;
+    h += `<div class="pwc-ex-body">`;
+    const bits = [];
+    if(p.conditions)             bits.push(p.conditions);
+    if(p.wind_speed_kts != null) bits.push(`wind ${Math.round(p.wind_speed_kts)} kts`);
+    if(p.swell_height_m != null) bits.push(`swell ${p.swell_height_m}m`);
+    h += `<div class="pwc-ex-line">${esc(bits.join(" · "))}</div>`;
+    h += `</div></div>`;
+    return h;
+  }
+
+  function _pwcRenderExceptions(exceptions, watch){
+    if(!exceptions || exceptions.length === 0) return "";
+    const transitsById = {};
+    (watch.transits||[]).forEach(t => { transitsById[t.transit_id] = t; });
+    let h = `<div class="pwc-exceptions">`;
+    exceptions.forEach(ex => {
+      if(ex.type === "coordinated_decision")     h += _pwcRenderCoordinatedDecision(ex, transitsById);
+      else if(ex.type === "new_conflict")        h += _pwcRenderNewConflict(ex, transitsById);
+      else if(ex.type === "weather_threshold")   h += _pwcRenderWeather(ex);
+    });
+    h += `</div>`;
+    return h;
+  }
+
+  function renderPilotageWatch(watch){
+    const w = watch || {};
+    let h = `<div class="pwc-watch">`;
+    h += _pwcRenderExceptions(w.exceptions || [], w);   // Layer 5 — interrupt above
+    h += _pwcRenderPilotsLayer(w);                       // Layer 1 — count only
+    h += _pwcRenderTransits(w);                          // Layer 2 + Layer 3 (inline flags)
+    h += _pwcRenderForward(w);                           // Layer 4
+    h += `</div>`;
+    return h;
   }
 
   // ════════════════════════════════════════════════════════════════════════
