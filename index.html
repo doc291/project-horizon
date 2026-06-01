@@ -3431,15 +3431,12 @@ function _checkCounts(observed,badgeId,label,expected){
 
   // Per-role operational context shown when no decision is active, so a lens is
   // never a blank page. All illustrative / simulated.
-  // ROLE_CONTEXT supplies the no-decision standing context for non-TOWAGE roles.
-  // TOWAGE has its own doctrine-aligned shift view (renderTowageShift) and does
-  // not consume this map.
+  // ROLE_CONTEXT supplies the no-decision standing context for roles that
+  // still use the legacy confirmerBody other-roles path. TOWAGE has its own
+  // doctrine-aligned shift view (renderTowageShift) and PILOTAGE has its own
+  // Window Confidence watch view (renderPilotageWatch); neither consumes
+  // this map.
   const ROLE_CONTEXT={
-    PILOTAGE:{title:"Pilotage operations · standing context",items:[
-      "Pilots on roster against the forward arrival and departure timeline.",
-      "Tide and under-keel windows that constrain transit timing.",
-      "Short-notice movements Horizon is flagging earlier than usual."],
-      await_:"Standing by. When the VTSO amends a boarding window, it will appear here for you to acknowledge or flag."},
     TERMINAL:{title:"Terminal operations · standing context",items:[
       "Berth handover timeline: current operation and predicted completion.",
       "Next inbound vessel and the readiness time it implies.",
@@ -3507,28 +3504,9 @@ function _checkCounts(observed,badgeId,label,expected){
     const ps=d.port_status||{};
     let items=[];
     let realNote="";
-    // TOWAGE no longer reaches this function — confirmerBody returns early
-    // via renderTowageShift. PILOTAGE / TERMINAL branches retained below.
-    if(role==="PILOTAGE"){
-      // REAL: tide window (BOM), arrival UKC, pilotage_window short-notice, pilot count.
-      const t=d.tides||{};
-      const auk=d.arrival_ukc||{};
-      const pw=(d.conflicts||[]).filter(c=>c.conflict_type==="pilotage_window");
-      if(t.state){
-        const ne=t.next_event_type?`${t.next_event_type} at ${new Date(t.next_event_time).toLocaleTimeString()} (${t.next_event_height_m}m)`:"";
-        items.push(`<li><strong>Tide window:</strong> ${esc(t.state)}${ne?", next "+esc(ne):""} <span class="b11-realtag">${t.data_source==="bom"?"live BOM":"live"}</span></li>`);
-      }
-      if(auk.min_ukc_m!=null){
-        items.push(`<li><strong>Under-keel clearance (arrivals):</strong> min ${auk.min_ukc_m}m${auk.critical_vessel?" · "+esc(auk.critical_vessel):""} · ${esc(auk.status||"")} <span class="b11-realtag">live</span></li>`);
-      }
-      if(pw.length){
-        items.push(`<li><strong>Short-notice pilotage (${pw.length}):</strong> <span class="b11-realtag">live</span><ul>`+
-          pw.slice(0,3).map(c=>`<li>${esc(c.description)}</li>`).join("")+`</ul></li>`);
-      } else {
-        items.push(`<li><strong>Short-notice pilotage:</strong> none flagged <span class="b11-realtag">live</span></li>`);
-      }
-      items.push(`<li><strong>Pilots available:</strong> ${ps.pilots_available!=null?ps.pilots_available:"—"} <span class="b11-realtag">live</span></li>`);
-    } else if(role==="TERMINAL"){
+    // Neither TOWAGE nor PILOTAGE reaches this function — confirmerBody returns
+    // early via renderTowageShift / renderPilotageWatch. TERMINAL branch retained.
+    if(role==="TERMINAL"){
       // Readiness + standby exposure: simulated, clearly labelled (per scope).
       const ad=b.active_decision; const pi=(ad&&ad.predicted_impact)||{};
       const rate=pi.cost_per_hour_aud||0;
