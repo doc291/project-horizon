@@ -3453,15 +3453,108 @@ function _checkCounts(observed,badgeId,label,expected){
     _dcOpen = false;
   }
 
-  // AO2 will populate the body with rows. AO1 leaves it empty so the
-  // open/close skeleton can be exercised first.
+  // AO2 — render the overlay body from the most recent /api/summary.
+  // Three observable feeds (vessel movements, tides, weather) contribute
+  // to the High/Medium/Low top-level state. Two always-Assumed feeds
+  // (towage availability, terminal readiness) are listed for completeness.
   function _renderDataConfidence(){
-    const body = document.getElementById("dc-body");
+    const body  = document.getElementById("dc-body");
     const state = document.getElementById("dc-state");
     if(!body || !state) return;
-    body.innerHTML = `<div class="dc-empty">Content pending AO2.</div>`;
-    state.textContent = "—";
-    state.className = "dc-hdr-state";
+
+    const d = _last || {};
+    const ds = d.data_source || null;             // top-level data source object
+    const dsStr = d.data_source;                  // string when summary uses string form
+    const tides = d.tides || {};
+    const weather = d.weather || {};
+    const aisStreamConnected = !!(d.aisstream && d.aisstream.connected);
+
+    // ── Vessel movements ──
+    // Live observed when the active feed is live (qships, live, or AISStream
+    // actively connected); otherwise Assumed; Missing only when explicit
+    // signal of disconnection/stale and zero vessels.
+    let vesselsState, vesselsDetail;
+    const topSource = (typeof dsStr === "string") ? dsStr
+                    : (ds && ds.source) ? ds.source
+                    : null;
+    const isLiveVessels = topSource === "live" || topSource === "qships"
+                        || aisStreamConnected;
+    if(isLiveVessels){
+      vesselsState = "live";
+      vesselsDetail = d.data_source_label || "Live AIS / QShips";
+    } else {
+      // Any non-live vessel source is "Assumed", with Missing reserved for
+      // explicit disconnection signals (AIS attempted and zero vessels).
+      const vesselCount = (d.vessels || []).length;
+      if(d.aisstream && d.aisstream.connected === false && vesselCount === 0){
+        vesselsState = "missing";
+        vesselsDetail = "Vessel feed unavailable";
+      } else {
+        vesselsState = "assumed";
+        vesselsDetail = d.data_source_label || "Simulation data";
+      }
+    }
+
+    // ── Tides ──
+    const tidesLive = tides.data_source === "bom";
+    const tidesState = tidesLive ? "live" : "assumed";
+    const tidesDetail = tidesLive
+      ? "Live BOM"
+      : "Cosine-model fallback";
+
+    // ── Weather ──
+    const weatherLive = (weather.source === "live") || (weather.data_source === "live");
+    const weatherState = weatherLive ? "live" : "assumed";
+    const weatherDetail = weatherLive
+      ? "Live weather (Open-Meteo)"
+      : "Simulation fallback";
+
+    // ── Top-level confidence ──
+    const liveCount = [isLiveVessels, tidesLive, weatherLive].filter(Boolean).length;
+    let topState, topLabel;
+    if(liveCount === 3){ topState = "high";   topLabel = "High"; }
+    else if(liveCount > 0){ topState = "medium"; topLabel = "Medium"; }
+    else { topState = "low"; topLabel = "Low"; }
+    state.textContent = topLabel;
+    state.className = "dc-hdr-state " + topState;
+
+    // ── Body rows ──
+    function row(label, st, detailHtml){
+      const stateLabel = st === "live"    ? "Live observed"
+                       : st === "missing" ? "Missing"
+                       : "Assumed";
+      // Tides and weather use "Live environmental" instead of "Live observed"
+      // — passed via the `liveLabel` override on the helper.
+      return `<div class="dc-row">
+        <div class="dc-row-label">${esc(label)}
+          <div class="dc-row-detail">${detailHtml}</div>
+        </div>
+        <span class="dc-row-state dc-state-${esc(st)}">${esc(stateLabel)}</span>
+      </div>`;
+    }
+    function rowEnv(label, st, detailHtml){
+      const stateLabel = st === "live" ? "Live environmental" : "Assumed";
+      return `<div class="dc-row">
+        <div class="dc-row-label">${esc(label)}
+          <div class="dc-row-detail">${detailHtml}</div>
+        </div>
+        <span class="dc-row-state dc-state-${esc(st)}">${esc(stateLabel)}</span>
+      </div>`;
+    }
+
+    let h = "";
+    // Vessel movements — uses "Live observed" wording
+    h += row("Vessel movements", vesselsState, esc(vesselsDetail));
+    // Tides — environmental
+    h += rowEnv("Tides", tidesState, esc(tidesDetail));
+    // Weather — environmental
+    h += rowEnv("Weather", weatherState, esc(weatherDetail));
+    // Towage availability — always Assumed
+    h += row("Towage availability", "assumed", "Tug duty status is simulated for demonstration");
+    // Terminal readiness — always Assumed
+    h += row("Terminal readiness", "assumed", "Terminal readiness is simulated for demonstration");
+
+    body.innerHTML = h;
   }
 
   function setRole(role){
