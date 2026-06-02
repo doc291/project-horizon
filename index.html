@@ -1247,6 +1247,9 @@
            under the header and above the Decisions/Audit tab row. Empty (no
            height) when the loop is inactive or in plain Beta 10. -->
       <div id="b11-vtso-mount"></div>
+      <!-- Port Readiness Scorecard (Beta 12 / VTSO view only): collapsible
+           per-vessel readiness panel. Empty (no height) in plain Beta 10. -->
+      <div id="b11-readiness-mount"></div>
       <div class="rpanel-tabs">
         <button class="rpanel-tab active" onclick="switchRTab('decisions')">⚡ Decisions</button>
         <button class="rpanel-tab" onclick="switchRTab('audit')">Audit</button>
@@ -3378,6 +3381,28 @@ function _checkCounts(observed,badgeId,label,expected){
     .pwc-sequence-gap{font-size:11px;font-weight:700;color:#cbd5e1;font-variant-numeric:tabular-nums;}
     .pwc-sequence-pair{font-size:12px;color:#e2e8f0;margin-bottom:3px;}
     .pwc-sequence-note{font-size:11px;color:#94a3b8;line-height:1.4;}
+    /* Port Readiness Scorecard — reuses existing state palette, no new colours. */
+    .prs-card{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;}
+    .prs-card-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}
+    .prs-vessel{font-size:13px;font-weight:700;color:#e2e8f0;}
+    .prs-card-meta{font-size:10px;color:#64748b;margin-bottom:8px;}
+    .prs-qualifier{font-size:11px;color:var(--medium);margin-bottom:6px;}
+    .prs-badge{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:10px;}
+    .prs-badge-lg{font-size:10px;padding:3px 9px;}
+    .prs-ready{background:rgba(52,211,153,.16);color:#34d399;}
+    .prs-atrisk{background:rgba(249,115,22,.18);color:var(--high);}
+    .prs-notready{background:rgba(239,68,68,.18);color:#ef4444;}
+    .prs-uncertain{background:rgba(148,163,184,.18);color:#94a3b8;}
+    .prs-comp{margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.05);}
+    .prs-comp-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}
+    .prs-comp-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#7dd3fc;}
+    .prs-sub{font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:4px;}
+    .prs-sub-state{font-size:8px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:1px 5px;border-radius:8px;}
+    .prs-sub-reason{color:#cbd5e1;}
+    .prs-sub-meta{font-size:9px;color:#64748b;margin-top:1px;}
+    .prs-note{font-size:10px;color:var(--medium);margin:3px 0;}
+    .prs-advisory{font-size:9px;color:#64748b;font-style:italic;margin-top:8px;border-top:1px solid rgba(255,255,255,.05);padding-top:6px;}
+    .prs-empty{font-size:11px;color:#64748b;padding:6px 2px;}
     .pwc-transit-flagged{border-color:rgba(251,191,36,.4);background:rgba(245,158,11,.04);}
     .pwc-transit-flagged.pwc-flag-critical{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.04);}
     .pwc-transit-hdr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
@@ -3675,9 +3700,299 @@ function _checkCounts(observed,badgeId,label,expected){
     // (Role blurb is rendered inside the overlay's role header (b11-rolesub),
     // not in the primary header — see renderOverlay for that path.)
     const ret=document.getElementById("b11-return");
-    if(role==="VTSO"){ ov.classList.remove("show"); if(ret)ret.classList.remove("show"); renderVtsoPanel(); }
-    else { ov.classList.add("show"); if(ret)ret.classList.add("show"); renderOverlay(); }
+    if(role==="VTSO"){ ov.classList.remove("show"); if(ret)ret.classList.remove("show"); renderVtsoPanel(); renderReadinessPanel(); }
+    else { ov.classList.add("show"); if(ret)ret.classList.add("show"); renderOverlay(); hideReadinessPanel(); }
   }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // Port Readiness Scorecard — Phase 1 (PURE, deterministic assessment)
+  //
+  // Produces a conservative, explainable per-vessel readiness scorecard from
+  // data ALREADY present in /api/summary. No new data sources, no external
+  // calls, no forecasting, no cost figures, no recommendations, no speed advice.
+  // Kept entirely separate from detect_conflicts (server-side) and from the
+  // pilotage/towage lens builders.
+  //
+  // States (the only four): READY, AT RISK, NOT READY, UNCERTAIN.
+  // Trust doctrine: missing data NEVER defaults to READY; simulated/assumed
+  // service data is NEVER presented as live readiness; schedule-based berth
+  // status is NEVER presented as terminal-confirmed. Advisory language only —
+  // no "cleared/authorised/approved/proceed".
+  //
+  // The block between PRS-PURE-BEGIN and PRS-PURE-END is string-extracted by
+  // tests/lens_contract/readiness.test.js. Do NOT add DOM access inside it.
+  // ──────────────────────────────────────────────────────────────────────────
+  // PRS-PURE-BEGIN
+  const PRS = { READY:"READY", AT_RISK:"AT RISK", NOT_READY:"NOT READY", UNCERTAIN:"UNCERTAIN" };
+
+  // Worst-wins ordering used WITHIN a component (sub-elements -> component state).
+  function _prsWorst(states){
+    if(states.indexOf(PRS.NOT_READY) >= 0) return PRS.NOT_READY;
+    if(states.indexOf(PRS.AT_RISK)   >= 0) return PRS.AT_RISK;
+    if(states.indexOf(PRS.UNCERTAIN) >= 0) return PRS.UNCERTAIN;
+    return PRS.READY;
+  }
+  function _prsConflictsFor(summary, vesselId){
+    return (summary.conflicts||[]).filter(c =>
+      c && Array.isArray(c.vessel_ids) && c.vessel_ids.indexOf(vesselId) >= 0);
+  }
+
+  // ── Navigation Readiness ──────────────────────────────────────────────────
+  // AIS freshness note: /api/summary carries no per-vessel position timestamp,
+  // so freshness is derived from vessel.source + port_profile.using_live_vessel_data.
+  // "Missing AIS" (no ETA/position) is assessable; timestamp-based staleness is a
+  // known Phase-1 limitation.
+  function _prsAssessNavigation(v, summary){
+    const subs = [], notes = [];
+    const pp = summary.port_profile || {};
+    const src = v.source || null;
+    const liveVessel = pp.using_live_vessel_data === true || src === "ais";
+
+    if(!v.eta){
+      subs.push({ key:"track", state:PRS.UNCERTAIN, kind:"missing_eta",
+        reason:"Vessel position/ETA not available — navigation cannot be assessed.",
+        confidence:"NO DATA", provenance: src==="ais" ? "live AIS" : (src || "absent") });
+      return { state:PRS.UNCERTAIN, kind:"missing_eta", subs,
+        notes:["ETA required to assess tidal window and UKC."] };
+    }
+    {
+      const conf = src==="ais" ? "HIGH" : src==="mst" ? "MODERATE" : liveVessel ? "MODERATE" : "LOW";
+      const prov = src==="ais" ? "live AIS"
+                 : src==="mst" ? "AIS identity via MST (dimensions modelled)"
+                 : liveVessel ? "live vessel feed" : "simulated track (not live AIS)";
+      subs.push({ key:"track", state:PRS.READY, reason:"ETA available.",
+        confidence:conf, provenance:prov, simulated: !(src==="ais"||src==="mst"||liveVessel) });
+    }
+
+    // Tide / UKC — from arrival_ukc (server-computed; tide is modelled).
+    const ukcAll = (summary.arrival_ukc && Array.isArray(summary.arrival_ukc.all)) ? summary.arrival_ukc.all : [];
+    const aggStatus = summary.arrival_ukc ? summary.arrival_ukc.status : null;
+    const critName  = summary.arrival_ukc ? summary.arrival_ukc.critical_vessel : null;
+    const entry = ukcAll.find(e => e && e.vessel_id === v.id);
+    if(entry && entry.ukc_m != null){
+      let st = PRS.READY, why = "Predicted under-keel clearance "+entry.ukc_m+"m at ETA tide.";
+      if(entry.ukc_m < 0){ st = PRS.NOT_READY; why = "Predicted UKC negative ("+entry.ukc_m+"m) at ETA tide — insufficient depth."; }
+      else if(v.name && critName && v.name === critName && aggStatus === "critical"){ st = PRS.NOT_READY; why = "UKC critical at predicted arrival ("+entry.ukc_m+"m)."; }
+      else if(v.name && critName && v.name === critName && aggStatus === "warning"){ st = PRS.AT_RISK; why = "UKC margin tight at predicted arrival ("+entry.ukc_m+"m)."; }
+      subs.push({ key:"ukc", state:st, reason:why, confidence:"MODERATE", provenance:"modelled (tide prediction)" });
+    } else {
+      notes.push("UKC not assessable for this vessel (no arrival-UKC entry).");
+    }
+
+    // Weather — from the server-computed conditions rating.
+    const wx = summary.weather || {};
+    if(wx.conditions){
+      let st = PRS.READY, why = "Conditions "+wx.conditions+".";
+      if(wx.conditions === "Poor"){ st = PRS.NOT_READY; why = "Conditions Poor — outside typical operational limits."; }
+      else if(wx.conditions === "Moderate"){ st = PRS.AT_RISK; why = "Conditions Moderate — approaching limits."; }
+      subs.push({ key:"weather", state:st, reason:why,
+        confidence: wx.source==="live"?"HIGH":"LOW",
+        provenance: wx.source==="live"?"live weather":"modelled weather", simulated: wx.source!=="live" });
+    } else {
+      notes.push("Weather status not available.");
+    }
+
+    // Bridge / channel — existing conflict flags only (air draught is estimated).
+    const bridge = _prsConflictsFor(summary, v.id).filter(c => c.conflict_type === "bridge_restriction");
+    if(bridge.length){
+      const st = bridge.some(c => c.severity === "critical") ? PRS.NOT_READY : PRS.AT_RISK;
+      subs.push({ key:"bridge", state:st, reason: bridge[0].description || "Bridge air-draught restriction.",
+        confidence:"LOW", provenance:(bridge[0].data_source||"simulated")+" (air draught estimated)", simulated:true });
+    }
+    notes.push("Channel/traffic status not available from current data.");
+
+    return { state:_prsWorst(subs.map(s=>s.state)), subs, notes };
+  }
+
+  // ── Service Readiness ───────────────────────────────────────────────────────
+  // Pilotage and towage data in Horizon are SIMULATED — there is no live
+  // pilot-availability or tug-availability feed. Per trust rules, simulated
+  // service data is never presented as confirmed live readiness: when a service
+  // is required, the sub-element is UNCERTAIN with an explicit simulated label.
+  function _prsAssessService(v, summary){
+    const subs = [], notes = [];
+    const needPil = v.pilotage_required === true;
+    const needTow = v.towage_required === true;
+
+    if(needPil){
+      subs.push({ key:"pilotage", state:PRS.UNCERTAIN, kind:"missing_feed",
+        reason:"Pilot availability not confirmed — no live pilotage feed (data is simulated).",
+        confidence:"NO DATA", provenance:"simulated / assumed", simulated:true });
+    } else {
+      subs.push({ key:"pilotage", state:PRS.READY,
+        reason:"No pilotage required for this vessel.", confidence:"HIGH", provenance:"vessel attributes" });
+    }
+    if(needTow){
+      const clash = _prsConflictsFor(summary, v.id).some(c => c.conflict_type === "towage_resource");
+      const extra = clash ? " Simulated fleet state indicates a possible tug capacity clash in this window." : "";
+      subs.push({ key:"towage", state:PRS.UNCERTAIN, kind:"missing_feed",
+        reason:"Tug availability not confirmed — no live towage feed (data is simulated)."+extra,
+        confidence:"NO DATA", provenance:"simulated / assumed", simulated:true });
+    } else {
+      subs.push({ key:"towage", state:PRS.READY,
+        reason:"No towage required for this vessel.", confidence:"HIGH", provenance:"vessel attributes" });
+    }
+    if(needPil || needTow) notes.push("Mooring/linesmen status not available.");
+
+    const st = _prsWorst(subs.map(s=>s.state));
+    return { state:st, kind: st===PRS.UNCERTAIN ? "missing_feed" : undefined, subs, notes };
+  }
+
+  // ── Berth Readiness ──────────────────────────────────────────────────────────
+  // Allocation comes from the (port-authority) schedule. There is no live
+  // terminal-readiness feed, so when no berth conflict applies, availability is
+  // schedule-based only and is reported as UNCERTAIN (structural_terminal) — never
+  // as terminal-confirmed readiness.
+  function _prsAssessBerth(v, summary){
+    const subs = [], notes = [];
+    if(!v.berth_id){
+      subs.push({ key:"allocation", state:PRS.UNCERTAIN, kind:"missing_data",
+        reason:"No berth allocated to this vessel in current data.", confidence:"NO DATA", provenance:"absent" });
+      return { state:PRS.UNCERTAIN, kind:"missing_data", subs, notes };
+    }
+    const berth = (summary.berths||[]).find(b => b && b.id === v.berth_id) || null;
+    const berthName = berth ? (berth.name || v.berth_id) : v.berth_id;
+    subs.push({ key:"allocation", state:PRS.READY,
+      reason:"Allocated to "+berthName+" (port schedule).", confidence:"MODERATE", provenance:"schedule-based" });
+
+    const cf = _prsConflictsFor(summary, v.id);
+    const overlap  = cf.filter(c => c.conflict_type === "berth_overlap");
+    const notReady = cf.filter(c => c.conflict_type === "berth_not_ready");
+    if(overlap.length){
+      const st = overlap.some(c => c.severity === "critical") ? PRS.NOT_READY : PRS.AT_RISK;
+      subs.push({ key:"availability", state:st, reason: overlap[0].description || "Berth overlap with another vessel.",
+        confidence:"MODERATE", provenance:(overlap[0].data_source||"schedule-based") });
+    } else if(notReady.length){
+      const st = notReady.some(c => c.severity === "high") ? PRS.NOT_READY : PRS.AT_RISK;
+      subs.push({ key:"availability", state:st, reason: notReady[0].description || "Berth not ready before ETA.",
+        confidence:"MODERATE", provenance:(notReady[0].data_source||"schedule-based") });
+    } else {
+      subs.push({ key:"availability", state:PRS.UNCERTAIN, kind:"structural_terminal",
+        reason:"Berth availability based on schedule. Terminal has not confirmed actual clearance.",
+        confidence:"LOW", provenance:"schedule-based (no terminal feed)" });
+      notes.push("Terminal readiness feed not connected — berth availability is unconfirmed.");
+    }
+    const st = _prsWorst(subs.map(s=>s.state));
+    let kind;
+    if(st === PRS.UNCERTAIN){
+      kind = subs.some(s => s.kind === "structural_terminal") ? "structural_terminal" : "missing_data";
+    }
+    return { state:st, kind, subs, notes };
+  }
+
+  // ── Composite (conservative; one exception for structurally-absent terminal) ──
+  function _prsCompose(nav, svc, berth){
+    const comps = [nav, svc, berth];
+    if(comps.some(c => c.state === PRS.NOT_READY)) return { state:PRS.NOT_READY };
+    if(comps.some(c => c.state === PRS.AT_RISK))   return { state:PRS.AT_RISK };
+    const uncertain = comps.filter(c => c.state === PRS.UNCERTAIN);
+    if(uncertain.length){
+      if(uncertain.length === 1 && uncertain[0] === berth && berth.kind === "structural_terminal"
+         && nav.state === PRS.READY && svc.state === PRS.READY){
+        return { state:PRS.READY, qualifier:"Berth readiness unconfirmed." };
+      }
+      return { state:PRS.AT_RISK };
+    }
+    return { state:PRS.READY };
+  }
+
+  function buildVesselReadiness(v, summary){
+    const nav   = _prsAssessNavigation(v, summary);
+    const svc   = _prsAssessService(v, summary);
+    const berth = _prsAssessBerth(v, summary);
+    return {
+      vessel: { id:v.id, name:v.name, imo:v.imo||null, type:v.vessel_type||null,
+                loa: v.loa!=null?v.loa:null, draught: v.draught!=null?v.draught:null,
+                berth_id:v.berth_id||null, eta:v.eta||null, etd:v.etd||null, source:v.source||null },
+      composite: _prsCompose(nav, svc, berth),
+      navigation: nav, service: svc, berth: berth
+    };
+  }
+
+  // Relevant = approaching/inbound vessels (not yet alongside), earliest ETA first.
+  function prsRelevantVessels(summary){
+    return (summary.vessels||[])
+      .filter(v => v && ["expected","confirmed","scheduled","at_risk"].indexOf(v.status) >= 0)
+      .slice()
+      .sort((a,b) => new Date(a.eta||0) - new Date(b.eta||0));
+  }
+
+  // ── Pure renderer (HTML string; uses esc only) ──────────────────────────────
+  function _prsStateClass(st){
+    return st===PRS.READY ? "prs-ready"
+         : st===PRS.AT_RISK ? "prs-atrisk"
+         : st===PRS.NOT_READY ? "prs-notready" : "prs-uncertain";
+  }
+  function _prsComponentRow(label, comp){
+    let h = `<div class="prs-comp">`;
+    h += `<div class="prs-comp-hdr"><span class="prs-comp-label">${esc(label)}</span>`;
+    h += `<span class="prs-badge ${_prsStateClass(comp.state)}">${esc(comp.state)}</span></div>`;
+    (comp.subs||[]).forEach(s => {
+      h += `<div class="prs-sub">`;
+      h += `<span class="prs-sub-state ${_prsStateClass(s.state)}">${esc(s.state)}</span> `;
+      h += `<span class="prs-sub-reason">${esc(s.reason||"")}</span>`;
+      const meta = [];
+      if(s.confidence) meta.push("confidence "+s.confidence);
+      if(s.provenance) meta.push(s.provenance);
+      if(s.simulated)  meta.push("SIMULATED");
+      if(meta.length) h += `<div class="prs-sub-meta">${esc(meta.join("  ·  "))}</div>`;
+      h += `</div>`;
+    });
+    (comp.notes||[]).forEach(n => { h += `<div class="prs-note">⚠ ${esc(n)}</div>`; });
+    h += `</div>`;
+    return h;
+  }
+  function renderReadinessCardHTML(card){
+    const c = card.composite;
+    let h = `<div class="prs-card">`;
+    h += `<div class="prs-card-hdr"><span class="prs-vessel">${esc(card.vessel.name||card.vessel.id||"—")}</span>`;
+    h += `<span class="prs-badge prs-badge-lg ${_prsStateClass(c.state)}">${esc(c.state)}</span></div>`;
+    if(c.qualifier) h += `<div class="prs-qualifier">${esc(c.qualifier)}</div>`;
+    const meta = [];
+    if(card.vessel.berth_id) meta.push("Berth "+card.vessel.berth_id);
+    if(card.vessel.eta) meta.push("ETA "+String(card.vessel.eta));
+    if(meta.length) h += `<div class="prs-card-meta">${esc(meta.join("  ·  "))}</div>`;
+    h += _prsComponentRow("Navigation Readiness", card.navigation);
+    h += _prsComponentRow("Service Readiness", card.service);
+    h += _prsComponentRow("Berth Readiness", card.berth);
+    h += `<div class="prs-advisory">Advisory only — signal indicates an assessment based on current data. Not a clearance.</div>`;
+    h += `</div>`;
+    return h;
+  }
+  // PRS-PURE-END
+
+  // ── DOM renderer: collapsible Port Readiness panel (Beta 12 / VTSO view) ─────
+  let _prsExpanded = false;
+  function renderReadinessPanel(){
+    const d = _last;
+    const mount = document.getElementById("b11-readiness-mount");
+    if(!mount) return;
+    if(!d || !d.beta11){ mount.innerHTML=""; mount.style.display="none"; return; }
+    mount.style.display="block";
+    const cards = prsRelevantVessels(d).map(v => buildVesselReadiness(v, d));
+    const hint = `${cards.length} vessel${cards.length===1?"":"s"}`;
+    const body = cards.length
+      ? cards.map(renderReadinessCardHTML).join("")
+      : `<div class="prs-empty">No approaching vessels to assess.</div>`;
+    mount.innerHTML =
+      `<div id="b11-prs-strip" style="margin:8px 10px 0;background:#0d1b2e;border:1px solid rgba(56,189,248,.3);border-radius:8px;overflow:hidden;">`
+      + `<div id="b11-prs-toggle" role="button" tabindex="0" aria-expanded="${_prsExpanded}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:9px 12px;">`
+        + `<span style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#38bdf8;font-weight:700;">Port Readiness</span>`
+        + `<span style="display:flex;align-items:center;gap:7px;"><span style="font-size:10px;color:#64748b;">${esc(hint)}</span><span id="b11-prs-chev" style="color:#64748b;font-size:10px;">${_prsExpanded?'▲':'▼'}</span></span>`
+      + `</div>`
+      + `<div id="b11-prs-body" style="display:${_prsExpanded?'block':'none'};padding:6px 12px 12px;border-top:1px solid rgba(56,189,248,.12);max-height:60vh;overflow-y:auto;">${body}</div>`
+      + `</div>`;
+    const tog = document.getElementById("b11-prs-toggle");
+    if(tog){
+      const _t = () => { _prsExpanded = !_prsExpanded;
+        const bd=document.getElementById("b11-prs-body"); if(bd)bd.style.display=_prsExpanded?'block':'none';
+        const cv=document.getElementById("b11-prs-chev"); if(cv)cv.textContent=_prsExpanded?'▲':'▼';
+        tog.setAttribute("aria-expanded", _prsExpanded); };
+      tog.addEventListener("click", _t);
+      tog.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); _t(); } });
+    }
+  }
+  function hideReadinessPanel(){ const m=document.getElementById("b11-readiness-mount"); if(m){ m.innerHTML=""; m.style.display="none"; } }
 
   // Collapsed by default — presentation state for the VTSO Decision Loop
   // panel. Persisted across polls so a re-render does not reset the user's
@@ -6093,8 +6408,8 @@ function _checkCounts(observed,badgeId,label,expected){
   function onData(d){
     _last=d;
     if(!_built)buildShell(d.beta11);
-    if(_activeRole==="VTSO"){ const ov=document.getElementById("b11-overlay"); if(ov)ov.classList.remove("show"); renderVtsoPanel(); }
-    else renderOverlay();
+    if(_activeRole==="VTSO"){ const ov=document.getElementById("b11-overlay"); if(ov)ov.classList.remove("show"); renderVtsoPanel(); renderReadinessPanel(); }
+    else { renderOverlay(); hideReadinessPanel(); }
     ensurePoll();
   }
 
