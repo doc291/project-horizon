@@ -3544,6 +3544,7 @@ function _checkCounts(observed,badgeId,label,expected){
     .prs-notready{background:rgba(239,68,68,.18);color:#ef4444;}
     .prs-uncertain{background:rgba(148,163,184,.18);color:#94a3b8;}
     .prs-comp{margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.05);}
+    .prs-card > .prs-comp:first-child{margin-top:0;padding-top:0;border-top:none;}
     .prs-comp-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}
     .prs-comp-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#7dd3fc;}
     .prs-sub{font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:4px;}
@@ -4253,16 +4254,12 @@ function _checkCounts(observed,badgeId,label,expected){
     h += `</div>`;
     return h;
   }
+  // Expanded scorecard = EVIDENCE only. The collapsed row already carries the
+  // vessel name, composite state, readiness explanation, timing and component
+  // strip, so the expanded view begins directly with the component sections
+  // (no duplicated vessel/state/berth/ETA header). Presentation only.
   function renderReadinessCardHTML(card){
-    const c = card.composite;
     let h = `<div class="prs-card">`;
-    h += `<div class="prs-card-hdr"><span class="prs-vessel">${esc(card.vessel.name||card.vessel.id||"—")}</span>`;
-    h += `<span class="prs-badge prs-badge-lg ${_prsStateClass(c.state)}">${esc(c.state)}</span></div>`;
-    if(c.qualifier) h += `<div class="prs-qualifier">${esc(c.qualifier)}</div>`;
-    const meta = [];
-    if(card.vessel.berth_id) meta.push("Berth "+card.vessel.berth_id);
-    if(card.vessel.eta) meta.push("ETA "+String(card.vessel.eta));
-    if(meta.length) h += `<div class="prs-card-meta">${esc(meta.join("  ·  "))}</div>`;
     h += _prsComponentRow("Navigation Readiness", card.navigation);
     h += _prsComponentRow("Service Readiness", card.service);
     h += _prsComponentRow("Berth Readiness", card.berth);
