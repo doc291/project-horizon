@@ -978,6 +978,7 @@
     <div class="panel panel-center" style="display:flex;flex-direction:column;">
       <div class="tab-bar">
         <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+        <button class="tab-btn" id="tabbtn-readiness" onclick="switchTab('readiness')" style="display:none">Readiness <span class="tab-badge" id="tbadge-readiness"></span></button>
         <button class="tab-btn" onclick="switchTab('timeline')">Berth Timeline</button>
         <button class="tab-btn" onclick="switchTab('utilisation')">Utilisation</button>
         <button class="tab-btn" onclick="switchTab('vts')">VTS View</button>
@@ -1234,6 +1235,13 @@
         </div>
       </div>
 
+      <!-- Readiness tab (Beta 12): first-class Port Readiness destination.
+           Populated client-side by renderReadiness() from the Phase-1 engine
+           exposed on window._b11.readiness. Hidden unless beta11 is active. -->
+      <div class="tab-pane" id="tab-readiness" style="overflow-y:auto;padding:16px;flex-direction:column;">
+        <div id="rdx-root"><div style="color:var(--text-dim);padding:20px;text-align:center;">Loading…</div></div>
+      </div>
+
     </div>
 
     <!-- Right: Decisions + Audit -->
@@ -1478,13 +1486,86 @@ function renderAuditLog(){
 
 
 /* ── Tab switching ── */
-const _TABS = ['dashboard','timeline','utilisation','vts','pilotage','towage','lines','dukc','esg','performance'];
+const _TABS = ['dashboard','readiness','timeline','utilisation','vts','pilotage','towage','lines','dukc','esg','performance'];
+/* ── Readiness tab (Phase 1B) — top-level destination view ──────────────────
+   Thin DOM glue over the Phase-1 readiness engine exposed on
+   window._b11.readiness (pure functions). No new data sources, no conflict-
+   engine changes, no scores/recommendations/cost. Gated on d.beta11 so it is
+   inert in production main. */
+let _rdxExpanded = {};
+function _prsTopStateClass(st){
+  return st==='READY'?'prs-ready':st==='AT RISK'?'prs-atrisk':st==='NOT READY'?'prs-notready':'prs-uncertain';
+}
+function _rdxCue(card){
+  const subs=[].concat(card.navigation.subs||[],card.service.subs||[],card.berth.subs||[]);
+  if(subs.some(s=>s.simulated)) return 'simulated / assumed data';
+  if(card.berth&&card.berth.kind==='structural_terminal') return 'schedule-based (terminal unconfirmed)';
+  return 'live where available';
+}
+function toggleReadinessVessel(id){
+  _rdxExpanded[id]=!_rdxExpanded[id];
+  if(_data)renderReadiness(_data);
+}
+function renderReadiness(d){
+  const btn=document.getElementById('tabbtn-readiness');
+  const root=document.getElementById('rdx-root');
+  const R=window._b11&&window._b11.readiness;
+  const available=!!(R&&d&&d.beta11);
+  if(btn)btn.style.display=available?'':'none';
+  if(!root)return;
+  if(!available){
+    if(_activeTab==='readiness')switchTab('dashboard');  // never strand on a hidden tab
+    root.innerHTML='<div class="rdx-empty">Port Readiness is available in Beta 12.</div>';
+    return;
+  }
+  const cards=R.sort(R.picture(d).map(v=>R.build(v,d)));
+  const c=R.counts(cards);
+  let h='<div class="rdx-head">';
+  h+='<div class="rdx-title">Port Readiness</div>';
+  h+='<div class="rdx-sub">Signal indicates whether the port is ready for each vessel — an assessment based on current data, not a clearance.</div>';
+  h+='<div class="rdx-counts">';
+  h+=`<span class="rdx-count rdx-total">${c.total} assessed</span>`;
+  h+=`<span class="rdx-count prs-notready">${c['NOT READY']} NOT READY</span>`;
+  h+=`<span class="rdx-count prs-atrisk">${c['AT RISK']} AT RISK</span>`;
+  h+=`<span class="rdx-count prs-uncertain">${c['UNCERTAIN']} UNCERTAIN</span>`;
+  h+=`<span class="rdx-count prs-ready">${c['READY']} READY</span>`;
+  h+='</div>';
+  h+='<div class="rdx-caveat">⚠ Phase 1 scorecard — service and terminal readiness may use simulated, assumed or unavailable data.</div>';
+  h+='</div>';
+  if(!cards.length){
+    h+='<div class="rdx-empty">No vessels in the forward picture to assess.</div>';
+  }else{
+    h+='<div class="rdx-list">';
+    cards.forEach(card=>{
+      const id=card.vessel.id;
+      const open=!!_rdxExpanded[id];
+      const isDep=card.vessel.status==='berthed';
+      const t=isDep?card.vessel.etd:card.vessel.eta;
+      const tlabel=(isDep?'ETD ':'ETA ')+(t?fmtTimeRel(t):'—');
+      h+=`<div class="rdx-row ${open?'open':''}">`;
+      h+=`<div class="rdx-row-hdr" role="button" tabindex="0" onclick="toggleReadinessVessel('${esc(id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleReadinessVessel('${esc(id)}')}">`;
+      h+=`<span class="rdx-chev">${open?'▾':'▸'}</span>`;
+      h+=`<span class="rdx-vessel">${esc(card.vessel.name||id)}</span>`;
+      h+=`<span class="prs-badge ${_prsTopStateClass(card.composite.state)}">${esc(card.composite.state)}</span>`;
+      h+=`<span class="rdx-meta">${esc(tlabel)}${card.vessel.berth_id?(' · Berth '+esc(card.vessel.berth_id)):''}</span>`;
+      h+=`<span class="rdx-cue">${esc(_rdxCue(card))}</span>`;
+      h+=`</div>`;
+      h+=`<div class="rdx-row-reason">${esc(R.reason(card))}</div>`;
+      if(open)h+=`<div class="rdx-detail">${R.cardHTML(card)}</div>`;
+      h+=`</div>`;
+    });
+    h+='</div>';
+  }
+  root.innerHTML=h;
+}
+
 function switchTab(name){
   _activeTab=name;
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',_TABS[i]===name));
   _TABS.forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===name));
   if(name==='utilisation'&&_data)renderUtilisation(_data.berth_utilisation||[]);
   if(name==='dashboard'&&_data)renderDashboard(_data.dashboard,_data.etd_risk||[]);
+  if(name==='readiness'&&_data)renderReadiness(_data);
   if(name==='vts')setTimeout(initVTS,80);
   if(name==='pilotage'&&_data)renderPilotage(_data);
   if(name==='towage'&&_data)renderTowage(_data);
@@ -1533,6 +1614,7 @@ function render(d){
   // Beta 11 role views. No-op unless the server sends a top level `beta11`
   // block (only present when BETA11_ENABLED). Keeps Beta 10 render untouched.
   if(window._b11 && d && d.beta11)_b11.onData(d);
+  renderReadiness(d);  // Phase 1B — top-level Readiness tab (gates on d.beta11 internally)
 }
 
 /* ── Beta 9: Conflict Timeline ── */
@@ -3403,6 +3485,26 @@ function _checkCounts(observed,badgeId,label,expected){
     .prs-note{font-size:10px;color:var(--medium);margin:3px 0;}
     .prs-advisory{font-size:9px;color:#64748b;font-style:italic;margin-top:8px;border-top:1px solid rgba(255,255,255,.05);padding-top:6px;}
     .prs-empty{font-size:11px;color:#64748b;padding:6px 2px;}
+    /* Readiness tab (Phase 1B) destination layout. */
+    .rdx-head{margin-bottom:14px;}
+    .rdx-title{font-size:18px;font-weight:700;color:#e2e8f0;letter-spacing:.3px;}
+    .rdx-sub{font-size:12px;color:#94a3b8;margin:3px 0 10px;}
+    .rdx-counts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+    .rdx-count{font-size:11px;font-weight:700;letter-spacing:.4px;padding:4px 10px;border-radius:12px;background:rgba(255,255,255,.04);}
+    .rdx-total{color:#cbd5e1;}
+    .rdx-caveat{font-size:11px;color:var(--medium);background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.25);border-radius:6px;padding:7px 10px;}
+    .rdx-list{display:flex;flex-direction:column;gap:8px;}
+    .rdx-row{border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.02);overflow:hidden;}
+    .rdx-row.open{border-color:rgba(56,189,248,.35);}
+    .rdx-row-hdr{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;}
+    .rdx-row-hdr:hover{background:rgba(255,255,255,.03);}
+    .rdx-chev{color:#64748b;font-size:11px;width:10px;flex-shrink:0;}
+    .rdx-vessel{font-size:13px;font-weight:700;color:#e2e8f0;min-width:130px;}
+    .rdx-meta{font-size:11px;color:#94a3b8;}
+    .rdx-cue{font-size:10px;color:#64748b;margin-left:auto;font-style:italic;}
+    .rdx-row-reason{font-size:11px;color:#cbd5e1;padding:0 12px 10px 32px;}
+    .rdx-detail{padding:4px 12px 12px;border-top:1px solid rgba(255,255,255,.05);}
+    .rdx-empty{font-size:12px;color:#64748b;padding:24px;text-align:center;}
     .pwc-transit-flagged{border-color:rgba(251,191,36,.4);background:rgba(245,158,11,.04);}
     .pwc-transit-flagged.pwc-flag-critical{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.04);}
     .pwc-transit-hdr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
@@ -3902,6 +4004,7 @@ function _checkCounts(observed,badgeId,label,expected){
     const berth = _prsAssessBerth(v, summary);
     return {
       vessel: { id:v.id, name:v.name, imo:v.imo||null, type:v.vessel_type||null,
+                status:v.status||null,
                 loa: v.loa!=null?v.loa:null, draught: v.draught!=null?v.draught:null,
                 berth_id:v.berth_id||null, eta:v.eta||null, etd:v.etd||null, source:v.source||null },
       composite: _prsCompose(nav, svc, berth),
@@ -3910,11 +4013,69 @@ function _checkCounts(observed,badgeId,label,expected){
   }
 
   // Relevant = approaching/inbound vessels (not yet alongside), earliest ETA first.
+  // Used by the compact right-column panel (Phase 1).
   function prsRelevantVessels(summary){
     return (summary.vessels||[])
       .filter(v => v && ["expected","confirmed","scheduled","at_risk"].indexOf(v.status) >= 0)
       .slice()
       .sort((a,b) => new Date(a.eta||0) - new Date(b.eta||0));
+  }
+
+  // Phase 1B — the FORWARD PICTURE for the Readiness tab: approaching vessels,
+  // berthed vessels with a pending departure, AND any vessel referenced by a
+  // readiness-impacting conflict. Deduped by id. Additive — does not alter the
+  // Phase-1 selector above. Display-only selection (no rule change).
+  function prsPictureVessels(summary){
+    const vessels = summary.vessels || [];
+    const seen = {}, out = [];
+    const add = v => { if(v && v.id && !seen[v.id]){ seen[v.id] = 1; out.push(v); } };
+    vessels.filter(v => v && ["expected","confirmed","scheduled","at_risk"].indexOf(v.status) >= 0).forEach(add);
+    vessels.filter(v => v && v.status === "berthed" && v.etd).forEach(add);
+    const impact = ["berth_overlap","berth_not_ready","bridge_restriction","towage_resource","pilotage_window","eta_variance"];
+    const flagged = {};
+    (summary.conflicts||[]).forEach(c => {
+      if(c && impact.indexOf(c.conflict_type) >= 0) (c.vessel_ids||[]).forEach(id => { flagged[id] = 1; });
+    });
+    vessels.filter(v => v && flagged[v.id]).forEach(add);
+    return out;
+  }
+
+  // Urgency ordering for the picture: NOT READY > AT RISK > UNCERTAIN > READY,
+  // ties broken by earliest ETA/ETD.
+  const _PRS_URGENCY = { "NOT READY":0, "AT RISK":1, "UNCERTAIN":2, "READY":3 };
+  function prsSortByUrgency(cards){
+    return cards.slice().sort((a,b) => {
+      const d = (_PRS_URGENCY[a.composite.state] ?? 9) - (_PRS_URGENCY[b.composite.state] ?? 9);
+      if(d !== 0) return d;
+      return new Date((a.vessel.eta||a.vessel.etd)||0) - new Date((b.vessel.eta||b.vessel.etd)||0);
+    });
+  }
+  function prsSummaryCounts(cards){
+    const c = { total: cards.length, "READY":0, "AT RISK":0, "NOT READY":0, "UNCERTAIN":0 };
+    cards.forEach(x => { c[x.composite.state] = (c[x.composite.state]||0) + 1; });
+    return c;
+  }
+  // Short primary reason for a picture row: the worst-component's first sub at
+  // the composite state, else its first note, else the qualifier.
+  function prsPrimaryReason(card){
+    const comps = [card.navigation, card.service, card.berth];
+    const pick = want => {
+      for(const comp of comps){
+        if(comp.state === want){
+          const sub = (comp.subs||[]).find(s => s.state === want);
+          if(sub && sub.reason) return sub.reason;
+          if(comp.notes && comp.notes.length) return comp.notes[0];
+        }
+      }
+      return null;
+    };
+    // Prefer the cause matching the composite state; otherwise (e.g. composite
+    // AT RISK driven by an UNCERTAIN component per the conservative rule) surface
+    // the first non-READY component's reason so the row stays informative.
+    return pick(card.composite.state)
+        || pick(PRS.NOT_READY) || pick(PRS.AT_RISK) || pick(PRS.UNCERTAIN)
+        || card.composite.qualifier
+        || "Assessment based on current data.";
   }
 
   // ── Pure renderer (HTML string; uses esc only) ──────────────────────────────
@@ -6413,7 +6574,18 @@ function _checkCounts(observed,badgeId,label,expected){
     ensurePoll();
   }
 
-  window._b11={onData, shift:()=>_last?buildTowageShift(_last):null};
+  window._b11={onData, shift:()=>_last?buildTowageShift(_last):null,
+    // Phase 1B — readiness engine exposed for the top-level Readiness tab
+    // (the tab renderer lives outside this IIFE). Pure functions only.
+    readiness:{
+      states: PRS,
+      picture: prsPictureVessels,
+      build:   buildVesselReadiness,
+      sort:    prsSortByUrgency,
+      counts:  prsSummaryCounts,
+      reason:  prsPrimaryReason,
+      cardHTML: renderReadinessCardHTML
+    }};
 })();
 
 /* ── Boot ── */

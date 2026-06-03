@@ -37,7 +37,8 @@ function compile() {
     function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
     ${extractPure()}
     return { PRS, buildVesselReadiness, renderReadinessCardHTML, prsRelevantVessels,
-             _prsAssessNavigation, _prsAssessService, _prsAssessBerth, _prsCompose };
+             _prsAssessNavigation, _prsAssessService, _prsAssessBerth, _prsCompose,
+             prsPictureVessels, prsSortByUrgency, prsSummaryCounts, prsPrimaryReason };
   `;
   return new Function(src)();
 }
@@ -165,6 +166,73 @@ console.log('=== Port Readiness Scorecard — Phase 1 acceptance ===\n');
   const advisory = /advisory only/i.test(out) && /not a clearance/i.test(out);
   check('PRS-7', !banned && advisory,
     `no clearance/authorise/approve/proceed wording=${!banned}; advisory disclaimer present=${advisory}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 1B — Readiness tab (forward picture, summary counts, sort, detail, labels)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 8. Forward picture selection: approaching + berthed-with-ETD + conflict-flagged;
+//    excludes berthed-without-departure.
+{
+  const approaching = vessel({ id:'A1', name:'APPROACHER', status:'confirmed', berth_id:'B01', eta:FUTURE });
+  const departing   = vessel({ id:'D1', name:'DEPARTER',   status:'berthed',   berth_id:'B01', eta:null, etd:FUTURE });
+  const flagged     = vessel({ id:'C1', name:'CONFLICTED', status:'berthed',   berth_id:'B01', eta:null, etd:null });
+  const excluded    = vessel({ id:'X1', name:'STATIONARY', status:'berthed',   berth_id:'B01', eta:null, etd:null });
+  const sum = baseSummary({
+    vessels:[approaching, departing, flagged, excluded],
+    conflicts:[{ conflict_type:'berth_overlap', severity:'high', vessel_ids:['C1'], description:'overlap', data_source:'simulated' }]
+  });
+  const ids = ctx.prsPictureVessels(sum).map(v => v.id);
+  check('PRS-8', ids.indexOf('A1')>=0 && ids.indexOf('D1')>=0 && ids.indexOf('C1')>=0 && ids.indexOf('X1')<0,
+    `picture includes approaching+departing+flagged, excludes idle-berthed (${ids.join(',')})`);
+}
+
+// 9. Summary counts are correct.
+{
+  const cards = [
+    { composite:{ state:S.READY } }, { composite:{ state:S.READY } },
+    { composite:{ state:S.AT_RISK } }, { composite:{ state:S.NOT_READY } },
+    { composite:{ state:S.UNCERTAIN } }
+  ];
+  const c = ctx.prsSummaryCounts(cards);
+  check('PRS-9', c.total===5 && c['READY']===2 && c['AT RISK']===1 && c['NOT READY']===1 && c['UNCERTAIN']===1,
+    `counts total=${c.total} R=${c['READY']} A=${c['AT RISK']} N=${c['NOT READY']} U=${c['UNCERTAIN']}`);
+}
+
+// 10. Sort by urgency: NOT READY > AT RISK > UNCERTAIN > READY.
+{
+  const mk = (st,eta) => ({ composite:{ state:st }, vessel:{ eta:eta } });
+  const sorted = ctx.prsSortByUrgency([
+    mk(S.READY,'2099-01-01T01:00:00Z'),
+    mk(S.UNCERTAIN,'2099-01-01T01:00:00Z'),
+    mk(S.NOT_READY,'2099-01-01T01:00:00Z'),
+    mk(S.AT_RISK,'2099-01-01T01:00:00Z')
+  ]).map(x => x.composite.state);
+  check('PRS-10', JSON.stringify(sorted)===JSON.stringify([S.NOT_READY,S.AT_RISK,S.UNCERTAIN,S.READY]),
+    `urgency order = ${sorted.join(' > ')}`);
+}
+
+// 11. Primary reason reflects the worst (composite) component.
+{
+  const v = vessel({ id:'V3', name:'TIDE RUNNER' });
+  const card = ctx.buildVesselReadiness(v, baseSummary({
+    arrival_ukc:{ status:'critical', critical_vessel:'TIDE RUNNER', all:[{vessel_id:'V3', ukc_m:-0.3}] }, vessels:[v]
+  }));
+  const reason = ctx.prsPrimaryReason(card);
+  check('PRS-11', card.composite.state===S.NOT_READY && /UKC/i.test(reason),
+    `NOT READY primary reason surfaces UKC cause: "${reason}"`);
+}
+
+// 12. Expanding a vessel reveals the three components; simulated/assumed/unavailable
+//     labels remain visible in the detail card.
+{
+  const v = vessel({ id:'V9', name:'FULL SERVICE', pilotage_required:true, towage_required:true });
+  const out = ctx.renderReadinessCardHTML(ctx.buildVesselReadiness(v, baseSummary({ vessels:[v] })));
+  const comps = /Navigation Readiness/.test(out) && /Service Readiness/.test(out) && /Berth Readiness/.test(out);
+  const labels = /simulated/i.test(out) && /(unconfirmed|schedule)/i.test(out) && /not available/i.test(out);
+  check('PRS-12', comps && labels,
+    `detail shows 3 components=${comps}; simulated/unconfirmed/unavailable labels visible=${labels}`);
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────
