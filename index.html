@@ -1520,7 +1520,7 @@ function _rdxReadinessText(card, d){
   const v=card.vessel, st=card.composite.state, {key,comp}=_rdxDriver(card);
   if(st==='READY'){
     return { lead: card.composite.qualifier
-        ? 'Ready to proceed — berth readiness unconfirmed (schedule-based).'
+        ? 'Ready to proceed — '+card.composite.qualifier
         : 'Ready to proceed as planned, based on current data.', timing:'' };
   }
   let lead='', timing='';
@@ -3911,6 +3911,15 @@ function _checkCounts(observed,badgeId,label,expected){
     return (summary.conflicts||[]).filter(c =>
       c && Array.isArray(c.vessel_ids) && c.vessel_ids.indexOf(vesselId) >= 0);
   }
+  // Calibration — hours from now until a vessel's ETA, used to scope whether a
+  // conflict is operationally relevant NOW (<=12h), in the forward window
+  // (12-24h) or beyond the window (>24h, informational). Uses existing eta only.
+  function _prsHrsTo(iso){
+    if(!iso) return null;
+    const t = new Date(iso).getTime();
+    if(isNaN(t)) return null;
+    return (t - Date.now()) / 3600000;
+  }
 
   // ── Navigation Readiness ──────────────────────────────────────────────────
   // AIS freshness note: /api/summary carries no per-vessel position timestamp,
@@ -3967,12 +3976,21 @@ function _checkCounts(observed,badgeId,label,expected){
       notes.push("Weather status not available.");
     }
 
-    // Bridge / channel — existing conflict flags only (air draught is estimated).
+    // Bridge / channel — a bridge air-draught restriction is a MANAGED PROCEDURE,
+    // not an automatic blocker. Calibration: >24h from movement = informational
+    // only; within 24h with permission status unknown = AT RISK; never NOT READY
+    // (Horizon holds no permission grant/denial data, so it cannot assert a
+    // denial). Air draught is estimated, not measured.
     const bridge = _prsConflictsFor(summary, v.id).filter(c => c.conflict_type === "bridge_restriction");
     if(bridge.length){
-      const st = bridge.some(c => c.severity === "critical") ? PRS.NOT_READY : PRS.AT_RISK;
-      subs.push({ key:"bridge", state:st, reason: bridge[0].description || "Bridge air-draught restriction.",
-        confidence:"LOW", provenance:(bridge[0].data_source||"simulated")+" (air draught estimated)", simulated:true });
+      const hrs = _prsHrsTo(v.eta);
+      if(hrs != null && hrs > 24){
+        notes.push("Bridge air-draught restriction applies (managed procedure) — movement beyond 24h; informational only.");
+      } else {
+        subs.push({ key:"bridge", state:PRS.AT_RISK,
+          reason:(bridge[0].description || "Bridge air-draught restriction.")+" Permission status not held by Horizon — confirm clearance with CityLink/VTS.",
+          confidence:"LOW", provenance:(bridge[0].data_source||"simulated")+" (air draught estimated)", simulated:true });
+      }
     }
     notes.push("Channel/traffic status not available from current data.");
 
@@ -4033,19 +4051,37 @@ function _checkCounts(observed,badgeId,label,expected){
     const cf = _prsConflictsFor(summary, v.id);
     const overlap  = cf.filter(c => c.conflict_type === "berth_overlap");
     const notReady = cf.filter(c => c.conflict_type === "berth_not_ready");
-    if(overlap.length){
-      const st = overlap.some(c => c.severity === "critical") ? PRS.NOT_READY : PRS.AT_RISK;
-      subs.push({ key:"availability", state:st, reason: overlap[0].description || "Berth overlap with another vessel.",
-        confidence:"MODERATE", provenance:(overlap[0].data_source||"schedule-based") });
-    } else if(notReady.length){
-      const st = notReady.some(c => c.severity === "high") ? PRS.NOT_READY : PRS.AT_RISK;
-      subs.push({ key:"availability", state:st, reason: notReady[0].description || "Berth not ready before ETA.",
-        confidence:"MODERATE", provenance:(notReady[0].data_source||"schedule-based") });
-    } else {
+    const berthConflict = overlap[0] || notReady[0] || null;
+    // Schedule-based, terminal-unconfirmed baseline (used when there is no
+    // operationally-relevant berth conflict).
+    const _scheduleBaseline = () => {
       subs.push({ key:"availability", state:PRS.UNCERTAIN, kind:"structural_terminal",
         reason:"Berth availability based on schedule. Terminal has not confirmed actual clearance.",
         confidence:"LOW", provenance:"schedule-based (no terminal feed)" });
       notes.push("Terminal readiness feed not connected — berth availability is unconfirmed.");
+    };
+    if(berthConflict){
+      // Calibration — operational relevance window scoped by the vessel's ETA:
+      //   <=12h  : genuine blocker (severity-driven NOT READY, else AT RISK)
+      //   12-24h : forward-window AT RISK
+      //   >24h   : informational only — does NOT elevate the component
+      const hrs = _prsHrsTo(v.eta);
+      const isBlocker = (overlap.some(c => c.severity === "critical")) || (notReady.some(c => c.severity === "high"));
+      if(hrs != null && hrs > 24){
+        _scheduleBaseline();
+        notes.push("Berth conflict noted for this vessel beyond the 24h operational window (informational): " + (berthConflict.description || ""));
+      } else if(hrs != null && hrs <= 12){
+        subs.push({ key:"availability", state: isBlocker ? PRS.NOT_READY : PRS.AT_RISK,
+          reason: berthConflict.description || "Berth not clear before arrival.",
+          confidence:"MODERATE", provenance:(berthConflict.data_source||"schedule-based") });
+      } else {
+        // 12-24h, or timing unknown (no ETA) — monitor, do not block.
+        subs.push({ key:"availability", state:PRS.AT_RISK,
+          reason: berthConflict.description || "Berth clearance tight in the forward window.",
+          confidence:"MODERATE", provenance:(berthConflict.data_source||"schedule-based") });
+      }
+    } else {
+      _scheduleBaseline();
     }
     const st = _prsWorst(subs.map(s=>s.state));
     let kind;
@@ -4055,18 +4091,34 @@ function _checkCounts(observed,badgeId,label,expected){
     return { state:st, kind, subs, notes };
   }
 
-  // ── Composite (conservative; one exception for structurally-absent terminal) ──
+  // ── Composite (conservative, calibrated) ────────────────────────────────────
+  // Distinguishes STRUCTURAL absence (a feed that is not connected at all —
+  // pilotage/towage `missing_feed`, terminal `structural_terminal`) from
+  // DEGRADING uncertainty (a connected source gone stale, or navigation that
+  // cannot be assessed because ETA is absent — `missing_eta`/`stale`).
+  //   - Any NOT READY        -> NOT READY
+  //   - Any AT RISK          -> AT RISK
+  //   - Uncertain components:
+  //       * all of them STRUCTURAL and every assessable component READY
+  //                            -> READY with visible qualifier(s)
+  //       * any DEGRADING      -> AT RISK
+  //   - All READY            -> READY
+  const _PRS_STRUCTURAL_KINDS = { missing_feed:1, structural_terminal:1 };
   function _prsCompose(nav, svc, berth){
-    const comps = [nav, svc, berth];
-    if(comps.some(c => c.state === PRS.NOT_READY)) return { state:PRS.NOT_READY };
-    if(comps.some(c => c.state === PRS.AT_RISK))   return { state:PRS.AT_RISK };
-    const uncertain = comps.filter(c => c.state === PRS.UNCERTAIN);
+    const labelled = [["Navigation",nav],["Service",svc],["Berth",berth]];
+    if(labelled.some(([,c]) => c.state === PRS.NOT_READY)) return { state:PRS.NOT_READY };
+    if(labelled.some(([,c]) => c.state === PRS.AT_RISK))   return { state:PRS.AT_RISK };
+    const uncertain = labelled.filter(([,c]) => c.state === PRS.UNCERTAIN);
     if(uncertain.length){
-      if(uncertain.length === 1 && uncertain[0] === berth && berth.kind === "structural_terminal"
-         && nav.state === PRS.READY && svc.state === PRS.READY){
-        return { state:PRS.READY, qualifier:"Berth readiness unconfirmed." };
+      const allStructural = uncertain.every(([,c]) => _PRS_STRUCTURAL_KINDS[c.kind]);
+      if(allStructural){
+        const quals = uncertain.map(([label]) =>
+          label === "Service" ? "Service readiness unconfirmed."
+        : label === "Berth"   ? "Berth readiness unconfirmed."
+        : (label + " unconfirmed."));
+        return { state:PRS.READY, qualifier: quals.join(" ") };
       }
-      return { state:PRS.AT_RISK };
+      return { state:PRS.AT_RISK };   // degrading uncertainty (stale / missing ETA)
     }
     return { state:PRS.READY };
   }

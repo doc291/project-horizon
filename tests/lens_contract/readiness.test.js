@@ -54,6 +54,8 @@ function check(id, cond, detail) {
 
 // ── Fixture builders (synthetic /api/summary slices) ────────────────────────
 const FUTURE = '2099-01-01T06:00:00Z';   // always future; absolute value irrelevant to logic
+// ETA relative to NOW, for the operational-relevance window (calibration).
+function inHours(h){ return new Date(Date.now() + h*3600000).toISOString(); }
 function baseSummary(over) {
   return Object.assign({
     beta11: { enabled: true },
@@ -100,9 +102,9 @@ console.log('=== Port Readiness Scorecard — Phase 1 acceptance ===\n');
     `pilotage+towage labelled simulated=${labelled}, service UNCERTAIN not READY=${notLiveReady}`);
 }
 
-// 3. Berth conflict → Berth Readiness AT RISK or NOT READY.
+// 3. Berth conflict WITHIN 12h → Berth Readiness NOT READY (blocker) / AT RISK.
 {
-  const v = vessel({ id: 'V7', name: 'OVERLAP VESSEL' });
+  const v = vessel({ id: 'V7', name: 'OVERLAP VESSEL', eta: inHours(6) });
   const critical = ctx._prsAssessBerth(v, baseSummary({
     conflicts: [{ conflict_type: 'berth_overlap', severity: 'critical', vessel_ids: ['V7'],
                   description: 'Berth occupied on arrival.', data_source: 'simulated' }]
@@ -112,7 +114,7 @@ console.log('=== Port Readiness Scorecard — Phase 1 acceptance ===\n');
                   description: 'Overlap within clearance.', data_source: 'simulated' }]
   }));
   check('PRS-3', critical.state === S.NOT_READY && high.state === S.AT_RISK,
-    `critical overlap → NOT READY (${critical.state}); high overlap → AT RISK (${high.state})`);
+    `<=12h critical overlap → NOT READY (${critical.state}); high overlap → AT RISK (${high.state})`);
 }
 
 // 4. UKC/tide risk → Navigation Readiness AT RISK or NOT READY.
@@ -138,24 +140,32 @@ console.log('=== Port Readiness Scorecard — Phase 1 acceptance ===\n');
     `no ETA + simulated source → navigation UNCERTAIN(missing_eta) (${nav.state}/${nav.kind})`);
 }
 
-// 6. Composite follows the conservative rule.
+// 6. Composite follows the CALIBRATED conservative rule.
+//    (Updated per the calibration sprint: structural absence no longer forces
+//    AT RISK; degrading uncertainty — stale / missing-ETA — does.)
 {
   const R = { state: S.READY }, A = { state: S.AT_RISK }, N = { state: S.NOT_READY };
   const Ustruct = { state: S.UNCERTAIN, kind: 'structural_terminal' };
-  const Ufeed = { state: S.UNCERTAIN, kind: 'missing_feed' };
+  const Ufeed   = { state: S.UNCERTAIN, kind: 'missing_feed' };
+  const Ustale  = { state: S.UNCERTAIN, kind: 'stale' };
+  const Ueta    = { state: S.UNCERTAIN, kind: 'missing_eta' };
   // any NOT READY wins
   const c1 = ctx._prsCompose(R, R, N).state === S.NOT_READY;
   // any AT RISK (no NOT READY) wins
   const c2 = ctx._prsCompose(R, A, Ustruct).state === S.AT_RISK;
-  // service missing_feed uncertainty (not terminal) → AT RISK, not the exception
-  const c3 = ctx._prsCompose(R, Ufeed, R).state === S.AT_RISK;
-  // exception: only uncertainty is structural terminal berth, nav+svc READY → READY+qualifier
+  // structural service-feed absence + all assessable READY → READY + qualifier
+  const sx = ctx._prsCompose(R, Ufeed, R);
+  const c3 = sx.state === S.READY && /service readiness unconfirmed/i.test(sx.qualifier || '');
+  // structural terminal berth + nav+svc READY → READY + qualifier
   const ex = ctx._prsCompose(R, R, Ustruct);
-  const c4 = ex.state === S.READY && /unconfirmed/i.test(ex.qualifier || '');
+  const c4 = ex.state === S.READY && /berth readiness unconfirmed/i.test(ex.qualifier || '');
   // all READY → READY
   const c5 = ctx._prsCompose(R, R, R).state === S.READY;
-  check('PRS-6', c1 && c2 && c3 && c4 && c5,
-    `NOT READY wins=${c1}; AT RISK wins=${c2}; missing_feed→AT RISK=${c3}; structural-terminal exception→READY+qualifier=${c4}; all READY→READY=${c5}`);
+  // DEGRADING uncertainty: stale connected data → AT RISK; missing ETA → AT RISK
+  const c6 = ctx._prsCompose(R, Ustale, R).state === S.AT_RISK;
+  const c7 = ctx._prsCompose(Ueta, R, R).state === S.AT_RISK;
+  check('PRS-6', c1 && c2 && c3 && c4 && c5 && c6 && c7,
+    `NOT READY wins=${c1}; AT RISK wins=${c2}; structural-feed→READY+qual=${c3}; structural-terminal→READY+qual=${c4}; all READY→READY=${c5}; stale→AT RISK=${c6}; missing-ETA→AT RISK=${c7}`);
 }
 
 // 7. Renderer never emits clearance/authorisation language; always advisory.
@@ -233,6 +243,79 @@ console.log('=== Port Readiness Scorecard — Phase 1 acceptance ===\n');
   const labels = /simulated/i.test(out) && /(unconfirmed|schedule)/i.test(out) && /not available/i.test(out);
   check('PRS-12', comps && labels,
     `detail shows 3 components=${comps}; simulated/unconfirmed/unavailable labels visible=${labels}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Calibration Sprint — operational credibility
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 13. Structurally-absent service (and terminal) data does NOT force composite
+//     AT RISK when the assessable component (Navigation) is READY.
+{
+  const v = vessel({ id:'RT1', name:'ROUTINE', eta:inHours(6), pilotage_required:true, towage_required:true });
+  const card = ctx.buildVesselReadiness(v, baseSummary({ vessels:[v] }));
+  const ok = card.composite.state === S.READY
+    && /service readiness unconfirmed/i.test(card.composite.qualifier||'')
+    && /berth readiness unconfirmed/i.test(card.composite.qualifier||'')
+    && card.service.state === S.UNCERTAIN && card.berth.state === S.UNCERTAIN;
+  check('PRS-13', ok,
+    `routine vessel (services simulated, no terminal feed) → composite ${card.composite.state} + qualifier "${card.composite.qualifier}"; service/berth still UNCERTAIN`);
+}
+
+// 14. Berth conflict in the 12–24h forward window → AT RISK (not NOT READY).
+{
+  const v = vessel({ id:'V7', name:'FWD VESSEL', eta:inHours(18) });
+  const berth = ctx._prsAssessBerth(v, baseSummary({
+    conflicts:[{ conflict_type:'berth_overlap', severity:'critical', vessel_ids:['V7'], description:'overlap', data_source:'simulated' }]
+  }));
+  check('PRS-14', berth.state === S.AT_RISK, `12–24h berth conflict → AT RISK (${berth.state})`);
+}
+
+// 15. Berth conflict beyond 24h → does NOT drive NOT READY (informational only).
+{
+  const v = vessel({ id:'V7', name:'FARFUTURE', eta:inHours(30) });
+  const sum = baseSummary({
+    vessels:[v],
+    conflicts:[{ conflict_type:'berth_overlap', severity:'critical', vessel_ids:['V7'], description:'overlap', data_source:'simulated' }]
+  });
+  const berth = ctx._prsAssessBerth(v, sum);
+  const card = ctx.buildVesselReadiness(v, sum);
+  check('PRS-15', berth.state !== S.NOT_READY && card.composite.state !== S.NOT_READY,
+    `>24h berth conflict → berth ${berth.state} (not NOT READY), composite ${card.composite.state} (not NOT READY)`);
+}
+
+// 16. Bridge restriction beyond 24h → informational only (Navigation not elevated).
+{
+  const v = vessel({ id:'BR1', name:'BRIDGE FAR', eta:inHours(30) });
+  const nav = ctx._prsAssessNavigation(v, baseSummary({
+    conflicts:[{ conflict_type:'bridge_restriction', severity:'critical', vessel_ids:['BR1'], description:'Bolte air draught', data_source:'simulated' }]
+  }));
+  const noBridgeSub = !(nav.subs||[]).some(s => s.key === 'bridge');
+  const noted = (nav.notes||[]).some(n => /bridge/i.test(n));
+  check('PRS-16', nav.state === S.READY && noBridgeSub && noted,
+    `>24h bridge → nav ${nav.state}, no bridge sub=${noBridgeSub}, informational note=${noted}`);
+}
+
+// 17. Bridge restriction within 24h → AT RISK, never NOT READY.
+{
+  const v = vessel({ id:'BR2', name:'BRIDGE SOON', eta:inHours(6) });
+  const nav = ctx._prsAssessNavigation(v, baseSummary({
+    conflicts:[{ conflict_type:'bridge_restriction', severity:'critical', vessel_ids:['BR2'], description:'Bolte air draught', data_source:'simulated' }]
+  }));
+  const bridgeSub = (nav.subs||[]).find(s => s.key === 'bridge');
+  check('PRS-17', nav.state === S.AT_RISK && bridgeSub && bridgeSub.state === S.AT_RISK,
+    `<=24h bridge → nav ${nav.state}, bridge sub ${bridgeSub && bridgeSub.state} (never NOT READY)`);
+}
+
+// 18. UKC physically insufficient still drives composite NOT READY.
+{
+  const v = vessel({ id:'V3', name:'TIDE RUNNER', eta:inHours(6) });
+  const card = ctx.buildVesselReadiness(v, baseSummary({
+    vessels:[v],
+    arrival_ukc:{ status:'critical', critical_vessel:'TIDE RUNNER', all:[{ vessel_id:'V3', ukc_m:-0.3 }] }
+  }));
+  check('PRS-18', card.navigation.state === S.NOT_READY && card.composite.state === S.NOT_READY,
+    `negative UKC → navigation ${card.navigation.state}, composite ${card.composite.state}`);
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────
