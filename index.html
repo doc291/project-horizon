@@ -3553,6 +3553,12 @@ function _checkCounts(observed,badgeId,label,expected){
     .prs-sub-meta{font-size:9px;color:#64748b;margin-top:1px;}
     .prs-note{font-size:10px;color:var(--medium);margin:3px 0;}
     .prs-cap{font-size:10px;color:#7dd3fc;background:rgba(56,189,248,.06);border-left:2px solid rgba(56,189,248,.35);padding:5px 8px;margin:5px 0 2px;line-height:1.5;border-radius:0 4px 4px 0;}
+    /* Phase A — readiness consumed inside the lenses (reuses Tab palette/strip). */
+    .lens-rdx{margin-top:7px;padding-top:7px;border-top:1px dashed rgba(56,189,248,.25);}
+    .lens-rdx-hdr{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+    .lens-rdx-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#38bdf8;}
+    .lens-rdx-qual{font-size:10px;color:var(--medium);margin-bottom:5px;}
+    .lens-rdx-summary{font-size:11px;color:#94a3b8;margin:-4px 0 10px;letter-spacing:.3px;}
     .prs-advisory{font-size:9px;color:#64748b;font-style:italic;margin-top:8px;border-top:1px solid rgba(255,255,255,.05);padding-top:6px;}
     .prs-empty{font-size:11px;color:#64748b;padding:6px 2px;}
     /* Readiness tab (Phase 1B) destination layout. */
@@ -4274,6 +4280,58 @@ function _checkCounts(observed,badgeId,label,expected){
   // window._b11.readiness). The legacy right-column preview panel was removed in
   // Phase 1B cleanup so there is a single authoritative Port Readiness surface.
 
+  // ── Phase A — Readiness Integration (lens CONSUMPTION, never recompute) ──────
+  // The lenses consume the canonical assessment; they never produce it.
+  // _lensReadinessMap builds {vessel_id -> card} for every vessel using the SAME
+  // buildVesselReadiness(v, summary) the Readiness Tab uses, so a vessel's state
+  // is identical across Tab, Towage Lens and Pilotage Lens by construction.
+  // _lensReadinessBlock renders a compact readiness block reusing the Readiness
+  // Tab's visual language (badge, component strip, capability notes).
+  // These helpers sit OUTSIDE the string-extracted lens blocks; the renderers
+  // invoke them only when a readiness map is supplied (production path), so the
+  // lens acceptance harnesses (which call the renderers with no map) are
+  // unaffected and existing lens behaviour is preserved exactly.
+  // LENS-RDX-BEGIN
+  function _lensReadinessMap(summary){
+    const m = {};
+    ((summary && summary.vessels) || []).forEach(v => {
+      if(v && v.id) m[v.id] = buildVesselReadiness(v, summary);
+    });
+    return m;
+  }
+  function _lensReadinessBlock(card){
+    if(!card) return "";
+    const c = card.composite;
+    const cell = (label, comp) => `<span class="rdx-cmp"><span class="rdx-cmp-l">${esc(label)}</span> <span class="rdx-cmp-s ${_prsStateClass(comp.state)}">${esc(comp.state)}</span></span>`;
+    let h = `<div class="lens-rdx">`;
+    h += `<div class="lens-rdx-hdr"><span class="lens-rdx-label">Port Readiness</span>`;
+    h += `<span class="prs-badge ${_prsStateClass(c.state)}">${esc(c.state)}</span></div>`;
+    if(c.qualifier) h += `<div class="lens-rdx-qual">${esc(c.qualifier)}</div>`;
+    h += `<div class="rdx-strip">${cell("Navigation", card.navigation)}${cell("Service", card.service)}${cell("Berth", card.berth)}</div>`;
+    [["Navigation Readiness", card.navigation],["Service Readiness", card.service],["Berth Readiness", card.berth]].forEach(pair => {
+      const note = _prsCapabilityNote(pair[0], pair[1]);
+      if(note) h += `<div class="prs-cap">${esc(note)}</div>`;
+    });
+    h += `</div>`;
+    return h;
+  }
+  // Readiness summary for a set of lens items (bookings/transits) carrying
+  // vessel_id; counts per item via the canonical map. Additive headline line.
+  function _lensReadinessSummary(items, rdx){
+    if(!rdx) return "";
+    const order = ["NOT READY","AT RISK","UNCERTAIN","READY"];
+    const tally = { "READY":0, "AT RISK":0, "NOT READY":0, "UNCERTAIN":0 };
+    let n = 0;
+    (items || []).forEach(it => {
+      const card = it && rdx[it.vessel_id];
+      if(card){ tally[card.composite.state] = (tally[card.composite.state]||0) + 1; n++; }
+    });
+    if(!n) return "";
+    const parts = order.filter(s => tally[s] > 0).map(s => `${tally[s]} ${s}`);
+    return `<div class="lens-rdx-summary">Readiness: ${esc(parts.join(" · "))}</div>`;
+  }
+  // LENS-RDX-END
+
   // Collapsed by default — presentation state for the VTSO Decision Loop
   // panel. Persisted across polls so a re-render does not reset the user's
   // expand/collapse choice.
@@ -4494,7 +4552,7 @@ function _checkCounts(observed,badgeId,label,expected){
     // the top of the shift view. Layer 1 fleet, Layer 2+3 jobs with inline
     // confidence flags, Layer 4 forward shape and environment.
     if(role==="TOWAGE"){
-      return renderTowageShift(buildTowageShift(_last));
+      return renderTowageShift(buildTowageShift(_last), _lensReadinessMap(_last));
     }
 
     // ── PILOTAGE: Window Confidence POC — doctrine-aligned five-layer lens ──
@@ -4504,7 +4562,7 @@ function _checkCounts(observed,badgeId,label,expected){
     // shape with tide/weather environment. Companion to the scheduler's
     // roster system, not a replacement.
     if(role==="PILOTAGE"){
-      return renderPilotageWatch(buildPilotageWatch(_last));
+      return renderPilotageWatch(buildPilotageWatch(_last), _lensReadinessMap(_last));
     }
 
     // ── All other confirmer roles: existing behaviour unchanged ──────────────
@@ -6080,7 +6138,7 @@ function _checkCounts(observed,badgeId,label,expected){
     return `<div class="pwc-verdict pwc-verdict-${esc(v.level||"ok")}">${esc(v.text)}</div>`;
   }
 
-  function _pwcRenderTransit(t){
+  function _pwcRenderTransit(t, rdx){
     const flagged = !!t.flag;
     const sev = t.flag_severity || "";
     const cls = flagged ? `pwc-transit-flagged pwc-flag-${sev}` : "";
@@ -6112,11 +6170,12 @@ function _checkCounts(observed,badgeId,label,expected){
       });
       h += `</div>`;
     }
+    if(rdx && rdx[t.vessel_id]) h += _lensReadinessBlock(rdx[t.vessel_id]);  // Phase A — additive canonical readiness
     h += `</div>`;
     return h;
   }
 
-  function _pwcRenderTransits(watch){
+  function _pwcRenderTransits(watch, rdx){
     const transits = watch.transits || [];
     let h = `<div class="pwc-section"><h3 class="pwc-section-h">My transits — next 8 hours</h3>`;
     if(transits.length === 0){
@@ -6132,7 +6191,7 @@ function _checkCounts(observed,badgeId,label,expected){
     if(lead){
       h += `<div class="pwc-lead pwc-lead-${esc((lead.verdict && lead.verdict.level) || "ok")}">`;
       h += `<div class="pwc-lead-label">Next / watch this</div>`;
-      h += _pwcRenderTransit(lead);
+      h += _pwcRenderTransit(lead, rdx);
       h += `</div>`;
     }
     const _sevScore = s => s === "critical" ? 3 : s === "warning" ? 2 : s === "advisory" ? 1 : 0;
@@ -6142,7 +6201,7 @@ function _checkCounts(observed,badgeId,label,expected){
       return new Date(a.scheduled_time) - new Date(b.scheduled_time);
     });
     h += `<div class="pwc-transits-list">`;
-    rest.forEach(t => { h += _pwcRenderTransit(t); });
+    rest.forEach(t => { h += _pwcRenderTransit(t, rdx); });
     h += `</div></div>`;
     return h;
   }
@@ -6285,13 +6344,14 @@ function _checkCounts(observed,badgeId,label,expected){
     return h;
   }
 
-  function renderPilotageWatch(watch){
+  function renderPilotageWatch(watch, rdx){
     const w = watch || {};
     let h = `<div class="pwc-watch">`;
     h += _pwcRenderExceptions(w.exceptions || [], w);   // Layer 5 — interrupt above
     h += _pwcShapeHeadline(w);                           // LV1 — watch-shape headline (lens-top; not inside Section A, preserves LC-2)
+    if(rdx) h += _lensReadinessSummary(w.transits, rdx); // Phase A — additive readiness summary
     h += _pwcRenderWatchOverview(w);                     // Layer 1 — Watch Overview (pre-flight scan)
-    h += _pwcRenderTransits(w);                          // Layer 2 + Layer 3 (inline flags)
+    h += _pwcRenderTransits(w, rdx);                     // Layer 2 + Layer 3 (inline flags) + Phase A readiness
     h += _pwcRenderForward(w);                           // Layer 4
     h += `</div>`;
     return h;
@@ -6441,7 +6501,7 @@ function _checkCounts(observed,badgeId,label,expected){
     return h;
   }
 
-  function _tmsRenderBooking(bk){
+  function _tmsRenderBooking(bk, rdx){
     const flagged = !!bk.flag;
     const sev = bk.flag_severity || "";
     const cls = flagged ? `tms-job-flagged tms-flag-${sev}` : "";
@@ -6467,6 +6527,7 @@ function _checkCounts(observed,badgeId,label,expected){
       });
       h += `</div>`;
     }
+    if(rdx && rdx[bk.vessel_id]) h += _lensReadinessBlock(rdx[bk.vessel_id]);  // Phase A — additive canonical readiness
     h += `</div>`;
     return h;
   }
@@ -6486,7 +6547,7 @@ function _checkCounts(observed,badgeId,label,expected){
     return states.length ? states.join(" · ") : "no tugs assigned";
   }
 
-  function _tmsRenderJobs(shift){
+  function _tmsRenderJobs(shift, rdx){
     const bookings = shift.bookings || [];
     const fleet = shift.fleet || [];
     let h = `<div class="tms-section"><h3 class="tms-section-h">My jobs — next 12 hours</h3>`;
@@ -6515,7 +6576,7 @@ function _checkCounts(observed,badgeId,label,expected){
     if(lead){
       h += `<div class="tms-lead${lead.clash ? " tms-lead-clash" : ""}">`;
       h += `<div class="tms-lead-label">Next job</div>`;
-      h += _tmsRenderBooking(lead);
+      h += _tmsRenderBooking(lead, rdx);
       h += `<div class="tms-lead-avail">Tug availability: ${esc(_tmsLeadTugAvailability(lead, fleet))}</div>`;
       h += `</div>`;
     }
@@ -6525,7 +6586,7 @@ function _checkCounts(observed,badgeId,label,expected){
       return new Date(a.scheduled_time) - new Date(b.scheduled_time);
     });
     h += `<div class="tms-bookings-list">`;
-    rest.forEach(bk => { h += _tmsRenderBooking(bk); });
+    rest.forEach(bk => { h += _tmsRenderBooking(bk, rdx); });
     h += `</div></div>`;
     return h;
   }
@@ -6673,13 +6734,14 @@ function _checkCounts(observed,badgeId,label,expected){
     return h;
   }
 
-  function renderTowageShift(shift){
+  function renderTowageShift(shift, rdx){
     const s = shift || {};
     let h = `<div class="tms-shift">`;
     h += _tmsRenderExceptions(s.exceptions || [], s);   // Layer 5 — interrupt above
     h += _tmsShapeHeadline(s);                           // LV3 — shift-shape headline (lens-top; not inside Section A, preserves LC-2)
+    if(rdx) h += _lensReadinessSummary(s.bookings, rdx); // Phase A — additive readiness summary
     h += _tmsRenderFleet(s);                             // Layer 1
-    h += _tmsRenderJobs(s);                              // Layer 2 + Layer 3 (flags on jobs)
+    h += _tmsRenderJobs(s, rdx);                         // Layer 2 + Layer 3 (flags on jobs) + Phase A readiness
     h += _tmsRenderShiftLoad(s);                         // Layer 4
     h += `</div>`;
     return h;

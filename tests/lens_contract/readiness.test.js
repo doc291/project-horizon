@@ -45,6 +45,39 @@ function compile() {
 const ctx = compile();
 const S = ctx.PRS;
 
+// ── Phase A — compile PRS-PURE + LENS-RDX helpers + both lens blocks together,
+//    exactly as they coexist in the IIFE, to test lens readiness consumption
+//    and the Tab↔lens divergence guarantee end-to-end. ─────────────────────────
+function slice(startMark, endMark) {
+  const b = html.indexOf(startMark), e = html.indexOf(endMark, b + 1);
+  if (b < 0 || e < 0) throw new Error(`markers not found: ${startMark} … ${endMark}`);
+  return html.slice(b, e);
+}
+function compileLens() {
+  const PURE = extractPure();
+  const LENSRDX = slice('// LENS-RDX-BEGIN', '// LENS-RDX-END');
+  const TOW_DATA = slice('  let _prevConflictIds = null;',
+    '  // ════════════════════════════════════════════════════════════════════════\n  // Pilotage Window Confidence — data layer');
+  const PIL = slice('// ════════════════════════════════════════════════════════════════════════\n  // Pilotage Window Confidence — data layer',
+    '  // ════════════════════════════════════════════════════════════════════════\n  // renderTowageShift(shift) -> HTML string.');
+  const TOW_REND = slice('  // ════════════════════════════════════════════════════════════════════════\n  // renderTowageShift(shift) -> HTML string.',
+    '  function onData(d){');
+  const src = `
+    function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+    function fmtTs(ts){ try{ return new Date(ts).toISOString().slice(11,16); }catch(e){ return String(ts); } }
+    function fmtTsRel(ts){ return fmtTs(ts); }
+    ${PURE}
+    ${TOW_DATA}
+    ${PIL}
+    ${TOW_REND}
+    ${LENSRDX}
+    return { buildVesselReadiness, _lensReadinessMap, _lensReadinessBlock,
+             buildTowageShift, renderTowageShift, buildPilotageWatch, renderPilotageWatch };
+  `;
+  return new Function(src)();
+}
+const lens = compileLens();
+
 // ── Tiny assertion harness ──────────────────────────────────────────────────
 let PASS = 0, FAIL = 0;
 function check(id, cond, detail) {
@@ -368,6 +401,96 @@ const NAV_NOTE = /Confidence improves with verified draft/i;
   const rowReason = ctx.prsPrimaryReason(card);
   check('PRS-23', SVC_NOTE.test(expanded) && !SVC_NOTE.test(rowReason),
     `capability note in expanded=${SVC_NOTE.test(expanded)}; absent from collapsed-row reason=${!SVC_NOTE.test(rowReason)}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase A — Readiness integration into Towage & Pilotage lenses
+// ─────────────────────────────────────────────────────────────────────────────
+// One summary feeding both lenses + the Tab. Three vessels with distinct states:
+//   ALPHA  — routine (services simulated, no terminal feed) → READY + qualifier
+//   BRAVO  — berth_not_ready within 12h → NOT READY
+//   CHARLIE— bridge_restriction within 24h → AT RISK
+function phaseASummary(){
+  const eta = h => new Date(Date.now() + h*3600000).toISOString();
+  const sched = h => new Date(Date.now() + h*3600000).toISOString();
+  const V = (id,name,o) => Object.assign({ id, name, source:'ais', status:'confirmed',
+    draught:10, pilotage_required:true, towage_required:true }, o);
+  return {
+    beta11:{enabled:true}, port_profile:{using_live_vessel_data:true},
+    weather:{conditions:'Good', source:'live'},
+    arrival_ukc:{ status:'good', critical_vessel:null, all:[] },
+    tides:{ next_event_type:'HW', next_event_time:eta(5) },
+    berths:[{id:'B01',name:'Berth 1'},{id:'B02',name:'Berth 2',readiness_time:eta(13)},{id:'B03',name:'Berth 3'}],
+    vessels:[
+      V('VA','ALPHA',{ berth_id:'B01', eta:eta(6) }),
+      V('VB','BRAVO',{ berth_id:'B02', eta:eta(5) }),
+      V('VC','CHARLIE',{ berth_id:'B03', eta:eta(6) })
+    ],
+    conflicts:[
+      { conflict_type:'berth_not_ready', severity:'high', vessel_ids:['VB'], description:'Berth 2 not ready before arrival.', data_source:'simulated' },
+      { conflict_type:'bridge_restriction', severity:'high', vessel_ids:['VC'], description:'Bolte air draught', data_source:'simulated' }
+    ],
+    pilotage:[
+      { id:'PIL-VA', vessel_id:'VA', vessel_name:'ALPHA',  scheduled_time:sched(5), direction:'inbound', status:'confirmed', boarding_station:'PBG' },
+      { id:'PIL-VB', vessel_id:'VB', vessel_name:'BRAVO',  scheduled_time:sched(4), direction:'inbound', status:'confirmed', boarding_station:'PBG' },
+      { id:'PIL-VC', vessel_id:'VC', vessel_name:'CHARLIE',scheduled_time:sched(5), direction:'inbound', status:'confirmed', boarding_station:'PBG' }
+    ],
+    towage:[
+      { id:'TOW-VA', vessel_id:'VA', vessel_name:'ALPHA',  scheduled_time:sched(5), direction:'arrival', status:'confirmed', tugs_assigned:[] },
+      { id:'TOW-VB', vessel_id:'VB', vessel_name:'BRAVO',  scheduled_time:sched(4), direction:'arrival', status:'confirmed', tugs_assigned:[] },
+      { id:'TOW-VC', vessel_id:'VC', vessel_name:'CHARLIE',scheduled_time:sched(5), direction:'arrival', status:'confirmed', tugs_assigned:[] }
+    ],
+    port_tugs:[{name:'SVR Apex',bollard_pull_t:70}]
+  };
+}
+{
+  const d = phaseASummary();
+  const rdx = lens._lensReadinessMap(d);
+  const towHTML = lens.renderTowageShift(lens.buildTowageShift(d), rdx);
+  const pilHTML = lens.renderPilotageWatch(lens.buildPilotageWatch(d), rdx);
+  const tabState = id => lens.buildVesselReadiness(d.vessels.find(v=>v.id===id), d).composite.state;
+
+  // 24. Towage jobs display the canonical readiness state (badge in lens-rdx block).
+  const towHasBadge = /class="lens-rdx"/.test(towHTML) && /Port Readiness/.test(towHTML);
+  check('PRS-24', towHasBadge, `towage jobs render canonical readiness block=${towHasBadge}`);
+
+  // 25. Pilotage transits display the canonical readiness state.
+  const pilHasBadge = /class="lens-rdx"/.test(pilHTML) && /Port Readiness/.test(pilHTML);
+  check('PRS-25', pilHasBadge, `pilotage transits render canonical readiness block=${pilHasBadge}`);
+
+  // 26. Component strips render (Nav/Service/Berth via shared Tab classes).
+  const strip = html => /class="rdx-strip"/.test(html) && /Navigation/.test(html) && /Service/.test(html) && /Berth/.test(html);
+  check('PRS-26', strip(towHTML) && strip(pilHTML), `component strips render in both lenses (tow=${strip(towHTML)}, pil=${strip(pilHTML)})`);
+
+  // 27. Readiness summary calculates correctly (counts per item == tally).
+  const sumOk = /Readiness:\s*1 NOT READY · 1 AT RISK · 1 READY/.test(towHTML) &&
+                /Readiness:\s*1 NOT READY · 1 AT RISK · 1 READY/.test(pilHTML);
+  check('PRS-27', sumOk, `headline readiness summary correct in both lenses=${sumOk}`);
+
+  // 28. Capability notes appear in the lens where a component is UNCERTAIN.
+  const cap = /With pilotage and towage data/.test(towHTML) && /terminal completion forecasts/.test(towHTML);
+  check('PRS-28', cap, `capability notes present inside lens readiness blocks=${cap}`);
+
+  // 29. DIVERGENCE GUARANTEE — for every vessel, the readiness block the lens
+  //     renders is byte-identical to the canonical card, and equals the Tab state.
+  let diverged = [];
+  ['VA','VB','VC'].forEach(id => {
+    const canonical = lens._lensReadinessBlock(rdx[id]);
+    const inTow = towHTML.includes(canonical);
+    const inPil = pilHTML.includes(canonical);
+    const stateMatches = rdx[id].composite.state === tabState(id);
+    if(!(inTow && inPil && stateMatches)) diverged.push(`${id}(tow=${inTow},pil=${inPil},state=${stateMatches})`);
+  });
+  check('PRS-29', diverged.length === 0,
+    `Tab/Towage/Pilotage readiness identical for every vessel${diverged.length?': DIVERGENCE '+diverged.join(','):''}`);
+
+  // 30. Existing lens behaviour intact — with NO readiness map, the lenses render
+  //     exactly as before (no readiness block, no summary line).
+  const towPlain = lens.renderTowageShift(lens.buildTowageShift(d));
+  const pilPlain = lens.renderPilotageWatch(lens.buildPilotageWatch(d));
+  const additiveOnly = !/lens-rdx/.test(towPlain) && !/lens-rdx/.test(pilPlain)
+    && !/Readiness:/.test(towPlain) && !/Readiness:/.test(pilPlain);
+  check('PRS-30', additiveOnly, `readiness is additive-only (absent when no map supplied)=${additiveOnly}`);
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────
