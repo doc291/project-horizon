@@ -1255,9 +1255,6 @@
            under the header and above the Decisions/Audit tab row. Empty (no
            height) when the loop is inactive or in plain Beta 10. -->
       <div id="b11-vtso-mount"></div>
-      <!-- Port Readiness Scorecard (Beta 12 / VTSO view only): collapsible
-           per-vessel readiness panel. Empty (no height) in plain Beta 10. -->
-      <div id="b11-readiness-mount"></div>
       <div class="rpanel-tabs">
         <button class="rpanel-tab active" onclick="switchRTab('decisions')">⚡ Decisions</button>
         <button class="rpanel-tab" onclick="switchRTab('audit')">Audit</button>
@@ -3802,8 +3799,8 @@ function _checkCounts(observed,badgeId,label,expected){
     // (Role blurb is rendered inside the overlay's role header (b11-rolesub),
     // not in the primary header — see renderOverlay for that path.)
     const ret=document.getElementById("b11-return");
-    if(role==="VTSO"){ ov.classList.remove("show"); if(ret)ret.classList.remove("show"); renderVtsoPanel(); renderReadinessPanel(); }
-    else { ov.classList.add("show"); if(ret)ret.classList.add("show"); renderOverlay(); hideReadinessPanel(); }
+    if(role==="VTSO"){ ov.classList.remove("show"); if(ret)ret.classList.remove("show"); renderVtsoPanel(); }
+    else { ov.classList.add("show"); if(ret)ret.classList.add("show"); renderOverlay(); }
   }
 
   // ════════════════════════════════════════════════════════════════════════
@@ -4121,39 +4118,11 @@ function _checkCounts(observed,badgeId,label,expected){
     return h;
   }
   // PRS-PURE-END
-
-  // ── DOM renderer: collapsible Port Readiness panel (Beta 12 / VTSO view) ─────
-  let _prsExpanded = false;
-  function renderReadinessPanel(){
-    const d = _last;
-    const mount = document.getElementById("b11-readiness-mount");
-    if(!mount) return;
-    if(!d || !d.beta11){ mount.innerHTML=""; mount.style.display="none"; return; }
-    mount.style.display="block";
-    const cards = prsRelevantVessels(d).map(v => buildVesselReadiness(v, d));
-    const hint = `${cards.length} vessel${cards.length===1?"":"s"}`;
-    const body = cards.length
-      ? cards.map(renderReadinessCardHTML).join("")
-      : `<div class="prs-empty">No approaching vessels to assess.</div>`;
-    mount.innerHTML =
-      `<div id="b11-prs-strip" style="margin:8px 10px 0;background:#0d1b2e;border:1px solid rgba(56,189,248,.3);border-radius:8px;overflow:hidden;">`
-      + `<div id="b11-prs-toggle" role="button" tabindex="0" aria-expanded="${_prsExpanded}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:9px 12px;">`
-        + `<span style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#38bdf8;font-weight:700;">Port Readiness</span>`
-        + `<span style="display:flex;align-items:center;gap:7px;"><span style="font-size:10px;color:#64748b;">${esc(hint)}</span><span id="b11-prs-chev" style="color:#64748b;font-size:10px;">${_prsExpanded?'▲':'▼'}</span></span>`
-      + `</div>`
-      + `<div id="b11-prs-body" style="display:${_prsExpanded?'block':'none'};padding:6px 12px 12px;border-top:1px solid rgba(56,189,248,.12);max-height:60vh;overflow-y:auto;">${body}</div>`
-      + `</div>`;
-    const tog = document.getElementById("b11-prs-toggle");
-    if(tog){
-      const _t = () => { _prsExpanded = !_prsExpanded;
-        const bd=document.getElementById("b11-prs-body"); if(bd)bd.style.display=_prsExpanded?'block':'none';
-        const cv=document.getElementById("b11-prs-chev"); if(cv)cv.textContent=_prsExpanded?'▲':'▼';
-        tog.setAttribute("aria-expanded", _prsExpanded); };
-      tog.addEventListener("click", _t);
-      tog.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); _t(); } });
-    }
-  }
-  function hideReadinessPanel(){ const m=document.getElementById("b11-readiness-mount"); if(m){ m.innerHTML=""; m.style.display="none"; } }
+  //
+  // NOTE: the readiness engine above now drives the first-class top-level
+  // "Readiness" tab (see renderReadiness() outside this IIFE, wired through
+  // window._b11.readiness). The legacy right-column preview panel was removed in
+  // Phase 1B cleanup so there is a single authoritative Port Readiness surface.
 
   // Collapsed by default — presentation state for the VTSO Decision Loop
   // panel. Persisted across polls so a re-render does not reset the user's
@@ -6569,8 +6538,8 @@ function _checkCounts(observed,badgeId,label,expected){
   function onData(d){
     _last=d;
     if(!_built)buildShell(d.beta11);
-    if(_activeRole==="VTSO"){ const ov=document.getElementById("b11-overlay"); if(ov)ov.classList.remove("show"); renderVtsoPanel(); renderReadinessPanel(); }
-    else { renderOverlay(); hideReadinessPanel(); }
+    if(_activeRole==="VTSO"){ const ov=document.getElementById("b11-overlay"); if(ov)ov.classList.remove("show"); renderVtsoPanel(); }
+    else renderOverlay();
     ensurePoll();
   }
 
