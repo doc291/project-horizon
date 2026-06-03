@@ -318,6 +318,58 @@ console.log('=== Port Readiness Scorecard — Phase 1 acceptance ===\n');
     `negative UKC → navigation ${card.navigation.state}, composite ${card.composite.state}`);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Stakeholder Contribution Sprint — capability notes (expanded scorecard only)
+// ─────────────────────────────────────────────────────────────────────────────
+const SVC_NOTE = /whether tug capacity covers this vessel/i;
+const BERTH_NOTE = /terminal completion forecasts/i;
+const NAV_NOTE = /Confidence improves with verified draft/i;
+
+// 19. Service UNCERTAIN → service capability note in the expanded scorecard.
+{
+  const v = vessel({ id:'S1', name:'SERVICE V', eta:inHours(6), pilotage_required:true, towage_required:true });
+  const out = ctx.renderReadinessCardHTML(ctx.buildVesselReadiness(v, baseSummary({ vessels:[v] })));
+  check('PRS-19', SVC_NOTE.test(out), `service capability note present in expanded card=${SVC_NOTE.test(out)}`);
+}
+
+// 20. Berth UNCERTAIN (schedule-based) → berth capability note.
+{
+  const v = vessel({ id:'B1', name:'BERTH V', eta:inHours(6), pilotage_required:false, towage_required:false });
+  const out = ctx.renderReadinessCardHTML(ctx.buildVesselReadiness(v, baseSummary({ vessels:[v] })));
+  check('PRS-20', BERTH_NOTE.test(out), `berth capability note present in expanded card=${BERTH_NOTE.test(out)}`);
+}
+
+// 21. Navigation note appears only where confidence is partial/modelled.
+{
+  // partial: MST source (draft modelled)
+  const vp = vessel({ id:'N1', name:'MST V', source:'mst', eta:inHours(6), pilotage_required:false, towage_required:false });
+  const partialOut = ctx.renderReadinessCardHTML(ctx.buildVesselReadiness(vp, baseSummary({ vessels:[vp] })));
+  // clean: live AIS + live weather
+  const vc = vessel({ id:'N2', name:'AIS V', source:'ais', eta:inHours(6), pilotage_required:false, towage_required:false });
+  const cleanOut = ctx.renderReadinessCardHTML(ctx.buildVesselReadiness(vc, baseSummary({ vessels:[vc], weather:{conditions:'Good',source:'live'} })));
+  check('PRS-21', NAV_NOTE.test(partialOut) && !NAV_NOTE.test(cleanOut),
+    `nav note on partial(MST)=${NAV_NOTE.test(partialOut)}; absent on clean live AIS=${!NAV_NOTE.test(cleanOut)}`);
+}
+
+// 22. No blame language anywhere in the expanded scorecard.
+{
+  const v = vessel({ id:'S2', name:'BLAME CHK', eta:inHours(6), pilotage_required:true, towage_required:true });
+  const out = ctx.renderReadinessCardHTML(ctx.buildVesselReadiness(v, baseSummary({ vessels:[v] })));
+  const blame = /(missing\s+provider|not\s+connected|failed\s+to\s+share|has\s+not\s+shared|provider\s+has\s+not)/i.test(out);
+  check('PRS-22', !blame, `no blame language in expanded card=${!blame}`);
+}
+
+// 23. Capability notes are EXPANDED-only — present in the scorecard, absent from
+//     the collapsed-row reason source (prsPrimaryReason).
+{
+  const v = vessel({ id:'S3', name:'SCOPE CHK', eta:inHours(6), pilotage_required:true, towage_required:true });
+  const card = ctx.buildVesselReadiness(v, baseSummary({ vessels:[v] }));
+  const expanded = ctx.renderReadinessCardHTML(card);
+  const rowReason = ctx.prsPrimaryReason(card);
+  check('PRS-23', SVC_NOTE.test(expanded) && !SVC_NOTE.test(rowReason),
+    `capability note in expanded=${SVC_NOTE.test(expanded)}; absent from collapsed-row reason=${!SVC_NOTE.test(rowReason)}`);
+}
+
 // ── Report ──────────────────────────────────────────────────────────────────
 console.log(`\n${'='.repeat(60)}`);
 console.log(`Port Readiness Phase 1: ${PASS} pass / ${FAIL} fail`);

@@ -3551,6 +3551,7 @@ function _checkCounts(observed,badgeId,label,expected){
     .prs-sub-reason{color:#cbd5e1;}
     .prs-sub-meta{font-size:9px;color:#64748b;margin-top:1px;}
     .prs-note{font-size:10px;color:var(--medium);margin:3px 0;}
+    .prs-cap{font-size:10px;color:#7dd3fc;background:rgba(56,189,248,.06);border-left:2px solid rgba(56,189,248,.35);padding:5px 8px;margin:5px 0 2px;line-height:1.5;border-radius:0 4px 4px 0;}
     .prs-advisory{font-size:9px;color:#64748b;font-style:italic;margin-top:8px;border-top:1px solid rgba(255,255,255,.05);padding-top:6px;}
     .prs-empty{font-size:11px;color:#64748b;padding:6px 2px;}
     /* Readiness tab (Phase 1B) destination layout. */
@@ -4058,7 +4059,7 @@ function _checkCounts(observed,badgeId,label,expected){
       subs.push({ key:"availability", state:PRS.UNCERTAIN, kind:"structural_terminal",
         reason:"Berth availability based on schedule. Terminal has not confirmed actual clearance.",
         confidence:"LOW", provenance:"schedule-based (no terminal feed)" });
-      notes.push("Terminal readiness feed not connected — berth availability is unconfirmed.");
+      notes.push("Terminal completion data not yet contributing — berth availability is schedule-based.");
     };
     if(berthConflict){
       // Calibration — operational relevance window scoped by the vessel's ETA:
@@ -4209,6 +4210,28 @@ function _checkCounts(observed,badgeId,label,expected){
          : st===PRS.AT_RISK ? "prs-atrisk"
          : st===PRS.NOT_READY ? "prs-notready" : "prs-uncertain";
   }
+  // Stakeholder-contribution capability note (EXPANDED scorecard only; emitted
+  // via _prsComponentRow, which the collapsed fleet rows never call). Presentation
+  // only — explains what Horizon WOULD assess with live stakeholder data.
+  // Invitational/capability language; never blame. No state/logic change.
+  function _prsCapabilityNote(label, comp){
+    if(label.indexOf("Service") === 0){
+      if(comp.state === PRS.UNCERTAIN && comp.kind === "missing_feed")
+        return "Service readiness is not yet fully assessed. With pilotage and towage data, Horizon would show whether a pilot is available, whether tug capacity covers this vessel, and whether service demand creates a clash in the arrival window.";
+    } else if(label.indexOf("Berth") === 0){
+      if(comp.state === PRS.UNCERTAIN && comp.kind === "structural_terminal")
+        return "Berth readiness is based on available schedule data. With terminal completion forecasts, Horizon would show whether the berth is genuinely expected to clear before this vessel arrives.";
+    } else if(label.indexOf("Navigation") === 0){
+      // Only where confidence is genuinely partial/modelled — not on clean live AIS.
+      const subs = comp.subs || [];
+      const track = subs.find(s => s.key === "track");
+      const partial = (track && (track.simulated || /MST/i.test(track.provenance||"")))
+        || subs.some(s => s.key === "weather" && s.simulated);
+      if(partial)
+        return "Navigation readiness is assessed from available vessel, tide and weather data. Confidence improves with verified draft, live tide and current vessel position.";
+    }
+    return "";
+  }
   function _prsComponentRow(label, comp){
     let h = `<div class="prs-comp">`;
     h += `<div class="prs-comp-hdr"><span class="prs-comp-label">${esc(label)}</span>`;
@@ -4225,6 +4248,8 @@ function _checkCounts(observed,badgeId,label,expected){
       h += `</div>`;
     });
     (comp.notes||[]).forEach(n => { h += `<div class="prs-note">⚠ ${esc(n)}</div>`; });
+    const cap = _prsCapabilityNote(label, comp);
+    if(cap) h += `<div class="prs-cap">${esc(cap)}</div>`;
     h += `</div>`;
     return h;
   }
