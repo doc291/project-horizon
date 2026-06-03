@@ -1493,11 +1493,78 @@ let _rdxExpanded = {};
 function _prsTopStateClass(st){
   return st==='READY'?'prs-ready':st==='AT RISK'?'prs-atrisk':st==='NOT READY'?'prs-notready':'prs-uncertain';
 }
-function _rdxCue(card){
-  const subs=[].concat(card.navigation.subs||[],card.service.subs||[],card.berth.subs||[]);
-  if(subs.some(s=>s.simulated)) return 'simulated / assumed data';
-  if(card.berth&&card.berth.kind==='structural_terminal') return 'schedule-based (terminal unconfirmed)';
-  return 'live where available';
+// ── Presentation-only helpers (no assessment logic; derive display strings
+//    from data already present in /api/summary). UX Refinement Sprint. ────────
+// Identify the component that drives the composite state.
+function _rdxDriver(card){
+  const list=[['navigation',card.navigation],['service',card.service],['berth',card.berth]];
+  const st=card.composite.state;
+  for(const [k,c] of list){ if(c.state===st) return {key:k,comp:c}; }
+  for(const want of ['NOT READY','AT RISK','UNCERTAIN']){
+    for(const [k,c] of list){ if(c.state===want) return {key:k,comp:c}; }
+  }
+  return {key:'navigation',comp:card.navigation};
+}
+// Estimated wait from existing timestamps (display arithmetic only).
+function _rdxWaitText(eta, ready){
+  if(!eta||!ready) return '';
+  const ms=new Date(ready).getTime()-new Date(eta).getTime();
+  if(isNaN(ms)||ms<=0) return '';
+  const min=Math.round(ms/60000), h=Math.floor(min/60), m=min%60;
+  return h>0 ? `~${h}h${m?(' '+m+'m'):''}` : `~${m}m`;
+}
+// Readiness-FIRST primary text + expected state-change timing. Reads only
+// existing structured summary fields (berth.readiness_time, tides.next_event_*,
+// vessel.eta) and the already-computed component states/reasons.
+function _rdxReadinessText(card, d){
+  const v=card.vessel, st=card.composite.state, {key,comp}=_rdxDriver(card);
+  if(st==='READY'){
+    return { lead: card.composite.qualifier
+        ? 'Ready to proceed — berth readiness unconfirmed (schedule-based).'
+        : 'Ready to proceed as planned, based on current data.', timing:'' };
+  }
+  let lead='', timing='';
+  const sub=(comp.subs||[]).find(s=>s.state===comp.state);
+  const reason=(sub&&sub.reason)||'';
+  if(key==='berth'){
+    const berth=(d.berths||[]).find(b=>b&&b.id===v.berth_id)||null;
+    const ready=berth&&berth.readiness_time;
+    const occupied=/still berthed|overlap|occupied/i.test(reason);
+    lead = st==='NOT READY' ? (occupied?'Berth occupied on arrival.':'Berth not ready on arrival.')
+                            : 'Berth clearance tight.';
+    if(ready){
+      timing='Berth expected clear '+fmtTimeRel(ready)+'.';
+      const w=_rdxWaitText(v.eta, ready);
+      if(w) timing+=' Estimated wait '+w+'.';
+    }
+  } else if(key==='navigation'){
+    if(comp.kind==='missing_eta'){
+      lead='Vessel position/ETA not available — navigation cannot be assessed.';
+    } else if(/ukc|under-keel|clearance/i.test(reason)){
+      lead = st==='NOT READY'
+        ? 'Navigation constrained — under-keel clearance below safe limit at predicted arrival.'
+        : 'Navigation marginal — under-keel clearance tight at predicted arrival.';
+      const tide=d.tides||{};
+      if(tide.next_event_time){
+        const ev=tide.next_event_type==='HW'?'high water':tide.next_event_type==='LW'?'low water':(tide.next_event_type||'tide change');
+        timing='Next '+ev+' '+fmtTimeRel(tide.next_event_time)+'.';
+      }
+    } else if(/weather|condition/i.test(reason)){
+      lead = st==='NOT READY' ? 'Weather outside operational limits.' : 'Weather approaching operational limits.';
+    } else if(/bridge|air.?draught/i.test(reason)){
+      lead='Air-draught restriction on the transit route.';
+    } else {
+      lead = reason || 'Navigation constraint present.';
+    }
+  } else if(key==='service'){
+    lead='Service readiness unconfirmed — pilot and tug availability not confirmed.';
+  }
+  return { lead: lead||'Assessment based on current data.', timing };
+}
+// Always-visible component strip (shows which component drives the state).
+function _rdxComponentStrip(card){
+  const cell=(label,c)=>`<span class="rdx-cmp"><span class="rdx-cmp-l">${label}</span> <span class="rdx-cmp-s ${_prsTopStateClass(c.state)}">${esc(c.state)}</span></span>`;
+  return `<div class="rdx-strip">${cell('Navigation',card.navigation)}${cell('Service',card.service)}${cell('Berth',card.berth)}</div>`;
 }
 function toggleReadinessVessel(id){
   _rdxExpanded[id]=!_rdxExpanded[id];
@@ -1545,9 +1612,13 @@ function renderReadiness(d){
       h+=`<span class="rdx-vessel">${esc(card.vessel.name||id)}</span>`;
       h+=`<span class="prs-badge ${_prsTopStateClass(card.composite.state)}">${esc(card.composite.state)}</span>`;
       h+=`<span class="rdx-meta">${esc(tlabel)}${card.vessel.berth_id?(' · Berth '+esc(card.vessel.berth_id)):''}</span>`;
-      h+=`<span class="rdx-cue">${esc(_rdxCue(card))}</span>`;
       h+=`</div>`;
-      h+=`<div class="rdx-row-reason">${esc(R.reason(card))}</div>`;
+      const rt=_rdxReadinessText(card,d);
+      h+=`<div class="rdx-row-body">`;
+      h+=`<div class="rdx-lead">${esc(rt.lead)}</div>`;
+      if(rt.timing)h+=`<div class="rdx-timing">${esc(rt.timing)}</div>`;
+      h+=_rdxComponentStrip(card);
+      h+=`</div>`;
       if(open)h+=`<div class="rdx-detail">${R.cardHTML(card)}</div>`;
       h+=`</div>`;
     });
@@ -3497,9 +3568,14 @@ function _checkCounts(observed,badgeId,label,expected){
     .rdx-row-hdr:hover{background:rgba(255,255,255,.03);}
     .rdx-chev{color:#64748b;font-size:11px;width:10px;flex-shrink:0;}
     .rdx-vessel{font-size:13px;font-weight:700;color:#e2e8f0;min-width:130px;}
-    .rdx-meta{font-size:11px;color:#94a3b8;}
-    .rdx-cue{font-size:10px;color:#64748b;margin-left:auto;font-style:italic;}
-    .rdx-row-reason{font-size:11px;color:#cbd5e1;padding:0 12px 10px 32px;}
+    .rdx-meta{font-size:11px;color:#94a3b8;margin-left:auto;}
+    .rdx-row-body{padding:0 12px 10px 32px;}
+    .rdx-lead{font-size:12px;color:#e2e8f0;line-height:1.45;}
+    .rdx-timing{font-size:11px;color:#7dd3fc;margin-top:2px;}
+    .rdx-strip{display:flex;flex-wrap:wrap;gap:14px;margin-top:7px;}
+    .rdx-cmp{font-size:10px;color:#64748b;display:inline-flex;align-items:center;gap:5px;}
+    .rdx-cmp-l{text-transform:uppercase;letter-spacing:.4px;}
+    .rdx-cmp-s{font-size:9px;font-weight:700;letter-spacing:.3px;padding:1px 6px;border-radius:8px;}
     .rdx-detail{padding:4px 12px 12px;border-top:1px solid rgba(255,255,255,.05);}
     .rdx-empty{font-size:12px;color:#64748b;padding:24px;text-align:center;}
     .pwc-transit-flagged{border-color:rgba(251,191,36,.4);background:rgba(245,158,11,.04);}
