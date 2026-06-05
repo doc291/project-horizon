@@ -78,6 +78,23 @@ function compileLens() {
 }
 const lens = compileLens();
 
+// ── Compile PRS-PURE engine + the top-level canonical Signal Object builders
+//    (Readiness Tab integration), to test mapping/render and divergence. ───────
+function compileSignal() {
+  const PURE = extractPure();
+  const RDX = slice('function _prsTopStateClass(st){', '// RDX-SIGNAL-END');
+  const src = `
+    function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+    function fmtTimeRel(iso){ try{ return new Date(iso).toISOString().slice(11,16)+" UTC"; }catch(e){ return String(iso); } }
+    ${PURE}
+    ${RDX}
+    return { buildVesselReadiness, _prsCapabilityNote, _rdxToSignal,
+             _rdxSignalObjectHTML, _rdxPostureHTML, _rdxStateSlug };
+  `;
+  return new Function(src)();
+}
+const sigc = compileSignal();
+
 // ── Tiny assertion harness ──────────────────────────────────────────────────
 let PASS = 0, FAIL = 0;
 function check(id, cond, detail) {
@@ -491,6 +508,63 @@ function phaseASummary(){
   const additiveOnly = !/lens-rdx/.test(towPlain) && !/lens-rdx/.test(pilPlain)
     && !/Readiness:/.test(towPlain) && !/Readiness:/.test(pilPlain);
   check('PRS-30', additiveOnly, `readiness is additive-only (absent when no map supplied)=${additiveOnly}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Canonical Signal Object integration (Readiness Tab)
+// ─────────────────────────────────────────────────────────────────────────────
+{
+  const d = phaseASummary();   // ALPHA→READY, BRAVO→NOT READY, CHARLIE→AT RISK
+  const note = sigc._prsCapabilityNote;
+  const cardOf = id => sigc.buildVesselReadiness(d.vessels.find(v=>v.id===id), d);
+  const sigOf  = id => sigc._rdxToSignal(cardOf(id), d, note);
+  const slug = st => st==='READY'?'ready':st==='AT RISK'?'at-risk':st==='NOT READY'?'not-ready':'uncertain';
+
+  // 31. Readiness state preserved — object state == canonical engine state.
+  const stateOk = ['VA','VB','VC'].every(id => sigOf(id).state === slug(cardOf(id).composite.state));
+  check('PRS-31', stateOk, `signal-object composite state == engine state for every vessel=${stateOk}`);
+
+  // 32. Component states preserved (Navigation/Service/Berth).
+  const comp = sigOf('VA').components;
+  const card = cardOf('VA');
+  const compOk = comp[0].state===slug(card.navigation.state)
+    && comp[1].state===slug(card.service.state) && comp[2].state===slug(card.berth.state);
+  check('PRS-32', compOk, `object component states == engine component states=${compOk}`);
+
+  // 33. Confidence mapping deterministic (not recomputed): structural service feed → none;
+  //     schedule-based berth → available; live navigation → live.
+  const s = sigOf('VA');
+  const confOk = s.components[1].conf==='none' && s.components[2].conf==='available' && s.components[0].conf==='live';
+  check('PRS-33', confOk, `confidence dots: Nav=${s.components[0].conf} Svc=${s.components[1].conf} Berth=${s.components[2].conf}`);
+
+  // 34. Contribution visibility maintained — gap names contributors; capability notes survive in evidence.
+  const sig = sigOf('VA');
+  const html = sigc._rdxSignalObjectHTML(sig, true);  // expanded
+  const gapOk = /Terminal/.test(sig.gap||'') && /Towage \+ Pilotage/.test(sig.gap||'');
+  const noteOk = /With pilotage and towage data/.test(html) && /terminal completion forecasts/.test(html);
+  check('PRS-34', gapOk && noteOk, `gap names contributors=${gapOk}; capability notes preserved in evidence=${noteOk}`);
+
+  // 35. Canonical hierarchy respected: state → reason → components → evidence.
+  const open = sigc._rdxSignalObjectHTML(sigOf('VB'), true);
+  const iState=open.indexOf('sig-state'), iReason=open.indexOf('sig-reason'),
+        iComp=open.indexOf('sig-comps'), iEvi=open.indexOf('sig-evidence');
+  const hierarchyOk = iState>=0 && iState<iReason && iReason<iComp && iComp<iEvi
+    && /NOT READY/.test(open);
+  check('PRS-35', hierarchyOk, `state→reason→components→evidence order respected & state word dominant=${hierarchyOk}`);
+
+  // 36. No divergence — object state derives only from the engine composite.
+  const noDiverge = ['VA','VB','VC'].every(id => {
+    const objWord = sigc._rdxStateSlug(cardOf(id).composite.state);
+    return sigOf(id).state === objWord;
+  });
+  check('PRS-36', noDiverge, `object never diverges from engine composite=${noDiverge}`);
+
+  // 37. Posture object: counts + dominant phrasing.
+  const cards = ['VB','VC','VA'].map(cardOf);
+  const pst = sigc._rdxPostureHTML(cards);
+  const postureOk = /pst-bar/.test(pst) && /Not ready/.test(pst) && /At risk/.test(pst) && /Ready/.test(pst)
+    && /not ready/.test(pst) && /Berth availability/.test(pst);
+  check('PRS-37', postureOk, `posture renders proportional bar + dominant phrase/constraint=${postureOk}`);
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────

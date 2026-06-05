@@ -1566,6 +1566,131 @@ function _rdxComponentStrip(card){
   const cell=(label,c)=>`<span class="rdx-cmp"><span class="rdx-cmp-l">${label}</span> <span class="rdx-cmp-s ${_prsTopStateClass(c.state)}">${esc(c.state)}</span></span>`;
   return `<div class="rdx-strip">${cell('Navigation',card.navigation)}${cell('Service',card.service)}${cell('Berth',card.berth)}</div>`;
 }
+// ── Canonical Port Readiness Signal Object (Readiness Tab integration) ────────
+// Pure presentation: maps the engine's readiness card into the canonical Signal
+// Object visual spec (state dominates -> explanation -> evidence). No assessment
+// logic, calibration or thresholds here — state and component states are read
+// verbatim from the canonical engine. Marker-bounded for acceptance testing.
+// RDX-SIGNAL-BEGIN
+function _rdxStateSlug(state){
+  return state==='READY'?'ready':state==='AT RISK'?'at-risk':state==='NOT READY'?'not-ready':'uncertain';
+}
+function _rdxStateWord(slug){
+  return slug==='ready'?'READY':slug==='at-risk'?'AT RISK':slug==='not-ready'?'NOT READY':'UNCERTAIN';
+}
+// Confidence per component — one dot. live (solid) / available (ring) / none (dashed).
+function _rdxCompConf(comp){
+  if(comp.state==='UNCERTAIN'){
+    return comp.kind==='structural_terminal' ? 'available' : 'none';
+  }
+  const subs=comp.subs||[];
+  const anyLive=subs.some(s=>/live/i.test(s.provenance||'')||s.confidence==='HIGH');
+  const anySim=subs.some(s=>s.simulated);
+  return (anyLive&&!anySim)?'live':'available';
+}
+function _rdxCompSource(comp){
+  const sub=(comp.subs||[]).find(s=>s.provenance);
+  return sub?sub.provenance:'—';
+}
+// Map a readiness card -> canonical Signal Object view-model (state preserved).
+function _rdxToSignal(card, d, capNoteFn){
+  const v=card.vessel;
+  const rt=_rdxReadinessText(card,d);
+  const bObj=(d.berths||[]).find(b=>b&&b.id===v.berth_id);
+  const berth=bObj?(bObj.name||v.berth_id):(v.berth_id||'—');
+  const port=(d.port_profile&&(d.port_profile.short_name||d.port_profile.display_name))||d.port_name||'';
+  const mk=(label,c)=>({ label, state:_rdxStateSlug(c.state), conf:_rdxCompConf(c),
+    source:_rdxCompSource(c), note: capNoteFn?capNoteFn(label+' Readiness',c):'' });
+  const components=[mk('Navigation',card.navigation),mk('Service',card.service),mk('Berth',card.berth)];
+  const gaps=[];
+  if(card.service.state==='UNCERTAIN'&&card.service.kind==='missing_feed') gaps.push('Towage + Pilotage');
+  if(card.berth.state==='UNCERTAIN'&&card.berth.kind==='structural_terminal') gaps.push('Terminal');
+  const liveN=components.filter(c=>c.conf==='live').length;
+  return { id:v.id, state:_rdxStateSlug(card.composite.state), vessel:v.name||v.id, berth, port,
+    reason:rt.lead, timing:rt.timing||'', components,
+    gap: gaps.length?gaps.join(' + '):null, conf:`${liveN} of 3 live`,
+    qualifier: card.composite.qualifier||'' };
+}
+// Render one canonical Signal Object. State dominates; evidence expands.
+function _rdxSignalObjectHTML(sig, open){
+  const cls='sig-'+sig.state;            // sig-ready / sig-at-risk / sig-not-ready / sig-uncertain
+  const id=esc(sig.id);
+  let h=`<div class="sig ${cls} ${open?'open':''}">`;
+  // identity strip
+  h+=`<div class="sig-id"><span class="sig-id-l"><span class="sig-dot"></span>Port readiness signal</span>`;
+  h+=`<span class="sig-id-r">${esc(sig.port)} · live</span></div>`;
+  // 3s — state dominates, then vessel -> berth
+  h+=`<div class="sig-3s"><div class="sig-state">${esc(_rdxStateWord(sig.state))}</div>`;
+  h+=`<div class="sig-vb"><span class="sig-vessel">${esc(sig.vessel)}</span><span class="sig-berth">→ ${esc(sig.berth)}</span></div></div>`;
+  // 10s — reason + expected change
+  h+=`<div class="sig-10s"><div class="sig-reason">${esc(sig.reason)}</div>`;
+  h+=`<div class="sig-change">${sig.timing
+      ? `<span class="sig-change-l">Expected change</span><span class="sig-change-v">${esc(sig.timing)}</span>`
+      : `<span class="sig-change-none">No change expected<br>within window</span>`}</div></div>`;
+  // component states
+  h+=`<div class="sig-comps">`;
+  sig.components.forEach(c=>{
+    h+=`<div class="sig-comp"><div class="sig-comp-l">${esc(c.label)}</div>`;
+    h+=`<div class="sig-comp-v"><span class="sig-conf sig-conf-${c.conf} sig-${c.state}"></span>`;
+    h+=`<span class="sig-comp-s sig-${c.state}">${esc(_rdxStateWord(c.state))}</span></div></div>`;
+  });
+  h+=`</div>`;
+  // 30s foot — contribution (quiet) + confidence + evidence toggle
+  h+=`<button class="sig-foot" role="button" tabindex="0" onclick="toggleReadinessVessel('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleReadinessVessel('${id}')}">`;
+  if(sig.gap){
+    h+=`<span class="sig-contrib sig-gap"><span class="sig-glyph"></span>Sharper with <strong>${esc(sig.gap)}</strong> data</span>`;
+  }else{
+    h+=`<span class="sig-contrib sig-full"><span class="sig-glyph sig-glyph-full"></span>Fully assessed from live data</span>`;
+  }
+  h+=`<span class="sig-foot-r"><span class="sig-conf-txt">${esc(sig.conf)}</span><span class="sig-evi">${open?'LESS':'EVIDENCE'} <span class="sig-chev">▾</span></span></span>`;
+  h+=`</button>`;
+  // evidence zone (on expand)
+  if(open){
+    h+=`<div class="sig-evidence"><div class="sig-evi-h">Evidence · how each component was assessed</div>`;
+    h+=`<div class="sig-evi-rows">`;
+    sig.components.forEach(c=>{
+      const lab=c.conf==='live'?'Live data':c.conf==='available'?'Available data':'Not assessable';
+      h+=`<div class="sig-evi-row"><span class="sig-conf sig-conf-${c.conf} sig-${c.state}"></span>`;
+      h+=`<span class="sig-evi-lab"><span class="sig-evi-comp">${esc(c.label)}</span> <span class="sig-${c.state}">${esc(_rdxStateWord(c.state))}</span></span>`;
+      h+=`<span class="sig-evi-src">${esc(c.source)} · ${esc(lab)}</span></div>`;
+    });
+    h+=`</div>`;
+    // maintained capability notes (contribution visibility, full text)
+    sig.components.forEach(c=>{ if(c.note) h+=`<div class="sig-evi-note">${esc(c.note)}</div>`; });
+    if(sig.gap) h+=`<div class="sig-evi-gap"><span class="sig-glyph"></span><strong>${esc(sig.gap)}</strong> has not connected for this call — their data would move readiness from estimated to confirmed.</div>`;
+    h+=`<div class="sig-evi-foot"><span>Signal · ${id}</span><span>refreshes 30s</span></div>`;
+    h+=`</div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+// Port Readiness Posture — replaces the count chips. Reinforces the Signal.
+function _rdxPostureHTML(cards){
+  const tally={ready:0,'at-risk':0,'not-ready':0};
+  cards.forEach(c=>{ const s=_rdxStateSlug(c.composite.state); if(tally[s]!=null)tally[s]++; });
+  const total=cards.length;
+  const dominant = tally['not-ready']>0 ? 'not-ready' : tally['at-risk']>0 ? 'at-risk' : 'ready';
+  const phrase = dominant==='ready'?'ready':dominant==='at-risk'?'not yet ready':'not ready';
+  // dominant constraint — most common driving component among the vessels in the
+  // dominant readiness state (the constraint actually shaping the posture).
+  const drv={navigation:0,service:0,berth:0};
+  cards.forEach(c=>{ if(_rdxStateSlug(c.composite.state)===dominant){ const k=_rdxDriver(c).key; if(drv[k]!=null)drv[k]++; } });
+  const dk=Object.keys(drv).sort((a,b)=>drv[b]-drv[a])[0];
+  const constraint=(drv[dk]>0)?(dk==='navigation'?'Navigation window':dk==='service'?'Service readiness':'Berth availability'):'None';
+  const segs=[['not-ready',tally['not-ready'],'Not ready'],['at-risk',tally['at-risk'],'At risk'],['ready',tally.ready,'Ready']].filter(s=>s[1]>0);
+  let h=`<div class="pst sig-${dominant}">`;
+  h+=`<div class="pst-top"><div class="pst-eyebrow">Port readiness · forward picture</div>`;
+  h+=`<div class="pst-row"><div class="pst-lead">The port is <span class="pst-word sig-${dominant}">${phrase}</span> for what is coming.</div>`;
+  h+=`<div class="pst-constraint"><span class="pst-eyebrow">Dominant constraint</span><span class="pst-cval sig-${dominant}">${esc(constraint)}</span></div></div></div>`;
+  h+=`<div class="pst-bar">`;
+  segs.forEach(s=>{ h+=`<div class="pst-seg sig-${s[0]}" style="flex:${s[1]}"><span class="pst-n">${s[1]}</span><span class="pst-lab">${s[2]}</span></div>`; });
+  if(!segs.length) h+=`<div class="pst-seg sig-ready" style="flex:1"><span class="pst-lab">No vessels to assess</span></div>`;
+  h+=`</div>`;
+  h+=`<div class="pst-foot">${total} vessel${total===1?'':'s'} inbound &amp; alongside · readiness assessed against navigation, service &amp; berth</div>`;
+  h+=`</div>`;
+  return h;
+}
+// RDX-SIGNAL-END
 function toggleReadinessVessel(id){
   _rdxExpanded[id]=!_rdxExpanded[id];
   if(_data)renderReadiness(_data);
@@ -1583,44 +1708,21 @@ function renderReadiness(d){
     return;
   }
   const cards=R.sort(R.picture(d).map(v=>R.build(v,d)));
-  const c=R.counts(cards);
+  const capNote=R.capabilityNote||null;
   let h='<div class="rdx-head">';
   h+='<div class="rdx-title">Port Readiness</div>';
-  h+='<div class="rdx-sub">Signal indicates whether the port is ready for each vessel — an assessment based on current data, not a clearance.</div>';
-  h+='<div class="rdx-counts">';
-  h+=`<span class="rdx-count rdx-total">${c.total} assessed</span>`;
-  h+=`<span class="rdx-count prs-notready">${c['NOT READY']} NOT READY</span>`;
-  h+=`<span class="rdx-count prs-atrisk">${c['AT RISK']} AT RISK</span>`;
-  h+=`<span class="rdx-count prs-uncertain">${c['UNCERTAIN']} UNCERTAIN</span>`;
-  h+=`<span class="rdx-count prs-ready">${c['READY']} READY</span>`;
+  h+='<div class="rdx-sub">One Port Readiness Signal per vessel — state first, reason second, evidence on demand. An assessment based on current data, not a clearance.</div>';
   h+='</div>';
+  // Top-level Port Readiness Posture object (replaces the count chips).
+  h+=_rdxPostureHTML(cards);
   h+='<div class="rdx-caveat">⚠ Phase 1 scorecard — service and terminal readiness may use simulated, assumed or unavailable data.</div>';
-  h+='</div>';
   if(!cards.length){
     h+='<div class="rdx-empty">No vessels in the forward picture to assess.</div>';
   }else{
-    h+='<div class="rdx-list">';
+    h+='<div class="sig-list">';
     cards.forEach(card=>{
-      const id=card.vessel.id;
-      const open=!!_rdxExpanded[id];
-      const isDep=card.vessel.status==='berthed';
-      const t=isDep?card.vessel.etd:card.vessel.eta;
-      const tlabel=(isDep?'ETD ':'ETA ')+(t?fmtTimeRel(t):'—');
-      h+=`<div class="rdx-row ${open?'open':''}">`;
-      h+=`<div class="rdx-row-hdr" role="button" tabindex="0" onclick="toggleReadinessVessel('${esc(id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleReadinessVessel('${esc(id)}')}">`;
-      h+=`<span class="rdx-chev">${open?'▾':'▸'}</span>`;
-      h+=`<span class="rdx-vessel">${esc(card.vessel.name||id)}</span>`;
-      h+=`<span class="prs-badge ${_prsTopStateClass(card.composite.state)}">${esc(card.composite.state)}</span>`;
-      h+=`<span class="rdx-meta">${esc(tlabel)}${card.vessel.berth_id?(' · Berth '+esc(card.vessel.berth_id)):''}</span>`;
-      h+=`</div>`;
-      const rt=_rdxReadinessText(card,d);
-      h+=`<div class="rdx-row-body">`;
-      h+=`<div class="rdx-lead">${esc(rt.lead)}</div>`;
-      if(rt.timing)h+=`<div class="rdx-timing">${esc(rt.timing)}</div>`;
-      h+=_rdxComponentStrip(card);
-      h+=`</div>`;
-      if(open)h+=`<div class="rdx-detail">${R.cardHTML(card)}</div>`;
-      h+=`</div>`;
+      const open=!!_rdxExpanded[card.vessel.id];
+      h+=_rdxSignalObjectHTML(_rdxToSignal(card, d, capNote), open);
     });
     h+='</div>';
   }
@@ -3586,6 +3688,79 @@ function _checkCounts(observed,badgeId,label,expected){
     .rdx-cmp-s{font-size:9px;font-weight:700;letter-spacing:.3px;padding:1px 6px;border-radius:8px;}
     .rdx-detail{padding:4px 12px 12px;border-top:1px solid rgba(255,255,255,.05);}
     .rdx-empty{font-size:12px;color:#64748b;padding:24px;text-align:center;}
+    /* ── Canonical Port Readiness Signal Object (design tokens) ───────────────── */
+    /* state colours: ready / at-risk / not-ready / uncertain */
+    .sig-ready{--sc:#6BD49A;} .sig-at-risk{--sc:#E5A557;} .sig-not-ready{--sc:#F26C5A;} .sig-uncertain{--sc:#8C97A8;}
+    .sig-ready,.sig-at-risk,.sig-not-ready,.sig-uncertain{}
+    /* applied to text/dots via color:var(--sc) on the carrying class */
+    span.sig-ready,span.sig-at-risk,span.sig-not-ready,span.sig-uncertain{color:var(--sc);}
+    .sig-list{display:flex;flex-direction:column;gap:14px;max-width:760px;}
+    .sig{border:1px solid color-mix(in srgb,var(--sc) 42%,transparent);border-radius:16px;overflow:hidden;
+      background:radial-gradient(135% 120% at 100% 0%, color-mix(in srgb,var(--sc) 14%,transparent), transparent 52%), #10151E;
+      box-shadow:0 0 0 1px color-mix(in srgb,var(--sc) 14%,transparent), 0 22px 54px rgba(0,0,0,.42);}
+    .sig-id{display:flex;align-items:center;justify-content:space-between;padding:12px 22px 0;}
+    .sig-id-l{display:flex;align-items:center;gap:8px;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#5E6878;}
+    .sig-dot{width:6px;height:6px;border-radius:999px;background:var(--sc);box-shadow:0 0 8px var(--sc);}
+    .sig-id-r{font-family:var(--hz-font-mono,monospace);font-size:10px;color:#5E6878;}
+    .sig-3s{padding:10px 22px 8px;}
+    .sig-state{font-size:56px;line-height:.92;font-weight:800;letter-spacing:-.035em;color:var(--sc);}
+    .sig-vb{display:flex;align-items:baseline;gap:10px;margin-top:8px;flex-wrap:wrap;}
+    .sig-vessel{font-size:21px;font-weight:600;letter-spacing:-.02em;color:#E6ECF3;}
+    .sig-berth{font-family:var(--hz-font-mono,monospace);font-size:12px;color:#5E6878;}
+    .sig-10s{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;padding:8px 22px 14px;}
+    .sig-reason{font-size:13.5px;color:#E6ECF3;line-height:1.4;max-width:380px;}
+    .sig-change{text-align:right;}
+    .sig-change-l{display:block;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:#5E6878;margin-bottom:3px;}
+    .sig-change-v{font-family:var(--hz-font-mono,monospace);font-size:11px;color:#98A3B3;}
+    .sig-change-none{font-size:11px;color:#5E6878;}
+    .sig-comps{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#161E2A;border-top:1px solid #161E2A;}
+    .sig-comp{padding:11px 14px;background:#10151E;}
+    .sig-comp-l{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:#5E6878;}
+    .sig-comp-v{display:flex;align-items:center;gap:7px;margin-top:5px;}
+    .sig-comp-s{font-size:12.5px;font-weight:500;letter-spacing:-.01em;}
+    .sig-conf{width:9px;height:9px;border-radius:999px;flex-shrink:0;}
+    .sig-conf-live{background:var(--sc);box-shadow:0 0 8px var(--sc);}
+    .sig-conf-available{background:transparent;border:1.5px solid var(--sc);}
+    .sig-conf-none{background:transparent;border:1.5px dashed #3F4856;}
+    .sig-foot{width:100%;text-align:left;cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px 22px;
+      background:#0B0F15;border:none;border-top:1px solid #161E2A;color:inherit;font:inherit;}
+    .sig-foot:hover{background:#0d121a;}
+    .sig-contrib{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#98A3B3;white-space:nowrap;}
+    .sig-gap strong{color:#E5A557;font-weight:500;}
+    .sig-glyph{width:11px;height:11px;border-radius:999px;border:1.2px solid #E5A557;border-top-color:transparent;display:inline-block;transform:rotate(-45deg);}
+    .sig-glyph-full{border-color:#6BD49A;border-top-color:#6BD49A;}
+    .sig-foot-r{margin-left:auto;display:flex;align-items:center;gap:10px;}
+    .sig-conf-txt{font-size:10px;letter-spacing:.04em;color:#3F4856;white-space:nowrap;}
+    .sig-evi{font-size:9px;letter-spacing:.08em;color:#5E6878;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+    .sig-chev{display:inline-block;transition:transform .2s;}
+    .sig.open .sig-chev{transform:rotate(180deg);}
+    .sig-evidence{padding:4px 22px 14px;background:#0B0F15;border-top:1px solid rgba(255,255,255,.04);}
+    .sig-evi-h{font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:#5E6878;margin:10px 0 8px;}
+    .sig-evi-rows{display:flex;flex-direction:column;gap:1px;background:#161E2A;border:1px solid #161E2A;border-radius:8px;overflow:hidden;}
+    .sig-evi-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:9px 12px;background:#10151E;}
+    .sig-evi-lab{display:flex;align-items:baseline;gap:8px;font-size:11.5px;}
+    .sig-evi-comp{color:#E6ECF3;font-weight:500;}
+    .sig-evi-src{font-family:var(--hz-font-mono,monospace);font-size:9.5px;color:#5E6878;white-space:nowrap;}
+    .sig-evi-note{font-size:10.5px;color:#7dd3fc;line-height:1.5;margin-top:8px;padding:6px 10px;background:rgba(91,211,240,.06);border-left:2px solid rgba(91,211,240,.3);border-radius:0 4px 4px 0;}
+    .sig-evi-gap{display:flex;align-items:center;gap:9px;margin-top:10px;padding:9px 12px;border-radius:8px;font-size:11px;color:#98A3B3;background:rgba(229,165,87,.07);border:1px solid rgba(229,165,87,.28);}
+    .sig-evi-gap strong{color:#E5A557;font-weight:500;}
+    .sig-evi-foot{display:flex;justify-content:space-between;margin-top:10px;font-family:var(--hz-font-mono,monospace);font-size:9.5px;color:#3F4856;}
+    /* ── Port Readiness Posture ──────────────────────────────────────────────── */
+    .pst{border:1px solid color-mix(in srgb,var(--sc) 50%,transparent);border-radius:14px;overflow:hidden;max-width:760px;margin-bottom:12px;
+      background:radial-gradient(120% 130% at 10% 0%, color-mix(in srgb,var(--sc) 16%,transparent), transparent 58%), #0B0F15;}
+    .pst-top{padding:18px 22px 14px;}
+    .pst-eyebrow{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#5E6878;}
+    .pst-row{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-top:8px;}
+    .pst-lead{font-size:22px;color:#E6ECF3;max-width:560px;line-height:1.2;}
+    .pst-word{font-weight:600;color:var(--sc);}
+    .pst-constraint{text-align:right;}
+    .pst-cval{display:block;font-size:18px;font-weight:600;margin-top:4px;color:var(--sc);}
+    .pst-bar{display:flex;height:44px;border-radius:8px;overflow:hidden;gap:2px;margin:0 22px 8px;}
+    .pst-seg{display:flex;align-items:center;justify-content:center;gap:9px;min-width:70px;
+      background:color-mix(in srgb,var(--sc) 22%,transparent);border-top:2px solid var(--sc);}
+    .pst-n{font-family:var(--hz-font-mono,monospace);font-size:22px;font-weight:600;color:var(--sc);}
+    .pst-lab{font-size:11px;color:#98A3B3;}
+    .pst-foot{padding:10px 22px 16px;font-size:11px;color:#5E6878;}
     .pwc-transit-flagged{border-color:rgba(251,191,36,.4);background:rgba(245,158,11,.04);}
     .pwc-transit-flagged.pwc-flag-critical{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.04);}
     .pwc-transit-hdr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
@@ -6765,7 +6940,8 @@ function _checkCounts(observed,badgeId,label,expected){
       sort:    prsSortByUrgency,
       counts:  prsSummaryCounts,
       reason:  prsPrimaryReason,
-      cardHTML: renderReadinessCardHTML
+      cardHTML: renderReadinessCardHTML,
+      capabilityNote: _prsCapabilityNote
     }};
 })();
 
