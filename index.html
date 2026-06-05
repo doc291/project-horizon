@@ -1606,13 +1606,45 @@ function _rdxToSignal(card, d, capNoteFn){
   if(card.service.state==='UNCERTAIN'&&card.service.kind==='missing_feed') gaps.push('Towage + Pilotage');
   if(card.berth.state==='UNCERTAIN'&&card.berth.kind==='structural_terminal') gaps.push('Terminal');
   const liveN=components.filter(c=>c.conf==='live').length;
+  // Compact-tier summaries (never contradict the full form): time-to-ready as a
+  // bare time token, confidence collapsed to one summary dot (worst component).
+  const tm=(rt.timing||'').match(/\d{1,2}:\d{2}[^.]*/);
+  const changeShort=tm?tm[0].trim():'';
+  const _ord={live:2,available:1,none:0};
+  const sumConf=components.reduce((w,c)=>(_ord[c.conf]<_ord[w]?c.conf:w),'live');
   return { id:v.id, state:_rdxStateSlug(card.composite.state), vessel:v.name||v.id, berth, port,
-    reason:rt.lead, timing:rt.timing||'', components,
+    reason:rt.lead, timing:rt.timing||'', changeShort, sumConf, components,
     gap: gaps.length?gaps.join(' + '):null, conf:`${liveN} of 3 live`,
     qualifier: card.composite.qualifier||'' };
 }
-// Render one canonical Signal Object. State dominates; evidence expands.
+// Compact Signal density (default list tier). The SAME object, evidence and
+// contribution collapsed: state, vessel, berth, one-line reason, time-to-ready,
+// three-component colour strip, one summary confidence dot. No foot/evidence/
+// capability notes/per-component confidence — those are reachable by expanding
+// to Full. Density only; the assessment is unchanged.
+function _rdxSignalCompactHTML(sig){
+  const cls='sig-'+sig.state, id=esc(sig.id);
+  let h=`<div class="sig sig-compact ${cls}" role="button" tabindex="0" onclick="toggleReadinessVessel('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleReadinessVessel('${id}')}">`;
+  h+=`<div class="sigc-top">`;
+  h+=`<span class="sigc-state">${esc(_rdxStateWord(sig.state))}</span>`;
+  h+=`<span class="sigc-vessel">${esc(sig.vessel)}</span>`;
+  h+=`<span class="sigc-berth">→ ${esc(sig.berth)}</span>`;
+  h+=`<span class="sigc-right">`;
+  if(sig.changeShort)h+=`<span class="sigc-change">${esc(sig.changeShort)}</span>`;
+  h+=`<span class="sig-sumconf sig-sumconf-${sig.sumConf}" title="summary confidence"></span>`;
+  h+=`<span class="sigc-chev">▸</span></span>`;
+  h+=`</div>`;
+  h+=`<div class="sigc-reason">${esc(sig.reason)}</div>`;
+  h+=`<div class="sigc-strip">`;
+  sig.components.forEach(c=>{ h+=`<span class="sigc-chip sig-${c.state}">${esc(c.label)} ${esc(_rdxStateWord(c.state))}</span>`; });
+  h+=`</div>`;
+  h+=`</div>`;
+  return h;
+}
+// Render the Signal Object at the density the tab requires: Compact by default,
+// Full on selection/expansion. One object; density chosen by the open state.
 function _rdxSignalObjectHTML(sig, open){
+  if(!open) return _rdxSignalCompactHTML(sig);   // default list tier = Compact
   const cls='sig-'+sig.state;            // sig-ready / sig-at-risk / sig-not-ready / sig-uncertain
   const id=esc(sig.id);
   let h=`<div class="sig ${cls} ${open?'open':''}">`;
@@ -3745,6 +3777,24 @@ function _checkCounts(observed,badgeId,label,expected){
     .sig-evi-gap{display:flex;align-items:center;gap:9px;margin-top:10px;padding:9px 12px;border-radius:8px;font-size:11px;color:#98A3B3;background:rgba(229,165,87,.07);border:1px solid rgba(229,165,87,.28);}
     .sig-evi-gap strong{color:#E5A557;font-weight:500;}
     .sig-evi-foot{display:flex;justify-content:space-between;margin-top:10px;font-family:var(--hz-font-mono,monospace);font-size:9.5px;color:#3F4856;}
+    /* ── Compact Signal density (default list tier) ──────────────────────────── */
+    .sig-compact{cursor:pointer;padding:11px 16px 12px;border-radius:12px;}
+    .sig-compact:hover{box-shadow:0 0 0 1px color-mix(in srgb,var(--sc) 26%,transparent), 0 10px 26px rgba(0,0,0,.4);}
+    .sigc-top{display:flex;align-items:baseline;gap:10px;}
+    .sigc-state{font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--sc);white-space:nowrap;}
+    .sigc-vessel{font-size:14px;font-weight:600;color:#E6ECF3;letter-spacing:-.01em;}
+    .sigc-berth{font-family:var(--hz-font-mono,monospace);font-size:11px;color:#5E6878;}
+    .sigc-right{margin-left:auto;display:flex;align-items:center;gap:9px;flex-shrink:0;}
+    .sigc-change{font-family:var(--hz-font-mono,monospace);font-size:10.5px;color:#98A3B3;white-space:nowrap;}
+    .sig-sumconf{width:8px;height:8px;border-radius:999px;flex-shrink:0;}
+    .sig-sumconf-live{background:var(--sc);box-shadow:0 0 6px var(--sc);}
+    .sig-sumconf-available{background:transparent;border:1.5px solid var(--sc);}
+    .sig-sumconf-none{background:transparent;border:1.5px dashed #3F4856;}
+    .sigc-chev{color:#5E6878;font-size:11px;}
+    .sigc-reason{font-size:12px;color:#98A3B3;margin-top:5px;line-height:1.35;}
+    .sigc-strip{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+    .sigc-chip{font-size:9px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:5px;
+      color:var(--sc);background:color-mix(in srgb,var(--sc) 12%,transparent);border:1px solid color-mix(in srgb,var(--sc) 28%,transparent);}
     /* ── Port Readiness Posture ──────────────────────────────────────────────── */
     .pst{border:1px solid color-mix(in srgb,var(--sc) 50%,transparent);border-radius:14px;overflow:hidden;max-width:760px;margin-bottom:12px;
       background:radial-gradient(120% 130% at 10% 0%, color-mix(in srgb,var(--sc) 16%,transparent), transparent 58%), #0B0F15;}

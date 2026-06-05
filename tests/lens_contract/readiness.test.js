@@ -559,12 +559,50 @@ function phaseASummary(){
   });
   check('PRS-36', noDiverge, `object never diverges from engine composite=${noDiverge}`);
 
-  // 37. Posture object: counts + dominant phrasing.
+  // 37. Posture object: counts + dominant phrasing (derived from same Signals).
   const cards = ['VB','VC','VA'].map(cardOf);
   const pst = sigc._rdxPostureHTML(cards);
   const postureOk = /pst-bar/.test(pst) && /Not ready/.test(pst) && /At risk/.test(pst) && /Ready/.test(pst)
     && /not ready/.test(pst) && /Berth availability/.test(pst);
   check('PRS-37', postureOk, `posture renders proportional bar + dominant phrase/constraint=${postureOk}`);
+
+  // ── Signal Density Architecture ────────────────────────────────────────────
+  const compact = sigc._rdxSignalObjectHTML(sigOf('VA'), false);  // default tier
+  const full    = sigc._rdxSignalObjectHTML(sigOf('VA'), true);   // expanded tier
+
+  // 38. Default list renders COMPACT density with the canon field set. The
+  //     always-present fields on any vessel; time-to-ready where available (VB).
+  const cIsCompact = /class="sig sig-compact/.test(compact);
+  const cFields = /sigc-state/.test(compact) && /sigc-vessel/.test(compact) && /sigc-berth/.test(compact)
+    && /sigc-reason/.test(compact) && /sigc-strip/.test(compact) && /sig-sumconf/.test(compact);
+  const compactVB = sigc._rdxSignalObjectHTML(sigOf('VB'), false);  // NOT READY → has time-to-ready
+  const changeWhenAvail = /sigc-change/.test(compactVB);
+  check('PRS-38', cIsCompact && cFields && changeWhenAvail,
+    `Compact field set present=${cIsCompact&&cFields}; time-to-ready shown where available=${changeWhenAvail}`);
+
+  // 39. Compact hides foot, evidence, capability notes, per-component confidence.
+  const cHides = !/sig-foot/.test(compact) && !/sig-evidence/.test(compact)
+    && !/sig-evi-note/.test(compact) && !/sig-conf /.test(compact) && !/sig-conf"/.test(compact);
+  check('PRS-39', cHides, `Compact defers foot/evidence/capability/per-component confidence=${cHides}`);
+
+  // 40. Expansion renders FULL Signal Object with all detail.
+  const fFull = !/sig-compact/.test(full) && /sig-foot/.test(full) && /sig-evidence/.test(full)
+    && /sig-evi-note/.test(full) && /sig-conf/.test(full);
+  check('PRS-40', fFull, `expansion = Full Signal (foot + evidence + capability + per-component confidence)=${fFull}`);
+
+  // 41. State and component states are IDENTICAL across Compact and Full.
+  const sg = sigOf('VA');
+  const stateConsistent = new RegExp('sigc-state">'+sg.state.replace('-',' ').toUpperCase().replace(' ','\\s')).test(compact.replace(/-/g,' '))
+    || compact.indexOf(_rdxWord(sg.state))>=0;
+  function _rdxWord(s){return s==='ready'?'READY':s==='at-risk'?'AT RISK':s==='not-ready'?'NOT READY':'UNCERTAIN';}
+  const word=_rdxWord(sg.state);
+  const sameState = compact.indexOf(word)>=0 && full.indexOf(word)>=0;
+  const sameComps = sg.components.every(c=>{
+    const cw=_rdxWord(c.state);
+    return compact.indexOf(cw)>=0 && full.indexOf(cw)>=0;
+  });
+  check('PRS-41', sameState && sameComps,
+    `state + component states identical Compact vs Full (state=${sameState}, components=${sameComps})`);
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────
