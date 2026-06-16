@@ -882,6 +882,32 @@ def _scale_cost_by_loa(loa_m: float) -> int:
     return int(round(val / 1000) * 1000)
 
 
+def _impact_estimate(base_aud: int, alt: dict) -> int:
+    """Per-option Impact Estimate (AUD), deterministic and DISTINCT per option.
+
+    Beta 10 demonstration figure — a simulated overall-consequence estimate,
+    NOT an accounting calculation. Derived from the vessel-scale baseline
+    (base_aud, from _scale_cost_by_loa) times the option's own operational
+    disruption, so that the Impact Estimate reinforces the option's Risk badge
+    and Cascade metric rather than contradicting them:
+
+      • strategy weight — re-planning magnitude of the chosen action
+          delay_arrival (hold at anchorage) < advance_departure (accelerate
+          ops) < reassign_berth (re-route + re-crew a whole berth)
+      • risk weight — low < medium < high
+      • cascade + delay uplift — more knock-on movements / longer hold ⇒ more
+
+    Higher operational disruption therefore produces a higher Impact Estimate,
+    a higher Risk Rating and larger Cascade Effects together.
+    """
+    strat_w = {"delay_arrival": 0.45, "advance_departure": 0.85,
+               "reassign_berth": 1.25}.get(alt.get("strategy", ""), 0.7)
+    risk_w  = {"low": 0.85, "medium": 1.0, "high": 1.3}.get(alt.get("risk", "medium"), 1.0)
+    uplift  = 1.0 + 0.12 * int(alt.get("cascade_count") or 0) + (int(alt.get("delay_mins") or 0) / 1200.0)
+    val = base_aud * strat_w * risk_w * uplift
+    return int(round(val / 1000) * 1000)
+
+
 def _seq_alt(sid, strategy, label, description, vessels, cascade, feasibility,
              saving_h=0, cost_usd=0, cost_label="", delay_mins=0,
              cascade_count=0, risk="medium", recommended=False):
@@ -1118,22 +1144,30 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                     else:
                         seq_alts = _generic_berth_alternatives(
                             a["name"], b["name"], berth_name, berth_id, gap)
-                    # Scale conflict cost impact by vessel size (AUD). Deterministic;
-                    # overlays cost_usd / cost_label on every alternative so the dollar
-                    # value reflects the larger of the two LOAs. The internal field
-                    # name stays cost_usd for downstream compatibility; the display
-                    # label is rebuilt as "~A$N,NNN <original suffix>".
+                    # Impact Estimate (AUD) per option. The vessel-scale baseline
+                    # (_scale_cost_by_loa) sets the magnitude; each option then
+                    # receives its OWN estimate via _impact_estimate, scaled by its
+                    # operational disruption (strategy + risk + cascade + delay) so
+                    # no two options are identical and the figure reinforces the
+                    # option's Risk badge and Cascade metric. Field name stays
+                    # cost_usd for downstream compatibility (What If, audit, mobile,
+                    # Port Brief); the label is rebuilt "~A$N,NNN <original suffix>".
                     _max_loa = max(float(a.get("loa") or 0), float(b.get("loa") or 0))
-                    _aud_cost = _scale_cost_by_loa(_max_loa)
+                    _base_aud = _scale_cost_by_loa(_max_loa)
+                    _seen = set()
                     for _alt in seq_alts:
-                        _alt["cost_usd"] = _aud_cost
+                        _est = _impact_estimate(_base_aud, _alt)
+                        while _est in _seen:        # guarantee distinct values
+                            _est += 1000
+                        _seen.add(_est)
+                        _alt["cost_usd"] = _est
                         _orig = _alt.get("cost_label") or ""
                         _suffix = ""
                         if _orig.startswith("~"):
                             parts = _orig.split(" ", 1)
                             if len(parts) == 2:
                                 _suffix = parts[1]
-                        _alt["cost_label"] = f"~A${_aud_cost:,}" + (f" {_suffix}" if _suffix else "")
+                        _alt["cost_label"] = f"~A${_est:,}" + (f" {_suffix}" if _suffix else "")
                     # Every berth_overlap CONFLICT always gets a Decision Card
                     ds = _build_decision_support(seq_alts, b_start, now)
                     _cid = hashlib.md5(f"berth_overlap-{berth_id}-{a['id']}-{b['id']}".encode()).hexdigest()[:8]
