@@ -4012,7 +4012,7 @@ ${o.recommended?'<div class="alt-lbl">★ Recommended</div>':''}
 <div class="cdesc">${esc(c.description||c.conflict_type||'')}</div>
 ${rh}
 <div class="metrics">
-<div class="met"><div class="met-val">${esc(cost)}</div><div class="met-lbl">Cost</div></div>
+<div class="met"><div class="met-val">${esc(cost)}</div><div class="met-lbl">Impact Est.</div></div>
 <div class="met"><div class="met-val">${esc(delay)}</div><div class="met-lbl">Delay</div></div>
 <div class="met"><div class="met-val g">${esc(casc)}</div><div class="met-lbl">Cascade</div></div>
 </div>
@@ -4392,7 +4392,7 @@ doRefresh();setInterval(doRefresh,30000);
                 Paragraph("CONFLICT", s_label),
                 Paragraph("SEVERITY", s_label),
                 Paragraph("RECOMMENDED ACTION", s_label),
-                Paragraph("COST", s_label),
+                Paragraph("IMPACT EST.", s_label),
             ]]
             sev_map = {"critical": C_RED, "high": C_AMBER, "medium": HexColor("#eab308")}
             for c in sorted(dec_conflicts, key=lambda x: {"critical":0,"high":1,"medium":2}.get(x.get("severity",""),3)):
