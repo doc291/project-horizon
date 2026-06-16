@@ -2657,7 +2657,7 @@ function _wiShowResults(res){
   const cdCls=cd<-500?'save':cd>500?'add':'zero';
   const cdTxt=cd<-500?`Save ~A$${Math.abs(cd).toLocaleString()}`:cd>500?`~A$${cd.toLocaleString()} additional cost`:'Cost-neutral';
   html+=`<div class="wi-band neu" style="margin-bottom:16px;"><div class="wi-band-icon">💰</div><div class="wi-band-body">
-    <div class="wi-band-lbl">Cost Impact</div>
+    <div class="wi-band-lbl">Impact Estimate</div>
     <div class="wi-cost-num ${cdCls}">${cdTxt}</div>
   </div></div>`;
   document.getElementById('wi-bands').innerHTML=html;
@@ -2870,7 +2870,7 @@ function openDSW(conflictId) {
         </div>
         <div class="option-metrics">
           <div class="metric">
-            <div class="metric-label">Cost Impact</div>
+            <div class="metric-label">Impact Estimate</div>
             <div class="metric-val cost">${esc(opt.cost_label)}</div>
           </div>
           <div class="metric">
