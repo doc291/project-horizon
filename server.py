@@ -1004,9 +1004,50 @@ def _conflict(cid, ctype, signal_type, severity, vessel_ids, vessel_names,
     }
 
 
+def _select_recommended(options):
+    """Beta 10 demo rule: recommend the lowest-cost VIABLE option.
+
+    The audience expects the recommended action to minimise cost unless an
+    option is genuinely not an option, so selection is:
+
+      1. Exclude options the data model marks non-viable. The model's
+         viability signal is the ``feasibility`` field; ``feasibility == "low"``
+         is the "not practical" marker the alternative builders already use
+         (e.g. an anchorage hold whose overlap exceeds the practical limit, or
+         a reassignment that depends on another conflict resolving first). No
+         label text is parsed. If EVERY option is "low", all options stay in
+         play so a card is never left without a recommendation.
+      2. Among the viable pool, pick the lowest numeric ``cost_usd``.
+      3. Tie on cost  -> prefer the lower ``delay_mins``.
+      4. Tie on delay -> prefer the lower ``cascade_count``.
+
+    Mutates each option's ``recommended`` flag in place (True on exactly the
+    chosen option, False on the rest) so the backend selection and every UI
+    surface that reads either ``recommended`` or ``recommended_option_id``
+    agree. Returns the chosen option (or None for an empty list).
+    """
+    if not options:
+        return None
+    viable = [o for o in options if str(o.get("feasibility", "")).lower() != "low"]
+    pool   = viable or options
+    chosen = min(pool, key=lambda o: (
+        int(o.get("cost_usd") or 0),
+        int(o.get("delay_mins") or 0),
+        int(o.get("cascade_count") or 0),
+    ))
+    for o in options:
+        o["recommended"] = (o is chosen)
+    return chosen
+
+
 def _build_decision_support(seq_alts, conflict_time_dt, now):
     """Build decision support block from sequencing alternatives."""
-    rec   = next((a for a in seq_alts if a.get("recommended")), seq_alts[0] if seq_alts else None)
+    # Beta 10 demo rule: the recommended option is the lowest-cost viable
+    # option (see _select_recommended). Evaluated AFTER the Impact Estimate
+    # overlay has set each option's final cost_usd, so the recommendation
+    # always matches the figures shown on the card and in the Recommended
+    # Action panel.
+    rec   = _select_recommended(seq_alts)
     # Deadline: 2h before conflict, but at least 20min from now.
     # If conflict is already ongoing (conflict_time in the past), give a 4h resolution window.
     if conflict_time_dt <= now:
