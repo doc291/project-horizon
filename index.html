@@ -1519,9 +1519,10 @@ function _rdxWaitText(eta, ready){
 function _rdxReadinessText(card, d){
   const v=card.vessel, st=card.composite.state, {key,comp}=_rdxDriver(card);
   if(st==='READY'){
-    return { lead: card.composite.qualifier
-        ? 'Ready to proceed — '+card.composite.qualifier
-        : 'Ready to proceed as planned, based on current data.', timing:'' };
+    // S1.4 green suppression + S1.5 advisory copy: a normal signal narrates nothing
+    // (the state flag is the message) and never uses the prohibited verb 'proceed'.
+    // Full detail stays reachable on expand; the lead is intentionally empty.
+    return { lead:'', timing:'' };
   }
   let lead='', timing='';
   const sub=(comp.subs||[]).find(s=>s.state===comp.state);
@@ -1596,12 +1597,71 @@ function _rdxCompSource(comp){
 // Consumed fully by the Rationale object in Slice 1; defined here so the
 // SIM-as-Live gate can express trust as Strong/Watch/Weak/Uncertain.
 function _b12TrustGate(prov){
-  switch(String(prov||'').toLowerCase()){
-    case 'live': case 'provider-reported': return 'Strong';
-    case 'schedule-based': case 'mixed':   return 'Watch';
-    case 'inferred': case 'assumed': case 'simulated': return 'Weak';
-    default: return 'Uncertain';   // unavailable / unknown
-  }
+  // Robust to both the conflict.provenance ENUM (live|mixed|simulated) and the
+  // free-form PRS sub provenances ('live AIS', 'modelled (tide prediction)',
+  // 'schedule-based', 'simulated / assumed', 'AIS identity via MST').
+  const p=String(prov||'').toLowerCase();
+  if(/provider[- ]reported/.test(p) || /\blive\b/.test(p) || /qships/.test(p)) return 'Strong';
+  if(/schedule|estimate|\bmixed\b|\bais\b|\bmst\b/.test(p)) return 'Watch';
+  if(/model|cosine|inferred|assumed|\bsim\b|simulated/.test(p)) return 'Weak';
+  return 'Uncertain';   // unavailable / unknown / '—'
+}
+// ── S1.1 / S1.2 — Canonical Rationale object ─────────────────────────────────
+// Explainability under advisory-only governance. The STATE flag is the
+// recommendation; the Rationale EXPLAINS it (what / why / evidence / consequence)
+// without ever instructing. Posture strength never exceeds the provenance of the
+// load-bearing component (Evidentiary Sufficiency). No scalar score — ordinal
+// trust gate only. Attached additively to the signal; composite is unchanged.
+function _b12Posture(loadBearingConf){
+  // load-bearing component confidence: 'live' | 'available' | 'none'
+  if(loadBearingConf==='live') return 'directive_advisory';   // assessed evidence
+  if(loadBearingConf==='available') return 'observed_condition'; // mixed/schedule
+  return 'capability_invitation';                              // load-bearing absent
+}
+// Conditional consequence — "If conditions persist, ...". Never "if you do not
+// act"; never an instruction; never an inevitable outcome. Null on a normal state.
+function _b12ConsequenceText(card, d, key){
+  if(card.composite.state==='READY') return null;
+  const rt=_rdxReadinessText(card,d);
+  const tail = rt.timing ? (' '+rt.timing) : '';
+  if(key==='berth')      return 'If conditions persist, the berth may not clear before this arrival.'+tail;
+  if(key==='navigation') return 'If conditions persist, the navigation window may remain constrained at the predicted arrival.'+tail;
+  if(key==='service')    return 'If conditions persist, pilot and tug readiness may remain unconfirmed for this movement.'+tail;
+  return 'If conditions persist, this arrival window may not hold.'+tail;
+}
+function _b12Rationale(card, d, sig){
+  const {key,comp}=_rdxDriver(card);
+  const lbConf=_rdxCompConf(comp);                       // load-bearing confidence
+  const lbSrc=_rdxCompSource(comp);                      // load-bearing provenance label
+  // Top-level trust gate derives from the load-bearing confidence so it is always
+  // coherent with posture (directive_advisory ⇒ live ⇒ Strong). Ordinal; no number.
+  const trust = lbConf==='live'?'Strong':lbConf==='available'?'Watch':'Uncertain';
+  const driverSub=(comp.subs||[]).find(s=>s.state===comp.state)||(comp.subs||[])[0]||{};
+  const evidence=(comp.subs||[]).map(s=>({
+    label: s.key||'—', value: (s.observed_value!=null?String(s.observed_value):''),
+    source: s.provenance||'—', provenance: s.provenance||'unavailable',
+    trust_gate: _b12TrustGate(s.provenance), updated_at: null,
+    load_bearing: s.state===comp.state }));
+  const consText=_b12ConsequenceText(card,d,key);
+  return {
+    state: card.composite.state,
+    posture: _b12Posture(lbConf),
+    trust_gate: trust,
+    driver: { component:key,
+      reason:(driverSub.reason||sig.reason||''),
+      threshold:(driverSub.threshold!=null?String(driverSub.threshold):''),       // S1.1a: structured where the engine supplies it
+      observed_value:(driverSub.observed_value!=null?String(driverSub.observed_value):'') },
+    evidence,
+    consequence: consText ? { text:consText,
+      confidence_limited_by:(trust==='Strong'?null:(lbSrc&&lbSrc!=='—'?lbSrc:'inferred evidence')) } : null,
+    capability_gap: { present: !!sig.gap,
+      text: sig.gap ? (sig.gap+' data would move this from estimated to confirmed.') : '' },
+    // change_narrative — placeholder stub per the Slice 1 brief ("what changed & why").
+    // Structure is fixed now so cards/notifications/audit can bind to it; populated
+    // with real deltas in a later slice.
+    change_narrative: { present:false, what_changed:null, why:null, evidence:null,
+      if_no_action:null, note:'Change tracking (what changed & why) arrives in a later slice.' }
+  };
 }
 // Map a readiness card -> canonical Signal Object view-model (state preserved).
 function _rdxToSignal(card, d, capNoteFn){
@@ -1623,10 +1683,12 @@ function _rdxToSignal(card, d, capNoteFn){
   const changeShort=tm?tm[0].trim():'';
   const _ord={live:2,available:1,none:0};
   const sumConf=components.reduce((w,c)=>(_ord[c.conf]<_ord[w]?c.conf:w),'live');
-  return { id:v.id, state:_rdxStateSlug(card.composite.state), vessel:v.name||v.id, berth, port,
+  const sig = { id:v.id, state:_rdxStateSlug(card.composite.state), vessel:v.name||v.id, berth, port,
     reason:rt.lead, timing:rt.timing||'', changeShort, sumConf, components,
     gap: gaps.length?gaps.join(' + '):null, conf:`${liveN} of 3 live`,
     qualifier: card.composite.qualifier||'' };
+  sig.rationale = _b12Rationale(card, d, sig);   // S1.1/S1.2 — canonical Rationale (additive)
+  return sig;
 }
 // Compact Signal density (default list tier). The SAME object, evidence and
 // contribution collapsed: state, vessel, berth, one-line reason, time-to-ready,
@@ -1640,15 +1702,23 @@ function _rdxSignalCompactHTML(sig){
   h+=`<span class="sigc-state">${esc(_rdxStateWord(sig.state))}</span>`;
   h+=`<span class="sigc-vessel">${esc(sig.vessel)}</span>`;
   h+=`<span class="sigc-berth">→ ${esc(sig.berth)}</span>`;
+  // S1.3 provenance marker — shown ONLY when the signal is not fully live
+  // (load-bearing trust gate below Strong). Ordinal word, never a number.
+  const _tg = sig.rationale && sig.rationale.trust_gate;
+  if(_tg && _tg!=='Strong') h+=`<span class="sigc-prov sigc-prov-${esc(_tg.toLowerCase())}" title="Trust gate (load-bearing evidence)">${esc(_tg)}</span>`;
   h+=`<span class="sigc-right">`;
   if(sig.changeShort)h+=`<span class="sigc-change">${esc(sig.changeShort)}</span>`;
-  h+=`<span class="sig-sumconf sig-sumconf-${sig.sumConf}" title="summary confidence"></span>`;
+  if(sig.state!=='ready') h+=`<span class="sig-sumconf sig-sumconf-${sig.sumConf}" title="summary confidence"></span>`;
   h+=`<span class="sigc-chev">▸</span></span>`;
   h+=`</div>`;
-  h+=`<div class="sigc-reason">${esc(sig.reason)}</div>`;
-  h+=`<div class="sigc-strip">`;
-  sig.components.forEach(c=>{ h+=`<span class="sigc-chip sig-${c.state}">${esc(c.label)} ${esc(_rdxStateWord(c.state))}</span>`; });
-  h+=`</div>`;
+  // S1.4 green suppression: a normal signal collapses to state + object only —
+  // no reason narration, no component strip, no confidence dot. Detail on expand.
+  if(sig.state!=='ready'){
+    h+=`<div class="sigc-reason">${esc(sig.reason)}</div>`;
+    h+=`<div class="sigc-strip">`;
+    sig.components.forEach(c=>{ h+=`<span class="sigc-chip sig-${c.state}">${esc(c.label)} ${esc(_rdxStateWord(c.state))}</span>`; });
+    h+=`</div>`;
+  }
   h+=`</div>`;
   return h;
 }
@@ -1661,7 +1731,9 @@ function _rdxSignalObjectHTML(sig, open){
   let h=`<div class="sig ${cls} ${open?'open':''}">`;
   // identity strip
   h+=`<div class="sig-id"><span class="sig-id-l"><span class="sig-dot"></span>Port readiness signal</span>`;
-  h+=`<span class="sig-id-r">${esc(sig.port)} · live</span></div>`;
+  // S1.3: identity reflects the load-bearing trust gate honestly — never a blanket "live".
+  const _idtg=(sig.rationale&&sig.rationale.trust_gate)||'—';
+  h+=`<span class="sig-id-r">${esc(sig.port)} · ${esc(_idtg==='Strong'?'live':_idtg)}</span></div>`;
   // 3s — state dominates, then vessel -> berth
   h+=`<div class="sig-3s"><div class="sig-state">${esc(_rdxStateWord(sig.state))}</div>`;
   h+=`<div class="sig-vb"><span class="sig-vessel">${esc(sig.vessel)}</span><span class="sig-berth">→ ${esc(sig.berth)}</span></div></div>`;
@@ -1670,6 +1742,16 @@ function _rdxSignalObjectHTML(sig, open){
   h+=`<div class="sig-change">${sig.timing
       ? `<span class="sig-change-l">Expected change</span><span class="sig-change-v">${esc(sig.timing)}</span>`
       : `<span class="sig-change-none">No change expected<br>within window</span>`}</div></div>`;
+  // S1.6 one-tap rationale — conditional consequence (advisory only, "if conditions
+  // persist", never an instruction). Suppressed on a normal/READY signal.
+  const _rat=sig.rationale;
+  if(_rat && _rat.consequence && _rat.consequence.text){
+    h+=`<div class="sig-rationale">`;
+    h+=`<div class="sig-rat-cons">${esc(_rat.consequence.text)}</div>`;
+    if(_rat.consequence.confidence_limited_by)
+      h+=`<div class="sig-rat-lim">Confidence limited by ${esc(_rat.consequence.confidence_limited_by)}.</div>`;
+    h+=`</div>`;
+  }
   // component states
   h+=`<div class="sig-comps">`;
   sig.components.forEach(c=>{
@@ -1691,17 +1773,26 @@ function _rdxSignalObjectHTML(sig, open){
   if(open){
     h+=`<div class="sig-evidence"><div class="sig-evi-h">Evidence · how each component was assessed</div>`;
     h+=`<div class="sig-evi-rows">`;
+    const _drvKey=sig.rationale&&sig.rationale.driver&&sig.rationale.driver.component;
     sig.components.forEach(c=>{
       const lab=c.conf==='live'?'Live data':c.conf==='available'?'Available data':'Not assessable';
-      h+=`<div class="sig-evi-row"><span class="sig-conf sig-conf-${c.conf} sig-${c.state}"></span>`;
-      h+=`<span class="sig-evi-lab"><span class="sig-evi-comp">${esc(c.label)}</span> <span class="sig-${c.state}">${esc(_rdxStateWord(c.state))}</span></span>`;
-      h+=`<span class="sig-evi-src">${esc(c.source)} · ${esc(lab)}</span></div>`;
+      const tg=_b12TrustGate(c.source);                       // S1.7 ordinal trust gate per component
+      const lb=_drvKey && c.label.toLowerCase()===_drvKey;    // S1.7 load-bearing marker
+      h+=`<div class="sig-evi-row${lb?' sig-evi-lb':''}"><span class="sig-conf sig-conf-${c.conf} sig-${c.state}"></span>`;
+      h+=`<span class="sig-evi-lab"><span class="sig-evi-comp">${esc(c.label)}${lb?' ★':''}</span> <span class="sig-${c.state}">${esc(_rdxStateWord(c.state))}</span></span>`;
+      h+=`<span class="sig-evi-src">${esc(c.source)} · ${esc(lab)} · <span class="sig-evi-tg sig-evi-tg-${esc(tg.toLowerCase())}">${esc(tg)}</span></span></div>`;
     });
     h+=`</div>`;
     // maintained capability notes (contribution visibility, full text)
     sig.components.forEach(c=>{ if(c.note) h+=`<div class="sig-evi-note">${esc(c.note)}</div>`; });
-    if(sig.gap) h+=`<div class="sig-evi-gap"><span class="sig-glyph"></span><strong>${esc(sig.gap)}</strong> has not connected for this call — their data would move readiness from estimated to confirmed.</div>`;
-    h+=`<div class="sig-evi-foot"><span>Signal · ${id}</span><span>refreshes 30s</span></div>`;
+    // S1.7 — invitational capability gap (blame-protection: replaces "has not connected").
+    if(sig.gap) h+=`<div class="sig-evi-gap"><span class="sig-glyph"></span>With <strong>${esc(sig.gap)}</strong> data, Horizon would move this from estimated to confirmed.</div>`;
+    // S1.7 — change-narrative (stub). "What changed & why" lands in a later slice.
+    h+=`<div class="sig-evi-narr"><span class="sig-evi-narr-l">What changed</span> <span class="sig-evi-narr-v">No change recorded yet — change tracking arrives in a later slice.</span></div>`;
+    // S1.2 — posture (provenance-bounded; reinforces advisory-only).
+    const _pmap={directive_advisory:'Directive · assessed evidence',observed_condition:'Observed · mixed evidence',capability_invitation:'Invitation · load-bearing data absent'};
+    const _pp=sig.rationale&&_pmap[sig.rationale.posture];
+    h+=`<div class="sig-evi-foot"><span>Signal · ${id}${_pp?(' · '+esc(_pp)):''}</span><span>refreshes 30s</span></div>`;
     h+=`</div>`;
   }
   h+=`</div>`;
@@ -3809,6 +3900,21 @@ function _checkCounts(observed,badgeId,label,expected){
     .sig-sumconf-available{background:transparent;border:1.5px solid var(--sc);}
     .sig-sumconf-none{background:transparent;border:1.5px dashed #3F4856;}
     .sigc-chev{color:#5E6878;font-size:11px;}
+    /* ── S1 Rationale / explainability elements ──────────────────────────────── */
+    .sigc-prov{font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 6px;border-radius:5px;margin-left:6px;
+      color:#E5A557;background:rgba(229,165,87,.12);border:1px solid rgba(229,165,87,.34);}
+    .sigc-prov-weak,.sigc-prov-uncertain{color:#F26C5A;background:rgba(242,108,90,.12);border-color:rgba(242,108,90,.34);}
+    .sig-rationale{margin:8px 22px 0;padding:9px 12px;border-radius:8px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);}
+    .sig-rat-cons{font-size:12px;color:#C3CAD4;line-height:1.4;}
+    .sig-rat-lim{font-size:10px;color:#8C97A8;margin-top:4px;font-style:italic;}
+    .sig-evi-tg{font-weight:700;}
+    .sig-evi-tg-strong{color:#6BD49A;} .sig-evi-tg-watch{color:#E5A557;} .sig-evi-tg-weak,.sig-evi-tg-uncertain{color:#F26C5A;}
+    .sig-evi-lb{background:rgba(255,255,255,.03);}
+    .sig-evi-narr{margin-top:9px;font-size:10.5px;color:#8C97A8;}
+    .sig-evi-narr-l{font-weight:700;color:#98A3B3;text-transform:uppercase;letter-spacing:.04em;font-size:9px;margin-right:6px;}
+    .lens-rdx-trust{font-size:10px;color:#98A3B3;margin-top:6px;}
+    .lens-rdx-cons{font-size:11px;color:#C3CAD4;margin-top:3px;line-height:1.35;}
+    .lens-rdx-narr{font-size:9.5px;color:#6E7888;margin-top:3px;}
     .sigc-reason{font-size:12px;color:#98A3B3;margin-top:5px;line-height:1.35;}
     .sigc-strip{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
     .sigc-chip{font-size:9px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:5px;
@@ -4567,6 +4673,19 @@ function _checkCounts(observed,badgeId,label,expected){
       const note = _prsCapabilityNote(pair[0], pair[1]);
       if(note) h += `<div class="prs-cap">${esc(note)}</div>`;
     });
+    // S1.8 — surface the canonical Rationale on the Pilotage/Towage watch: the
+    // load-bearing trust gate, a conditional consequence (advisory only), and the
+    // change-narrative stub. Uses the SAME signal pipeline — never diverges.
+    try {
+      const _d = (typeof _last!=='undefined' && _last) ? _last : {};
+      const _r = _rdxToSignal(card, _d, _prsCapabilityNote).rationale;
+      if(_r){
+        h += `<div class="lens-rdx-trust">Trust: <strong>${esc(_r.trust_gate)}</strong></div>`;
+        if(_r.consequence && _r.consequence.text)
+          h += `<div class="lens-rdx-cons">${esc(_r.consequence.text)}</div>`;
+        h += `<div class="lens-rdx-narr">What changed: not yet recorded — change tracking arrives in a later slice.</div>`;
+      }
+    } catch(e){ /* readiness block stays compact if the signal pipeline is unavailable */ }
     h += `</div>`;
     return h;
   }

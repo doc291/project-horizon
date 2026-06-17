@@ -62,11 +62,17 @@ function compileLens() {
     '  // ════════════════════════════════════════════════════════════════════════\n  // renderTowageShift(shift) -> HTML string.');
   const TOW_REND = slice('  // ════════════════════════════════════════════════════════════════════════\n  // renderTowageShift(shift) -> HTML string.',
     '  function onData(d){');
+  // S1.8 — the Pilotage/Towage lens readiness block now surfaces the canonical
+  // Rationale, so the lens test context must include the signal/Rationale block
+  // (proven disjoint from PURE in compileSignal).
+  const RDX = slice('function _prsTopStateClass(st){', '// RDX-SIGNAL-END');
   const src = `
     function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
     function fmtTs(ts){ try{ return new Date(ts).toISOString().slice(11,16); }catch(e){ return String(ts); } }
     function fmtTsRel(ts){ return fmtTs(ts); }
+    function fmtTimeRel(iso){ try{ return new Date(iso).toISOString().slice(11,16)+" UTC"; }catch(e){ return String(iso); } }
     ${PURE}
+    ${RDX}
     ${TOW_DATA}
     ${PIL}
     ${TOW_REND}
@@ -570,15 +576,17 @@ function phaseASummary(){
   const compact = sigc._rdxSignalObjectHTML(sigOf('VA'), false);  // default tier
   const full    = sigc._rdxSignalObjectHTML(sigOf('VA'), true);   // expanded tier
 
-  // 38. Default list renders COMPACT density with the canon field set. The
-  //     always-present fields on any vessel; time-to-ready where available (VB).
+  // 38. Compact density + GREEN SUPPRESSION (S1.4): a non-READY signal carries the
+  //     full field set (reason, strip, summary dot); a READY signal collapses to
+  //     state+object only; time-to-ready shown where available.
   const cIsCompact = /class="sig sig-compact/.test(compact);
-  const cFields = /sigc-state/.test(compact) && /sigc-vessel/.test(compact) && /sigc-berth/.test(compact)
-    && /sigc-reason/.test(compact) && /sigc-strip/.test(compact) && /sig-sumconf/.test(compact);
-  const compactVB = sigc._rdxSignalObjectHTML(sigOf('VB'), false);  // NOT READY → has time-to-ready
+  const compactVB = sigc._rdxSignalObjectHTML(sigOf('VB'), false);  // NOT READY
+  const nrFields = /sigc-state/.test(compactVB) && /sigc-vessel/.test(compactVB) && /sigc-berth/.test(compactVB)
+    && /sigc-reason/.test(compactVB) && /sigc-strip/.test(compactVB) && /sig-sumconf/.test(compactVB);
+  const greenCollapsed = !/sigc-reason/.test(compact) && !/sigc-strip/.test(compact) && !/sig-sumconf/.test(compact);
   const changeWhenAvail = /sigc-change/.test(compactVB);
-  check('PRS-38', cIsCompact && cFields && changeWhenAvail,
-    `Compact field set present=${cIsCompact&&cFields}; time-to-ready shown where available=${changeWhenAvail}`);
+  check('PRS-38', cIsCompact && nrFields && greenCollapsed && changeWhenAvail,
+    `non-green field set=${nrFields}; green collapsed=${greenCollapsed}; time-to-ready=${changeWhenAvail}`);
 
   // 39. Compact hides foot, evidence, capability notes, per-component confidence.
   const cHides = !/sig-foot/.test(compact) && !/sig-evidence/.test(compact)
@@ -590,19 +598,55 @@ function phaseASummary(){
     && /sig-evi-note/.test(full) && /sig-conf/.test(full);
   check('PRS-40', fFull, `expansion = Full Signal (foot + evidence + capability + per-component confidence)=${fFull}`);
 
-  // 41. State and component states are IDENTICAL across Compact and Full.
-  const sg = sigOf('VA');
-  const stateConsistent = new RegExp('sigc-state">'+sg.state.replace('-',' ').toUpperCase().replace(' ','\\s')).test(compact.replace(/-/g,' '))
-    || compact.indexOf(_rdxWord(sg.state))>=0;
+  // 41. State identical Compact vs Full always; component-state parity holds for a
+  //     non-green signal. A READY signal's compact omits the strip by suppression,
+  //     so component parity is asserted on the NOT-READY fixture (VB).
   function _rdxWord(s){return s==='ready'?'READY':s==='at-risk'?'AT RISK':s==='not-ready'?'NOT READY':'UNCERTAIN';}
-  const word=_rdxWord(sg.state);
-  const sameState = compact.indexOf(word)>=0 && full.indexOf(word)>=0;
-  const sameComps = sg.components.every(c=>{
-    const cw=_rdxWord(c.state);
-    return compact.indexOf(cw)>=0 && full.indexOf(cw)>=0;
-  });
-  check('PRS-41', sameState && sameComps,
-    `state + component states identical Compact vs Full (state=${sameState}, components=${sameComps})`);
+  const sgNR = sigOf('VB');
+  const compactNR = compactVB;
+  const fullNR    = sigc._rdxSignalObjectHTML(sgNR, true);
+  const wNR=_rdxWord(sgNR.state);
+  const sameState = compactNR.indexOf(wNR)>=0 && fullNR.indexOf(wNR)>=0;
+  const sameComps = sgNR.components.every(c=>{ const cw=_rdxWord(c.state); return compactNR.indexOf(cw)>=0 && fullNR.indexOf(cw)>=0; });
+  const greenStateParity = compact.indexOf('READY')>=0 && full.indexOf('READY')>=0;
+  check('PRS-41', sameState && sameComps && greenStateParity,
+    `non-green state+components identical=${sameState&&sameComps}; green state parity=${greenStateParity}`);
+
+  // ── S1 — Rationale object + explainability contract (Slice 1) ───────────────
+  // 42. Every signal carries a Rationale with the full field set incl. change_narrative stub.
+  const RAT_KEYS=['state','posture','trust_gate','driver','evidence','consequence','capability_gap','change_narrative'];
+  const ratOk = ['VA','VB','VC'].every(id=>{ const r=sigOf(id).rationale;
+    return r && RAT_KEYS.every(k=>k in r) && r.change_narrative && ('present' in r.change_narrative)
+      && r.driver && ('component' in r.driver) && Array.isArray(r.evidence); });
+  check('PRS-42', ratOk, `Rationale (state/posture/trust_gate/driver/evidence/consequence/capability_gap/change_narrative) on every signal=${ratOk}`);
+
+  // 43. No advisory-prohibited command language in any rendered signal (compact or full).
+  const PROHIB=/\b(proceed|approved|cleared|confirmed by horizon)\b|you (?:must|should)/i;
+  const allRender=['VA','VB','VC'].map(id=>sigc._rdxSignalObjectHTML(sigOf(id),false)+' '+sigc._rdxSignalObjectHTML(sigOf(id),true)).join(' ');
+  const noProhib=!PROHIB.test(allRender);
+  check('PRS-43', noProhib, `no prohibited advisory copy in rendered signals=${noProhib}`);
+
+  // 44. Posture bounded by load-bearing provenance: directive_advisory ⇒ trust Strong.
+  const postureBoundedOk = ['VA','VB','VC'].every(id=>{ const r=sigOf(id).rationale;
+    return r.posture!=='directive_advisory' || r.trust_gate==='Strong'; });
+  check('PRS-44', postureBoundedOk, `posture strength bounded by load-bearing trust (directive ⇒ Strong)=${postureBoundedOk}`);
+
+  // 45. Consequence is conditional ("if conditions persist"), never operator-blame.
+  const consOk = ['VB','VC'].every(id=>{ const c=sigOf(id).rationale.consequence;
+    return c && /if conditions persist/i.test(c.text) && !/if you do not act|you must|you should/i.test(c.text); });
+  check('PRS-45', consOk, `consequence conditional, no operator-blame voice=${consOk}`);
+
+  // 46. Green signal has null consequence; non-green has consequence text.
+  const greenCons = (sigOf('VA').rationale.consequence===null)
+    && !!(sigOf('VB').rationale.consequence && sigOf('VB').rationale.consequence.text);
+  check('PRS-46', greenCons, `consequence null on READY, present on non-READY=${greenCons}`);
+
+  // 47. S1.8 — the Pilotage/Towage lens readiness block surfaces the Rationale:
+  //     load-bearing trust gate + conditional consequence (advisory) on a non-green vessel.
+  const vbVessel = (d.vessels||[]).find(v=>v.id==='VB');
+  const lensBlock = lens._lensReadinessBlock(lens.buildVesselReadiness(vbVessel, d));
+  const lensOk = /Trust:/.test(lensBlock) && /if conditions persist/i.test(lensBlock) && /What changed/.test(lensBlock);
+  check('PRS-47', lensOk, `Pilotage/Towage readiness block surfaces trust gate + conditional consequence + change stub=${lensOk}`);
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────
