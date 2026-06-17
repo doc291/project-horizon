@@ -647,6 +647,36 @@ function phaseASummary(){
   const lensBlock = lens._lensReadinessBlock(lens.buildVesselReadiness(vbVessel, d));
   const lensOk = /Trust:/.test(lensBlock) && /if conditions persist/i.test(lensBlock) && /What changed/.test(lensBlock);
   check('PRS-47', lensOk, `Pilotage/Towage readiness block surfaces trust gate + conditional consequence + change stub=${lensOk}`);
+
+  // 48. S1.5 — change_narrative is a REAL transition explanation (not a stub):
+  //     first observation => present:false (safe fallback, no invented history);
+  //     a later poll with a moved driver => present:true describing what/when/why/
+  //     which evidence; the canonical worst-wins composite is unchanged.
+  const ETA = h => new Date(Date.now()+h*3600000).toISOString();
+  const VT = { id:'VT', name:'TANGO', source:'ais', status:'confirmed', draught:10,
+    pilotage_required:true, towage_required:true, berth_id:'BT', eta:ETA(5) };
+  const mkSum = (readyIso, gen) => ({
+    beta11:{enabled:true}, port_profile:{using_live_vessel_data:true,short_name:'Melbourne'},
+    weather:{conditions:'Good',source:'live'}, arrival_ukc:{status:'good',critical_vessel:null,all:[]},
+    tides:{}, generated_at:gen,
+    berths:[{id:'BT',name:'Berth T',readiness_time:readyIso}],
+    vessels:[VT],
+    conflicts:[{conflict_type:'berth_not_ready',severity:'high',vessel_ids:['VT'],description:'Berth T not ready before arrival.',data_source:'simulated'}],
+    pilotage:[], towage:[]
+  });
+  const dt1 = mkSum(ETA(13), '2026-06-17T03:30:00Z');
+  const cn1 = sigc._rdxToSignal(sigc.buildVesselReadiness(VT, dt1), dt1, null).rationale.change_narrative;
+  const dt2 = mkSum(ETA(15), '2026-06-17T03:42:00Z');   // expected berth clearance slips later
+  const sig2 = sigc._rdxToSignal(sigc.buildVesselReadiness(VT, dt2), dt2, null);
+  const cn2 = sig2.rationale.change_narrative;
+  const compositePreserved = sig2.state === sigc._rdxStateSlug(sigc.buildVesselReadiness(VT, dt2).composite.state);
+  const cnOk = cn1 && cn1.present===false
+    && cn2 && cn2.present===true
+    && /moved|changed/i.test((cn2.what_changed||'')+' '+(cn2.why||''))
+    && /moved from/i.test(cn2.evidence||'')
+    && compositePreserved;
+  check('PRS-48', cnOk,
+    `first present:${cn1&&cn1.present}; after-change present:${cn2&&cn2.present} what="${cn2&&cn2.what_changed}" evid="${cn2&&cn2.evidence}"; composite preserved=${compositePreserved}`);
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────

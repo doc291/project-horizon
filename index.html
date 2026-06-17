@@ -1629,6 +1629,82 @@ function _b12ConsequenceText(card, d, key){
   if(key==='service')    return 'If conditions persist, pilot and tug readiness may remain unconfirmed for this movement.'+tail;
   return 'If conditions persist, this arrival window may not hold.'+tail;
 }
+// ── S1.5 — change_narrative: a REAL transition explanation ───────────────────
+// Previous state is captured CLIENT-SIDE per vessel across /api/summary polls
+// (no server change, no second engine). We diff the current load-bearing picture
+// against the last snapshot and describe the move. The canonical worst-wins
+// composite is untouched — this only EXPLAINS a transition. If there is no prior
+// snapshot (first observation) we return present:false with a note rather than
+// inventing history (safe fallback). The detected transition persists (with its
+// original detection time) until the next genuine change.
+let _b12SigHist = {};   // vessel_id -> { snap, last }
+function _b12HM(iso){ if(!iso) return ''; try{ return new Date(iso).toISOString().slice(11,16); }catch(e){ return ''; } }
+function _b12ChangeNarrative(card, d, driverKey, driverProv, trust, consText){
+  const vid = card.vessel && card.vessel.id;
+  const compLabel = driverKey==='berth'?'berth clearance':driverKey==='navigation'?'navigation window'
+                   :driverKey==='service'?'service readiness':String(driverKey||'readiness');
+  // Representative, operator-observable evidence timestamp for the driver.
+  // Compare evidence timing at MINUTE granularity (HH:MM) so sub-minute ISO drift
+  // between polls is not mistaken for a change.
+  let evTime='';
+  if(driverKey==='berth'){ const b=(d.berths||[]).find(x=>x&&x.id===card.vessel.berth_id); evTime=_b12HM((b&&b.readiness_time)||''); }
+  else if(driverKey==='navigation'){ evTime=_b12HM(card.vessel.eta||''); }
+  const cur = { state:card.composite.state, trust, driverKey, driverProv:String(driverProv||''), evTime };
+  const blank = { present:false, what_changed:null, when:null, why:null, evidence:null, if_no_action:null };
+  if(!vid) return Object.assign({}, blank, { note:'Vessel identity unavailable — change cannot be tracked.' });
+  // Idempotent within a poll: the signal is rendered on multiple surfaces (Tab +
+  // lens) in one poll. Keyed on generated_at, repeated renders REPLAY the same
+  // result and never re-mutate history — preserving the cross-surface divergence
+  // guarantee. A genuine new poll (new generated_at) recomputes the transition.
+  const pollId = (d && d.generated_at) || null;
+  const hist = _b12SigHist[vid];
+  if(hist && hist.lastPoll===pollId && hist.result) return hist.result;
+  let result;
+  if(!hist){   // first observation — do not invent history (safe fallback)
+    result = Object.assign({}, blank, { note:'First observation — change tracking begins from the next update.' });
+    _b12SigHist[vid] = { snap:cur, last:null, lastPoll:pollId, result };
+    return result;
+  }
+  const prev = hist.snap;
+  const moved = prev.state!==cur.state || prev.trust!==cur.trust
+             || prev.driverProv!==cur.driverProv || prev.evTime!==cur.evTime;
+  if(moved){
+    const parts=[];
+    if(prev.trust!==cur.trust) parts.push(`Trust moved from ${prev.trust} to ${cur.trust}`);
+    if(prev.state!==cur.state) parts.push(`Readiness moved from ${prev.state} to ${cur.state}`);
+    const what = parts.length ? parts.join('; ') : 'The readiness picture changed';
+    const why = (prev.driverProv && cur.driverProv && prev.driverProv!==cur.driverProv)
+      ? `the ${compLabel} driver changed from ${prev.driverProv} to ${cur.driverProv}`
+      : `the ${compLabel} driver changed`;
+    let evidence;
+    if(prev.evTime && cur.evTime && prev.evTime!==cur.evTime){
+      const lab = driverKey==='berth'?'expected berth clearance':driverKey==='navigation'?'predicted arrival':compLabel;
+      evidence = `${lab} moved from ${prev.evTime} to ${cur.evTime}`;   // already HH:MM
+    } else {
+      evidence = `${compLabel} provenance now ${cur.driverProv||'unavailable'}`;
+    }
+    result = { present:true, what_changed:what, when:(_b12HM(d.generated_at)||null),
+      why, evidence, if_no_action:consText||null, note:'' };
+    _b12SigHist[vid] = { snap:cur, last:result, lastPoll:pollId, result };
+    return result;
+  }
+  // No change this poll — keep the last detected transition (if any), else quiet.
+  result = hist.last ? hist.last : Object.assign({}, blank, { note:'No change since the last update.' });
+  _b12SigHist[vid] = { snap:cur, last:hist.last, lastPoll:pollId, result };
+  return result;
+}
+// Render a change_narrative object to a one-line advisory sentence.
+function _b12NarrHTML(cn){
+  if(!cn) return '';
+  if(cn.present){
+    let s = esc(cn.what_changed||'Change observed');
+    if(cn.when) s += ' at '+esc(cn.when);
+    if(cn.why) s += ' because '+esc(cn.why);
+    if(cn.evidence) s += ' ('+esc(cn.evidence)+')';
+    return s+'.';
+  }
+  return esc(cn.note || 'No change recorded.');
+}
 function _b12Rationale(card, d, sig){
   const {key,comp}=_rdxDriver(card);
   const lbConf=_rdxCompConf(comp);                       // load-bearing confidence
@@ -1656,11 +1732,11 @@ function _b12Rationale(card, d, sig){
       confidence_limited_by:(trust==='Strong'?null:(lbSrc&&lbSrc!=='—'?lbSrc:'inferred evidence')) } : null,
     capability_gap: { present: !!sig.gap,
       text: sig.gap ? (sig.gap+' data would move this from estimated to confirmed.') : '' },
-    // change_narrative — placeholder stub per the Slice 1 brief ("what changed & why").
-    // Structure is fixed now so cards/notifications/audit can bind to it; populated
-    // with real deltas in a later slice.
-    change_narrative: { present:false, what_changed:null, why:null, evidence:null,
-      if_no_action:null, note:'Change tracking (what changed & why) arrives in a later slice.' }
+    // S1.5 — real transition explanation (what / when / why / which evidence /
+    // if-conditions-persist), diffed client-side vs the previous poll's snapshot.
+    // Uses the load-bearing SUB's provenance so the "driver changed from X to Y"
+    // clause is specific (e.g. live -> schedule-based).
+    change_narrative: _b12ChangeNarrative(card, d, key, (driverSub.provenance||lbSrc), trust, consText)
   };
 }
 // Map a readiness card -> canonical Signal Object view-model (state preserved).
@@ -1787,8 +1863,8 @@ function _rdxSignalObjectHTML(sig, open){
     sig.components.forEach(c=>{ if(c.note) h+=`<div class="sig-evi-note">${esc(c.note)}</div>`; });
     // S1.7 — invitational capability gap (blame-protection: replaces "has not connected").
     if(sig.gap) h+=`<div class="sig-evi-gap"><span class="sig-glyph"></span>With <strong>${esc(sig.gap)}</strong> data, Horizon would move this from estimated to confirmed.</div>`;
-    // S1.7 — change-narrative (stub). "What changed & why" lands in a later slice.
-    h+=`<div class="sig-evi-narr"><span class="sig-evi-narr-l">What changed</span> <span class="sig-evi-narr-v">No change recorded yet — change tracking arrives in a later slice.</span></div>`;
+    // S1.5 — real change narrative (transition explanation; quiet when stable).
+    h+=`<div class="sig-evi-narr"><span class="sig-evi-narr-l">What changed</span> <span class="sig-evi-narr-v">${_b12NarrHTML(sig.rationale&&sig.rationale.change_narrative)}</span></div>`;
     // S1.2 — posture (provenance-bounded; reinforces advisory-only).
     const _pmap={directive_advisory:'Directive · assessed evidence',observed_condition:'Observed · mixed evidence',capability_invitation:'Invitation · load-bearing data absent'};
     const _pp=sig.rationale&&_pmap[sig.rationale.posture];
@@ -4683,7 +4759,7 @@ function _checkCounts(observed,badgeId,label,expected){
         h += `<div class="lens-rdx-trust">Trust: <strong>${esc(_r.trust_gate)}</strong></div>`;
         if(_r.consequence && _r.consequence.text)
           h += `<div class="lens-rdx-cons">${esc(_r.consequence.text)}</div>`;
-        h += `<div class="lens-rdx-narr">What changed: not yet recorded — change tracking arrives in a later slice.</div>`;
+        h += `<div class="lens-rdx-narr">What changed: ${_b12NarrHTML(_r.change_narrative)}</div>`;
       }
     } catch(e){ /* readiness block stays compact if the signal pipeline is unavailable */ }
     h += `</div>`;
