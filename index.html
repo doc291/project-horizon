@@ -1592,6 +1592,17 @@ function _rdxCompSource(comp){
   const sub=(comp.subs||[]).find(s=>s.provenance);
   return sub?sub.provenance:'—';
 }
+// S0.3 (Beta 12) — provenance enum -> ordinal trust-gate seed. No scalar score.
+// Consumed fully by the Rationale object in Slice 1; defined here so the
+// SIM-as-Live gate can express trust as Strong/Watch/Weak/Uncertain.
+function _b12TrustGate(prov){
+  switch(String(prov||'').toLowerCase()){
+    case 'live': case 'provider-reported': return 'Strong';
+    case 'schedule-based': case 'mixed':   return 'Watch';
+    case 'inferred': case 'assumed': case 'simulated': return 'Weak';
+    default: return 'Uncertain';   // unavailable / unknown
+  }
+}
 // Map a readiness card -> canonical Signal Object view-model (state preserved).
 function _rdxToSignal(card, d, capNoteFn){
   const v=card.vessel;
@@ -1955,6 +1966,10 @@ function updateHeader(d){
   document.getElementById('s-conflict-chip').classList.toggle('alert',(ps.critical_conflicts||0)>0);
   // Data source indicator
   const isLive = d.data_source==='qships' || d.data_source==='live';
+  // S0.4 (Beta 12): detect simulated inbound vessels mixed into a live feed so the
+  // badge never presents a mixed state as pure live. Gated on _b11 -> flag-off = Beta 10.
+  const _b12mix = !!(window._b11 && d && d.beta11) && isLive
+                  && (d.vessels||[]).some(v=>v && (v.source==='sim' || String(v.id||'').startsWith('SIM-')));
   const ind=document.getElementById('ds-indicator');
   const dot=document.getElementById('ds-dot');
   const lbl=document.getElementById('ds-label');
@@ -1963,7 +1978,7 @@ function updateHeader(d){
     ind.className=isLive?'live':'mock';
     dot.className='ds-dot '+(isLive?'live':'mock');
     lbl.className=isLive?'live':'mock';
-    lbl.textContent=d.data_source_label||'Simulation Data';
+    lbl.textContent=(d.data_source_label||'Simulation Data')+(_b12mix?' · incl. simulated inbound':'');
     if(isLive&&d.scraped_at){
       try{
         const sc=new Date(d.scraped_at);
@@ -2632,7 +2647,10 @@ function renderPerformance(d){
   const dash    = d.dashboard || {};
   const portId  = (d.port_profile && d.port_profile.id) || 'PORT';
   const isLive  = d.data_source === 'live';
-  if(badge) badge.textContent = isLive ? 'Live Data' : 'Simulated History';
+  // S0.4 (Beta 12): mark mixed real+simulated as such; gated on _b11 (flag-off = Beta 10 'Live Data').
+  const _b12mix = !!(window._b11 && d && d.beta11) && isLive
+                  && (d.vessels||[]).some(v=>v && (v.source==='sim' || String(v.id||'').startsWith('SIM-')));
+  if(badge) badge.textContent = isLive ? (_b12mix ? 'Live + Simulated' : 'Live Data') : 'Simulated History';
 
   // Day labels: past 6 days + Today
   const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -4306,12 +4324,24 @@ function _checkCounts(observed,badgeId,label,expected){
       } else if(hrs != null && hrs <= 12){
         subs.push({ key:"availability", state: isBlocker ? PRS.NOT_READY : PRS.AT_RISK,
           reason: berthConflict.description || "Berth not clear before arrival.",
-          confidence:"MODERATE", provenance:(berthConflict.data_source||"schedule-based") });
+          confidence:"MODERATE",
+          // S0.5 (Beta 12): prefer the SIM-aware conflict.provenance over the
+          // legacy data_source so a simulated/mixed inbound cannot make the
+          // Service component read 'live'. Flag simulated when provenance != live
+          // (Evidentiary Sufficiency seed: load-bearing-sim never reads Strong/live).
+          provenance:(berthConflict.provenance||berthConflict.data_source||"schedule-based"),
+          simulated:(berthConflict.provenance ? berthConflict.provenance!=="live" : undefined) });
       } else {
         // 12-24h, or timing unknown (no ETA) — monitor, do not block.
         subs.push({ key:"availability", state:PRS.AT_RISK,
           reason: berthConflict.description || "Berth clearance tight in the forward window.",
-          confidence:"MODERATE", provenance:(berthConflict.data_source||"schedule-based") });
+          confidence:"MODERATE",
+          // S0.5 (Beta 12): prefer the SIM-aware conflict.provenance over the
+          // legacy data_source so a simulated/mixed inbound cannot make the
+          // Service component read 'live'. Flag simulated when provenance != live
+          // (Evidentiary Sufficiency seed: load-bearing-sim never reads Strong/live).
+          provenance:(berthConflict.provenance||berthConflict.data_source||"schedule-based"),
+          simulated:(berthConflict.provenance ? berthConflict.provenance!=="live" : undefined) });
       }
     } else {
       _scheduleBaseline();
@@ -5002,15 +5032,15 @@ function _checkCounts(observed,badgeId,label,expected){
         if(c.conflict_type === "towage_resource"){
           reasons.push({ source:"towage_resource", severity:"warning",
                          description: c.description, conflict_id: c.id,
-                         provenance: c.data_source || "live" });
+                         provenance: c.provenance || c.data_source || "live" });
         } else if(c.conflict_type === "eta_variance"){
           reasons.push({ source:"eta_variance", severity:"advisory",
                          description: c.description, conflict_id: c.id,
-                         provenance: c.data_source || "live" });
+                         provenance: c.provenance || c.data_source || "live" });
         } else if(c.conflict_type === "berth_not_ready" || c.conflict_type === "berth_overlap"){
           reasons.push({ source:"berth_side", severity:"advisory",
                          description: c.description, conflict_id: c.id,
-                         provenance: c.data_source || "live" });
+                         provenance: c.provenance || c.data_source || "live" });
         }
       });
 
@@ -5121,7 +5151,7 @@ function _checkCounts(observed,badgeId,label,expected){
               severity: c.severity || "warning",
               description: c.description,
               vessel_names: c.vessel_names || [],
-              provenance: c.data_source || "live"
+              provenance: c.provenance || c.data_source || "live"
             }
           });
         }
@@ -5703,7 +5733,7 @@ function _checkCounts(observed,badgeId,label,expected){
             severity: c.severity || "warning",
             description: _scrubPilotId(c.description),
             vessel_names: c.vessel_names || [],
-            provenance: c.data_source || "live"
+            provenance: c.provenance || c.data_source || "live"
           }
         });
       });

@@ -1055,10 +1055,28 @@ def b03_alternatives(a_name, b_name):
 
 CLEARANCE_MINS = 60
 
+_REAL_VESSEL_SOURCES = {"ais", "aisstream", "mst", "qships", "scraper", "live"}
+
+def _vessel_is_sim(v):
+    """True if a vessel is NOT confirmed live (simulated / assumed / unknown).
+
+    Conservative by design for the SIM-as-Live gate: a vessel counts as live
+    ONLY when it carries a recognised real-feed source AND a non-SIM id. A SIM-
+    id, a 'sim' source, a missing source, or any unrecognised source is treated
+    as non-live, so the gate never over-claims 'live'. Vessels are tagged with an
+    explicit source before conflict detection (see build_summary S0.1 backfill).
+    """
+    if not isinstance(v, dict):
+        return True
+    if str(v.get("id", "")).startswith("SIM-"):
+        return True
+    return v.get("source") not in _REAL_VESSEL_SOURCES
+
+
 def _conflict(cid, ctype, signal_type, severity, vessel_ids, vessel_names,
                berth_id, berth_name, conflict_time, description, resolutions,
                sequencing_alternatives=None, decision_support=None,
-               data_source="simulated"):
+               data_source="simulated", provenance="simulated"):
     return {
         "id": cid,
         "conflict_type": ctype,
@@ -1073,7 +1091,13 @@ def _conflict(cid, ctype, signal_type, severity, vessel_ids, vessel_names,
         "resolution_options": resolutions,
         "sequencing_alternatives": sequencing_alternatives or [],
         "decision_support": decision_support,
-        "data_source": data_source,        # "live" | "simulated"
+        "data_source": data_source,        # "live" | "simulated"  (Beta 10 — UNCHANGED)
+        # Beta 12 (additive): SIM-aware provenance of the conflict, derived from
+        # the ACTUAL sources of the vessels involved. Never overrides data_source.
+        # "live"  = all involved vessels are real feeds
+        # "mixed" = at least one real + at least one simulated vessel
+        # "simulated" = all involved vessels simulated / inferred domain
+        "provenance": provenance,
     }
 
 
@@ -1109,6 +1133,21 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
     """
     conflicts = []
     vessel_data_source = "live" if is_live else "simulated"
+
+    # Beta 12 (additive): per-conflict provenance derived from the ACTUAL sources
+    # of the vessels involved, independent of the legacy data_source flag. This is
+    # the SIM-as-Live gate — a conflict whose inbound is a SIM- vessel can never
+    # be reported as fully "live" even when is_live=True.
+    _by_id = {v.get("id"): v for v in vessels}
+    def _conf_prov(vessel_ids):
+        flags = [_vessel_is_sim(_by_id.get(vid, {})) for vid in (vessel_ids or [])]
+        if not flags:
+            return "simulated"
+        if not any(flags):
+            return "live"
+        if all(flags):
+            return "simulated"
+        return "mixed"
 
     # ── 1. Berth overlaps ──────────────────────────────────────────────────────
     # Only include commercial-sized vessels (LOA ≥ 100 m) in berth conflict
@@ -1185,6 +1224,7 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                          f"Reassign {b['name']} to an alternative berth"],
                         seq_alts, ds,
                         data_source=vessel_data_source,
+                        provenance=_conf_prov([a["id"], b["id"]]),
                     ))
 
     # ── 2. Berth not ready ────────────────────────────────────────────────────
@@ -1209,6 +1249,7 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                          "Accelerate departure of current occupant",
                          f"Assign {v['name']} to an alternative berth"],
                         data_source=vessel_data_source,
+                        provenance=_conf_prov([v["id"]]),
                     ))
 
     # ── 3. Short pilotage notice ───────────────────────────────────────────────
@@ -1281,6 +1322,7 @@ def detect_conflicts(vessels, berths, pilotage, towage, now, is_live=False):
                  "Place pilotage and towage on standby",
                  "Notify berth terminal of potential schedule shift"],
                 data_source=vessel_data_source,
+                provenance=_conf_prov([v["id"]]),
             ))
 
     # ── 6. Bridge restrictions (Melbourne and other ports with bridge_restrictions) ──
@@ -2686,6 +2728,23 @@ def build_summary():
         wi_overlay = dict(_WHATIF_OVERLAY)
     if wi_overlay.get("active"):
         vessels = _apply_whatif_to_vessels(vessels, wi_overlay.get("adjustments", []))
+
+    # S0.1 (Beta 12, additive): tag every vessel with an explicit source BEFORE
+    # conflict detection so SIM-aware provenance is reliable. Real feeds already
+    # set it (aisstream/mst -> 'ais'/'mst', sim inbounds -> 'sim'); backfill any
+    # gaps from the active data source — QShips live -> 'qships', pure simulation
+    # -> 'sim', SIM- ids -> 'sim'. data_source is NOT affected; Beta 10 ignores
+    # this field (flag-off parity preserved).
+    if using_live_vessel:
+        _real_src = "mst" if any(v.get("source") == "mst" for v in (vessels or [])) else "ais"
+    elif is_live and ds.get("source") == "qships":
+        _real_src = "qships"
+    else:
+        _real_src = None   # pure simulation
+    for _v in (vessels or []):
+        if not _v.get("source"):
+            _v["source"] = ("sim" if str(_v.get("id", "")).startswith("SIM-")
+                            else (_real_src or "sim"))
 
     # Operational conflicts + Beta 4 weather alerts merged and re-sorted
     try:
