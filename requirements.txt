@@ -10,3 +10,16 @@ websocket-client>=1.7.0
 # AND AUDIT_EMISSION_ENABLED to be truthy). Both stay unset/false in
 # production until the Stage B–E activation sequence is executed.
 psycopg[binary]==3.3.4
+# Phase 1.2 Stage C-preview migration runner dependencies.
+#
+# alembic + sqlalchemy are required for `alembic upgrade head` to be
+# invokable inside the Railway runtime by the preview-only deploy
+# command in railway.toml. Same lazy-load reasoning as psycopg above:
+# neither package is imported at runtime by server.py or any audit
+# helper, so they sit on disk unloaded. Production posture
+# (DATABASE_URL unset) never invokes alembic — the deploy command's
+# `if [ -n "$DATABASE_URL" ]` guard skips it.
+#
+# Versions match requirements-dev.txt so dev and prod stay aligned.
+alembic>=1.13,<2.0
+sqlalchemy>=2.0,<3.0
