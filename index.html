@@ -1612,11 +1612,35 @@ function _b12TrustGate(prov){
 // without ever instructing. Posture strength never exceeds the provenance of the
 // load-bearing component (Evidentiary Sufficiency). No scalar score — ordinal
 // trust gate only. Attached additively to the signal; composite is unchanged.
-function _b12Posture(loadBearingConf){
-  // load-bearing component confidence: 'live' | 'available' | 'none'
-  if(loadBearingConf==='live') return 'directive_advisory';   // assessed evidence
-  if(loadBearingConf==='available') return 'observed_condition'; // mixed/schedule
-  return 'capability_invitation';                              // load-bearing absent
+// Per-component trust gate — 4 levels (Slice 1.6). An UNCERTAIN component is a
+// capability gap (Horizon lacks sufficient information) => Uncertain. An ASSESSED
+// component takes its load-bearing provenance via _b12TrustGate, which ranges
+// Strong (live/provider-reported) / Watch (schedule-based, degrading) / Weak
+// (simulated/assumed/inferred — evidence exists but low confidence).
+function _b12CompTrust(comp){
+  if(!comp) return 'Uncertain';
+  if(comp.state==='UNCERTAIN') return 'Uncertain';
+  const sub=(comp.subs||[]).find(s=>s.state===comp.state)||(comp.subs||[])[0]||{};
+  return _b12TrustGate(sub.provenance);
+}
+// Headline trust gate. For a non-green composite the verdict is carried by the
+// driver, so trust = the driver's confidence. For READY the verdict rests on
+// EVERY component, so trust = the WEAKEST component — the headline can never
+// appear more confident than its supporting evidence (Slice 1.6, finding 2).
+const _B12_TRUST_ORDER = { Strong:3, Watch:2, Weak:1, Uncertain:0 };
+function _b12HeadlineTrust(card){
+  if(card.composite.state==='READY'){
+    return [card.navigation, card.service, card.berth].map(_b12CompTrust)
+      .reduce((w,t)=> (_B12_TRUST_ORDER[t] < _B12_TRUST_ORDER[w] ? t : w), 'Strong');
+  }
+  const {comp}=_rdxDriver(card);
+  return _b12CompTrust(comp);
+}
+// Posture is bound to the headline trust — directive only on Strong evidence.
+function _b12Posture(trust){
+  return trust==='Strong' ? 'directive_advisory'
+       : trust==='Uncertain' ? 'capability_invitation'
+       : 'observed_condition';   // Watch / Weak
 }
 // Conditional consequence — "If conditions persist, ...". Never "if you do not
 // act"; never an instruction; never an inevitable outcome. Null on a normal state.
@@ -1707,11 +1731,10 @@ function _b12NarrHTML(cn){
 }
 function _b12Rationale(card, d, sig){
   const {key,comp}=_rdxDriver(card);
-  const lbConf=_rdxCompConf(comp);                       // load-bearing confidence
   const lbSrc=_rdxCompSource(comp);                      // load-bearing provenance label
-  // Top-level trust gate derives from the load-bearing confidence so it is always
-  // coherent with posture (directive_advisory ⇒ live ⇒ Strong). Ordinal; no number.
-  const trust = lbConf==='live'?'Strong':lbConf==='available'?'Watch':'Uncertain';
+  // Headline trust gate (Slice 1.6): 4 levels, weakest-component for READY so the
+  // headline never out-confides its evidence. Posture is bound to it.
+  const trust = _b12HeadlineTrust(card);
   const driverSub=(comp.subs||[]).find(s=>s.state===comp.state)||(comp.subs||[])[0]||{};
   const evidence=(comp.subs||[]).map(s=>({
     label: s.key||'—', value: (s.observed_value!=null?String(s.observed_value):''),
@@ -1721,7 +1744,7 @@ function _b12Rationale(card, d, sig){
   const consText=_b12ConsequenceText(card,d,key);
   return {
     state: card.composite.state,
-    posture: _b12Posture(lbConf),
+    posture: _b12Posture(trust),
     trust_gate: trust,
     driver: { component:key,
       reason:(driverSub.reason||sig.reason||''),
@@ -1778,10 +1801,17 @@ function _rdxSignalCompactHTML(sig){
   h+=`<span class="sigc-state">${esc(_rdxStateWord(sig.state))}</span>`;
   h+=`<span class="sigc-vessel">${esc(sig.vessel)}</span>`;
   h+=`<span class="sigc-berth">→ ${esc(sig.berth)}</span>`;
-  // S1.3 provenance marker — shown ONLY when the signal is not fully live
-  // (load-bearing trust gate below Strong). Ordinal word, never a number.
+  // S1.3/S1.6 trust marker — shown ONLY when the signal is not fully live
+  // (trust below Strong). On a READY signal the marker reads "Qualified" (the
+  // verdict holds but rests on a partial picture) rather than the raw trust word,
+  // which reads oddly next to READY. Ordinal word, never a number.
   const _tg = sig.rationale && sig.rationale.trust_gate;
-  if(_tg && _tg!=='Strong') h+=`<span class="sigc-prov sigc-prov-${esc(_tg.toLowerCase())}" title="Trust gate (load-bearing evidence)">${esc(_tg)}</span>`;
+  if(_tg && _tg!=='Strong'){
+    const _ready = sig.state==='ready';
+    const _word = _ready ? 'Qualified' : _tg;
+    const _cls  = _ready ? 'watch' : _tg.toLowerCase();
+    h+=`<span class="sigc-prov sigc-prov-${esc(_cls)}" title="${_ready?'Ready on a partial picture':'Trust gate (load-bearing evidence)'}">${esc(_word)}</span>`;
+  }
   h+=`<span class="sigc-right">`;
   if(sig.changeShort)h+=`<span class="sigc-change">${esc(sig.changeShort)}</span>`;
   if(sig.state!=='ready') h+=`<span class="sig-sumconf sig-sumconf-${sig.sumConf}" title="summary confidence"></span>`;
@@ -1813,8 +1843,10 @@ function _rdxSignalObjectHTML(sig, open){
   // 3s — state dominates, then vessel -> berth
   h+=`<div class="sig-3s"><div class="sig-state">${esc(_rdxStateWord(sig.state))}</div>`;
   h+=`<div class="sig-vb"><span class="sig-vessel">${esc(sig.vessel)}</span><span class="sig-berth">→ ${esc(sig.berth)}</span></div></div>`;
-  // 10s — reason + expected change
-  h+=`<div class="sig-10s"><div class="sig-reason">${esc(sig.reason)}</div>`;
+  // 10s — reason + expected change. A READY signal's reason is suppressed; a
+  // QUALIFIED READY shows its qualifier here (why it is qualified), not a nag.
+  const _reasonText = sig.reason || (sig.state==='ready' && sig.qualifier ? sig.qualifier : '');
+  h+=`<div class="sig-10s"><div class="sig-reason">${esc(_reasonText)}</div>`;
   h+=`<div class="sig-change">${sig.timing
       ? `<span class="sig-change-l">Expected change</span><span class="sig-change-v">${esc(sig.timing)}</span>`
       : `<span class="sig-change-none">No change expected<br>within window</span>`}</div></div>`;
@@ -1838,8 +1870,14 @@ function _rdxSignalObjectHTML(sig, open){
   h+=`</div>`;
   // 30s foot — contribution (quiet) + confidence + evidence toggle
   h+=`<button class="sig-foot" role="button" tabindex="0" onclick="toggleReadinessVessel('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleReadinessVessel('${id}')}">`;
-  if(sig.gap){
+  // S1.6 green suppression: a READY signal never shows the "Sharper with X data"
+  // contribution nudge — green means "leave me alone". A qualified READY states
+  // its basis neutrally; a fully-assessed signal confirms it; only NON-green
+  // signals surface the capability nudge (where it materially affects the verdict).
+  if(sig.gap && sig.state!=='ready'){
     h+=`<span class="sig-contrib sig-gap"><span class="sig-glyph"></span>Sharper with <strong>${esc(sig.gap)}</strong> data</span>`;
+  }else if(sig.state==='ready' && sig.gap){
+    h+=`<span class="sig-contrib sig-full"><span class="sig-glyph sig-glyph-full"></span>Assessment based on current data</span>`;
   }else{
     h+=`<span class="sig-contrib sig-full"><span class="sig-glyph sig-glyph-full"></span>Fully assessed from live data</span>`;
   }
@@ -1859,10 +1897,14 @@ function _rdxSignalObjectHTML(sig, open){
       h+=`<span class="sig-evi-src">${esc(c.source)} · ${esc(lab)} · <span class="sig-evi-tg sig-evi-tg-${esc(tg.toLowerCase())}">${esc(tg)}</span></span></div>`;
     });
     h+=`</div>`;
-    // maintained capability notes (contribution visibility, full text)
-    sig.components.forEach(c=>{ if(c.note) h+=`<div class="sig-evi-note">${esc(c.note)}</div>`; });
+    // maintained capability notes (contribution visibility, full text). S1.6:
+    // suppressed on a READY signal — green stays quiet and the qualifier above
+    // states the basis; notes surface on NON-green signals where they matter.
+    if(sig.state!=='ready') sig.components.forEach(c=>{ if(c.note) h+=`<div class="sig-evi-note">${esc(c.note)}</div>`; });
     // S1.7 — invitational capability gap (blame-protection: replaces "has not connected").
-    if(sig.gap) h+=`<div class="sig-evi-gap"><span class="sig-glyph"></span>With <strong>${esc(sig.gap)}</strong> data, Horizon would move this from estimated to confirmed.</div>`;
+    // S1.6 — surfaced only where it materially affects the verdict (NON-green). On a
+    // qualified READY the qualifier already states the basis, so this is suppressed.
+    if(sig.gap && sig.state!=='ready') h+=`<div class="sig-evi-gap"><span class="sig-glyph"></span>With <strong>${esc(sig.gap)}</strong> data, Horizon would move this from estimated to confirmed.</div>`;
     // S1.5 — real change narrative (transition explanation; quiet when stable).
     h+=`<div class="sig-evi-narr"><span class="sig-evi-narr-l">What changed</span> <span class="sig-evi-narr-v">${_b12NarrHTML(sig.rationale&&sig.rationale.change_narrative)}</span></div>`;
     // S1.2 — posture (provenance-bounded; reinforces advisory-only).

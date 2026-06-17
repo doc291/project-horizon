@@ -544,11 +544,11 @@ function phaseASummary(){
   check('PRS-33', confOk, `confidence dots: Nav=${s.components[0].conf} Svc=${s.components[1].conf} Berth=${s.components[2].conf}`);
 
   // 34. Contribution visibility maintained — gap names contributors; capability notes survive in evidence.
-  const sig = sigOf('VA');
-  const html = sigc._rdxSignalObjectHTML(sig, true);  // expanded
+  const sig = sigOf('VA');                                        // gap object still names contributors
+  const htmlNG = sigc._rdxSignalObjectHTML(sigOf('VC'), true);    // notes survive on NON-green (S1.6: READY suppresses them)
   const gapOk = /Terminal/.test(sig.gap||'') && /Towage \+ Pilotage/.test(sig.gap||'');
-  const noteOk = /With pilotage and towage data/.test(html) && /terminal completion forecasts/.test(html);
-  check('PRS-34', gapOk && noteOk, `gap names contributors=${gapOk}; capability notes preserved in evidence=${noteOk}`);
+  const noteOk = /With pilotage and towage data/.test(htmlNG) && /terminal completion forecasts/.test(htmlNG);
+  check('PRS-34', gapOk && noteOk, `gap names contributors=${gapOk}; capability notes preserved on non-green=${noteOk}`);
 
   // 35. Canonical hierarchy respected: state → reason → components → evidence.
   const open = sigc._rdxSignalObjectHTML(sigOf('VB'), true);
@@ -594,9 +594,10 @@ function phaseASummary(){
   check('PRS-39', cHides, `Compact defers foot/evidence/capability/per-component confidence=${cHides}`);
 
   // 40. Expansion renders FULL Signal Object with all detail.
+  const fNG = sigc._rdxSignalObjectHTML(sigOf('VC'), true);  // capability notes appear on non-green (READY suppresses per S1.6)
   const fFull = !/sig-compact/.test(full) && /sig-foot/.test(full) && /sig-evidence/.test(full)
-    && /sig-evi-note/.test(full) && /sig-conf/.test(full);
-  check('PRS-40', fFull, `expansion = Full Signal (foot + evidence + capability + per-component confidence)=${fFull}`);
+    && /sig-evi-note/.test(fNG) && /sig-conf/.test(full);
+  check('PRS-40', fFull, `expansion = Full Signal (foot + evidence + per-component confidence; notes on non-green)=${fFull}`);
 
   // 41. State identical Compact vs Full always; component-state parity holds for a
   //     non-green signal. A READY signal's compact omits the strip by suppression,
@@ -677,6 +678,35 @@ function phaseASummary(){
     && compositePreserved;
   check('PRS-48', cnOk,
     `first present:${cn1&&cn1.present}; after-change present:${cn2&&cn2.present} what="${cn2&&cn2.what_changed}" evid="${cn2&&cn2.evidence}"; composite preserved=${compositePreserved}`);
+
+  // ── Slice 1.6 — trust presentation refinement ──────────────────────────────
+  // 49. Headline trust gate supports all FOUR levels (Strong/Watch/Weak/Uncertain).
+  const ETA3 = h => new Date(Date.now()+h*3600000).toISOString();
+  function trustSum(prov, vid){ return {beta11:{enabled:true},port_profile:{short_name:'Melbourne',using_live_vessel_data:true},
+    weather:{conditions:'Good',source:'live'},arrival_ukc:{status:'good',all:[]},tides:{next_event_type:'HW',next_event_time:ETA3(5)},
+    berths:[{id:'BK',name:'Berth K',readiness_time:ETA3(13)}],
+    vessels:[{id:vid,name:vid,source:'ais',status:'confirmed',draught:10,pilotage_required:true,towage_required:true,berth_id:'BK',eta:ETA3(5)}],
+    conflicts:[{conflict_type:'berth_not_ready',severity:'high',vessel_ids:[vid],description:'Prior vessel alongside.',data_source:prov,provenance:prov}],pilotage:[],towage:[]};}
+  const headTrust = (prov,vid)=>{ const d=trustSum(prov,vid); return sigc._rdxToSignal(sigc.buildVesselReadiness(d.vessels[0],d),d,null).rationale.trust_gate; };
+  const tStrong=headTrust('live','TS'), tWatch=headTrust('schedule-based','TW'), tWeak=headTrust('simulated','TK'), tUnc=sigOf('VA').rationale.trust_gate;
+  const fourLevels = tStrong==='Strong' && tWatch==='Watch' && tWeak==='Weak' && tUnc==='Uncertain';
+  check('PRS-49', fourLevels, `headline trust 4 levels — live=${tStrong} schedule=${tWatch} simulated=${tWeak} qualifiedREADY=${tUnc}`);
+
+  // 50. A qualified READY never out-confides its evidence: trust < Strong, the face
+  //     reads "Qualified" (not the raw trust word) and carries no capability-gap text.
+  const vaReady=sigOf('VA'), vaCompact=sigc._rdxSignalObjectHTML(vaReady,false);
+  const readyOk = vaReady.state==='ready' && vaReady.rationale.trust_gate!=='Strong'
+    && /Qualified/.test(vaCompact) && !/Sharper with/.test(vaCompact)
+    && !/estimated to confirmed/.test(vaCompact) && !/sigc-reason/.test(vaCompact);
+  check('PRS-50', readyOk, `qualified READY trust=${vaReady.rationale.trust_gate}; face Qualified + no gap/reason=${readyOk}`);
+
+  // 51. Green-state suppression in the EXPANDED view: a READY signal shows no
+  //     "Sharper with X" nudge, no capability-gap line, no per-component notes; a
+  //     NON-green signal still surfaces the capability nudge where it matters.
+  const vaFull=sigc._rdxSignalObjectHTML(sigOf('VA'),true), vbFull=sigc._rdxSignalObjectHTML(sigOf('VB'),true);
+  const greenQuiet = !/Sharper with/.test(vaFull) && !/estimated to confirmed/.test(vaFull) && !/sig-evi-note/.test(vaFull);
+  const nonGreenNudge = /Sharper with/.test(vbFull);
+  check('PRS-51', greenQuiet && nonGreenNudge, `READY expanded quiet=${greenQuiet}; non-green keeps nudge=${nonGreenNudge}`);
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────
