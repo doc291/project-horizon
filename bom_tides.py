@@ -25,6 +25,23 @@ CACHE_TTL_SECS   = 3600  # 60 minutes
 COOLDOWN_SECS    = 300   # 5 minutes between retry attempts after a failure
 
 
+def cache_age_s(profile: dict):
+    """Seconds since this station's BOM tides were last fetched, or None if there
+    is no cache entry. Additive, read-only — used by the Beta 11 authority model
+    to score environmental freshness. `fetched_at` is stored as time.monotonic(),
+    so age is measured against the monotonic clock."""
+    if not profile:
+        return None
+    station_id = profile.get("bom_station_id")
+    if not station_id:
+        return None
+    with _cache_lock:
+        c = _cache.get(station_id)
+    if not c or "fetched_at" not in c:
+        return None
+    return max(0.0, time.monotonic() - c["fetched_at"])
+
+
 def _cosine_fallback(now: datetime = None, profile: dict = None) -> list:
     """
     Generate 48 hours of tide points at 30-minute intervals using a

@@ -47,27 +47,36 @@ STALE_TIMEOUT     = 60 * 20       # seconds — give up if no message received
 RECONNECT_DELAY   = 15            # seconds between reconnect attempts
 
 # ── Port bounding boxes ────────────────────────────────────────────────────────
-# Tight berth-area boxes — only vessels physically in the port basin count.
+# Three nested scopes per port (berth_box ⊂ port_box ⊂ approach):
+#   approach  — wide AIS subscription area (unchanged)
+#   port_box  — operational port area used for Horizon inclusion (Beta 11 Slice 6A)
+#   berth_box — tight berth basin, used only for the "berthed" status label
 # Format: [min_lat, min_lon, max_lat, max_lon]
+# port_box coordinates are APPROXIMATE operating-area rectangles and are tunable
+# against live data via the funnel counts exposed in get_status().
 _PORT_BOXES = {
     "AUBNE": {
         "name":    "Brisbane",
         "berth_box": [-27.48, 153.08, -27.35, 153.20],   # Port of Brisbane berths
+        "port_box":  [-27.52, 153.02, -27.33, 153.22],   # river mouth + basin + inner anchorage
         "approach":  [-27.55, 152.90, -27.25, 153.25],   # wider approach area
     },
     "AUMEL": {
         "name":    "Melbourne",
         "berth_box": [-37.87, 144.88, -37.80, 144.96],   # Swanson / Webb Dock
+        "port_box":  [-37.90, 144.85, -37.78, 145.00],   # Port of Melbourne + Williamstown + Yarra mouth
         "approach":  [-38.50, 144.50, -37.70, 145.10],   # Port Phillip Bay
     },
     "AUDRW": {
         "name":    "Darwin",
         "berth_box": [-12.48, 130.82, -12.41, 130.90],   # Darwin Harbour berths
+        "port_box":  [-12.52, 130.78, -12.38, 130.95],   # Darwin Harbour operating area
         "approach":  [-12.60, 130.70, -12.30, 131.00],
     },
     "AUGEX": {
         "name":    "Geelong",
         "berth_box": [-38.18, 144.30, -38.09, 144.40],   # Corio Quay / Lascelles
+        "port_box":  [-38.22, 144.26, -38.05, 144.45],   # Corio Bay operating area
         "approach":  [-38.30, 144.20, -37.95, 144.55],
     },
 }
@@ -106,6 +115,43 @@ def _is_commercial(type_code: int, name: str) -> bool:
 def _in_box(lat: float, lon: float, box: list) -> bool:
     min_lat, min_lon, max_lat, max_lon = box
     return min_lat <= lat <= max_lat and min_lon <= lon <= max_lon
+
+
+def _classify(cfg: dict, lat: float, lon: float, sog: float,
+              type_code: int, name: str) -> dict:
+    """Beta 11 Slice 6A: classify one vessel position against a port's three
+    nested scopes plus motion + commercial class. Pure (args only); used by
+    both _update_position (inclusion) and get_status (funnel).
+
+    Inclusion rule: accepted_for_horizon = in_port_area AND commercial.
+    Stationarity is a STATUS signal, not an inclusion gate.
+    """
+    port_box     = cfg.get("port_box", cfg["berth_box"])   # fallback keeps pre-6A behaviour
+    in_approach  = _in_box(lat, lon, cfg["approach"])
+    in_port_area = _in_box(lat, lon, port_box)
+    in_berth     = _in_box(lat, lon, cfg["berth_box"])
+    stationary   = sog < IN_PORT_SOG_KTS
+    commercial   = _is_commercial(type_code, name)
+    accepted     = in_port_area and commercial
+    if in_berth and stationary:
+        status = "berthed"
+    elif in_port_area and stationary:
+        status = "anchored"
+    elif in_port_area:
+        status = "underway"
+    elif in_approach:
+        status = "approach"
+    else:
+        status = "tracked"
+    return {
+        "in_approach":  in_approach,
+        "in_port_area": in_port_area,
+        "in_berth_area": in_berth,
+        "stationary":   stationary,
+        "commercial":   commercial,
+        "accepted":     accepted,
+        "status":       status,
+    }
 
 # ── Shared state ───────────────────────────────────────────────────────────────
 _lock           = threading.Lock()
@@ -147,34 +193,34 @@ def _update_position(mmsi: str, lat: float, lon: float, sog: float, heading: flo
         _positions[mmsi] = {"lat": lat, "lon": lon, "sog": sog,
                             "heading": heading, "ts": now}
 
-    # Check each port
+    # Check each port (Beta 11 Slice 6A: inclusion = in_port_area AND commercial;
+    # stationarity is a status label, not an inclusion gate).
     for unloco, cfg in _PORT_BOXES.items():
-        in_berth  = _in_box(lat, lon, cfg["berth_box"])
-        stationary = sog < IN_PORT_SOG_KTS
-
         with _lock:
             port_vessels = _in_port.setdefault(unloco, {})
             static = _static_data.get(mmsi, {})
             type_code = static.get("type_code", 0)
             name = static.get("name", f"VESSEL-{mmsi}")
+            c = _classify(cfg, lat, lon, sog, type_code, name)
 
-            if in_berth and stationary:
+            if c["accepted"]:
                 if mmsi not in port_vessels:
-                    if _is_commercial(type_code, name):
-                        log.info("AISStream: %s arrived at %s (%.4f,%.4f SOG %.1f)",
-                                 name or mmsi, unloco, lat, lon, sog)
-                        port_vessels[mmsi] = {
-                            "mmsi":        mmsi,
-                            "arrived_utc": datetime.now(timezone.utc).isoformat(),
-                            "last_seen":   now,
-                        }
+                    log.info("AISStream: %s in %s operating area as %s (%.4f,%.4f SOG %.1f)",
+                             name or mmsi, unloco, c["status"], lat, lon, sog)
+                    port_vessels[mmsi] = {
+                        "mmsi":        mmsi,
+                        "arrived_utc": datetime.now(timezone.utc).isoformat(),
+                        "last_seen":   now,
+                        "status":      c["status"],
+                    }
                 else:
                     port_vessels[mmsi]["last_seen"] = now
+                    port_vessels[mmsi]["status"]    = c["status"]
             elif mmsi in port_vessels:
-                # Vessel has left the berth box — start departure timer
+                # Vessel has left the port operating area — start departure timer
                 last_seen = port_vessels[mmsi].get("last_seen", now)
                 if (now - last_seen) > DEPARTURE_TIMEOUT:
-                    log.info("AISStream: %s departed %s (timeout)", name or mmsi, unloco)
+                    log.info("AISStream: %s left %s operating area (timeout)", name or mmsi, unloco)
                     del port_vessels[mmsi]
 
 
@@ -255,6 +301,10 @@ def get_vessels_in_port(unloco: str) -> list | None:
                 "lat":         pos.get("lat"),
                 "lon":         pos.get("lon"),
                 "sog":         pos.get("sog"),
+                "heading":     pos.get("heading"),   # Slice 7A: preserve AIS heading
+                # Beta 11 Slice 6A: AIS-derived status label (additive; does NOT
+                # override the operational status assigned downstream).
+                "ais_status":  entry.get("status"),
             })
 
     log.info("AISStream: %d vessels in port at %s", len(vessels), unloco)
@@ -262,11 +312,41 @@ def get_vessels_in_port(unloco: str) -> list | None:
 
 
 def get_status() -> dict:
-    """Diagnostic summary for /api/aisstream-status endpoint."""
+    """Diagnostic summary for /api/aisstream-status endpoint.
+
+    Beta 11 Slice 6A adds a per-port `funnel` showing where tracked vessels are
+    excluded, computed read-time by re-classifying current positions. `in_port`
+    now equals the accepted (in_port_area AND commercial) count."""
     with _lock:
+        positions = {m: dict(p) for m, p in _positions.items()}
+        statics   = {m: dict(s) for m, s in _static_data.items()}
         port_counts = {u: len(v) for u, v in _in_port.items()}
         static_count = len(_static_data)
         pos_count    = len(_positions)
+
+    # Per-port funnel: among vessels in THIS port's approach, how many survive
+    # each stage down to accepted. (vessels_tracked is the global count.)
+    funnel = {}
+    for unloco, cfg in _PORT_BOXES.items():
+        cnt = {"in_approach": 0, "in_port_area": 0, "in_berth_area": 0,
+               "stationary": 0, "commercial": 0, "accepted": 0}
+        status_breakdown = {"berthed": 0, "anchored": 0, "underway": 0, "approach": 0}
+        for mmsi, pos in positions.items():
+            st = statics.get(mmsi, {})
+            c = _classify(cfg, pos.get("lat", 0.0), pos.get("lon", 0.0),
+                          pos.get("sog", 0.0), st.get("type_code", 0),
+                          st.get("name", f"VESSEL-{mmsi}"))
+            if not c["in_approach"]:
+                continue
+            cnt["in_approach"]  += 1
+            cnt["in_port_area"] += 1 if c["in_port_area"] else 0
+            cnt["in_berth_area"] += 1 if c["in_berth_area"] else 0
+            cnt["stationary"]   += 1 if c["stationary"] else 0
+            cnt["commercial"]   += 1 if c["commercial"] else 0
+            cnt["accepted"]     += 1 if c["accepted"] else 0
+            if c["status"] in status_breakdown:
+                status_breakdown[c["status"]] += 1
+        funnel[unloco] = {**cnt, "status": status_breakdown}
 
     age = round(time.time() - _last_message, 1) if _last_message else None
     return {
@@ -276,7 +356,8 @@ def get_status() -> dict:
         "last_message_age_s": age,
         "vessels_tracked": pos_count,
         "static_data":   static_count,
-        "in_port":       port_counts,
+        "in_port":       port_counts,   # = accepted (in_port_area AND commercial)
+        "funnel":        funnel,
     }
 
 

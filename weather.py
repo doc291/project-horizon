@@ -21,6 +21,21 @@ _cache: dict = {}       # port_id -> {"data": dict, "fetched_at": float}
 _cache_lock = threading.Lock()
 CACHE_TTL_SECS = 1800   # 30 minutes
 
+
+def cache_age_s(profile: dict):
+    """Seconds since this port's weather was last fetched, or None if there is
+    no cache entry. Additive, read-only — used by the Beta 11 authority model to
+    score environmental freshness. `fetched_at` is stored as time.time() (epoch),
+    so age is measured against the same clock."""
+    if not profile:
+        return None
+    port_id = profile.get("id", profile.get("short_name", "UNKNOWN"))
+    with _cache_lock:
+        c = _cache.get(port_id)
+    if not c or "fetched_at" not in c:
+        return None
+    return max(0.0, time.time() - c["fetched_at"])
+
 _COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"]
 _HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; ProjectHorizon/1.0; +https://projecthorizon.app)"}
 

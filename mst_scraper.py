@@ -243,16 +243,34 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
             eta_dt = now - timedelta(hours=2)
         eta_str = eta_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
+        # ── Slice 7A: honest AIS identity ──────────────────────────────────────
+        # Name: only treat as a confirmed vessel name when AIS static actually
+        # provided one; otherwise present an MMSI-based label, never a fake name.
+        rv_name = (rv.get("name") or "").strip()
+        if rv_name and not rv_name.startswith("VESSEL-"):
+            name = rv_name
+            name_confirmed = True
+        else:
+            name = f"AIS {mmsi}"
+            name_confirmed = False
+
+        # Status: use the Slice-6A AIS status; never force "berthed".
+        ais_status = rv.get("ais_status")
+        status = ais_status or "underway"
+
         vessels_out.append({
-            "id":              f"MST-{mmsi}",
-            "name":            rv["name"],
+            "id":              f"AIS-{mmsi}",          # honest: AIS-derived id
+            "name":            name,
+            "name_confirmed":  name_confirmed,
             "mmsi":            mmsi,
-            "imo":             rv["imo"],
-            "status":          "berthed",
+            "imo":             rv.get("imo") or None,
+            "status":          status,                  # from ais_status, not forced berthed
+            "ais_status":      ais_status,
             "berth_id":        berth_id,
             "berth":           berth_name,
+            "berth_provenance": "assumed",              # berth is NOT AIS-authoritative
             "eta":             eta_str,
-            "ata":             eta_str,   # berthed = already arrived; ata = arrival time
+            "ata":             eta_str if status == "berthed" else None,
             "atd":             None,
             "etd":             props["etd"],
             "loa":             loa,
@@ -262,8 +280,16 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
             "flag":            props["flag"],
             "towage_required": loa > 200,
             "destination":     dest,
-            "at_anchorage":    False,
-            "source":          source,
+            "at_anchorage":    status == "anchored",
+            # Real AIS position — preserved so Horizon's own map can plot it.
+            "lat":             rv.get("lat"),
+            "lon":             rv.get("lon"),
+            "sog":             rv.get("sog"),
+            "heading":         rv.get("heading"),
+            # Provenance / traceability
+            "source":          "ais",
+            "match_state":     "ais_only",              # not schedule-matched yet
+            "provenance":      "LIVE_OBSERVED",
         })
 
     # Add 2–3 simulated inbound vessels so the conflict engine has something
@@ -312,7 +338,12 @@ def build_horizon_vessels(unloco: str, berths: list, now: datetime,
             "towage_required": props["towage_required"],
             "destination":     None,
             "at_anchorage":    False,
+            # Slice 7A: clearly simulated — never AIS-backed, never LIVE_OBSERVED.
             "source":          "sim",
+            "match_state":     "simulated",
+            "provenance":      "ASSUMED",
+            "name_confirmed":  False,
+            "berth_provenance": "assumed",
         })
 
     return vessels_out
