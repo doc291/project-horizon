@@ -950,6 +950,582 @@
     .dsc-retime-test:hover { border-color:#60a5fa; }
     .dsc-retime-hint { font-size:9px; color:var(--muted); font-style:italic; margin-top:6px; line-height:1.4; }
   </style>
+<style id="hv2-command-css">
+/* ============================================================
+   HORIZON — Command Environment
+   Visual system refreshed to match the Horizon marketing site:
+   near-black canvas, bright mint teal (brand + projection),
+   PURPLE = decision, green = cleared / on-track, amber = watch,
+   red = conflict / act. Grotesque display + mono microlabels.
+   Colour is still earned; the site's palette just makes each
+   earned state read faster.
+   ============================================================ */
+
+#hv2-root {
+  --bg:   #05070B;   /* the room */
+  --bg1:  #0A0F16;   /* panel */
+  --bg2:  #0B1220;   /* card — site navy */
+  --bg3:  #101A2A;   /* raised / hover */
+  --bg4:  #16233A;   /* strong raised */
+  --line: #141E2C;   /* hairline */
+  --line2:#243449AA; /* structural line */
+  --t1:   #EAF0F7;   /* primary */
+  --t2:   #94A4B8;   /* secondary */
+  --t3:   #5A6C81;   /* tertiary / labels */
+  --t4:   #33435A;   /* faint */
+
+  --teal:      #2FD4C6;   /* brand + Horizon projection / NOW */
+  --teal-dim:  #1F8F89;
+  --teal-deep: #0E3E3C;
+  --teal-glow: rgba(47, 212, 198, 0.16);
+
+  --purple:    #A78BFA;   /* decision */
+  --purple-bg: rgba(167, 139, 250, 0.10);
+  --purple-line: rgba(167, 139, 250, 0.32);
+  --purple-glow: rgba(167, 139, 250, 0.20);
+
+  --watch:     #E6A93E;   /* watch / variance */
+  --watch-bg:  rgba(230, 169, 62, 0.10);
+  --watch-line:rgba(230, 169, 62, 0.30);
+
+  --act:       #F0554E;   /* act now / conflict */
+  --act-bg:    rgba(240, 85, 78, 0.10);
+  --act-line:  rgba(240, 85, 78, 0.32);
+  --act-glow:  rgba(240, 85, 78, 0.20);
+
+  --ok:        #43C98A;   /* cleared / on-track / nominal */
+  --ok-bg:     rgba(67, 201, 138, 0.09);
+
+  --font:    'Helvetica Neue', 'Archivo', Arial, sans-serif;
+  --display: 'Helvetica Neue', 'Archivo', Arial, sans-serif;
+  --mono:    'IBM Plex Mono', 'SF Mono', monospace;
+}
+
+.cx { box-sizing: border-box; }
+.cx * { box-sizing: border-box; }
+
+/* ---------- app scaffold ---------- */
+.c-app {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--t1);
+  font-family: var(--font);
+  font-size: 13px; line-height: 1.5;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* status ribbon (top) — the calm signal. When all is well this is
+   almost all the operator registers. */
+.c-ribbon {
+  height: 46px; flex: none;
+  display: flex; align-items: center; gap: 18px;
+  padding: 0 22px;
+  background: linear-gradient(180deg, #070C12, #05080C);
+  border-bottom: 1px solid var(--line);
+}
+.c-brand { display: flex; align-items: center; gap: 11px; }
+.c-brand img { height: 26px; display: block; }
+.c-brand .wm { font-size: 14px; font-weight: 600; letter-spacing: 0.20em; color: var(--t1); }
+.c-portstate { display: flex; align-items: center; gap: 11px; padding-left: 20px; border-left: 1px solid var(--line2); }
+.c-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.c-dot.calm { background: var(--teal-dim); box-shadow: 0 0 6px rgba(70,199,206,0.4); }
+.c-dot.act  { background: var(--act); box-shadow: 0 0 9px var(--act); animation: hv2-cpulse 2.4s ease-in-out infinite; }
+@keyframes hv2-cpulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+.c-portstate .name { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
+.c-portstate .msg  { font-size: 12.5px; color: var(--t2); }
+.c-portstate .msg b.act { color: var(--act); font-weight: 600; }
+.c-portstate .msg b.calm { color: var(--teal); font-weight: 500; }
+.c-ribbon .right { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+.c-clock { font-family: var(--mono); font-size: 14px; color: var(--t1); letter-spacing: 0.03em; }
+.c-clock small { color: var(--t3); font-size: 10px; }
+.c-ribbon .ams { height: 20px; opacity: 0.8; border-radius: 3px; }
+
+/* conditions band — the gating inputs. Muted until a value crosses a threshold. */
+.c-cond {
+  height: 34px; flex: none;
+  display: flex; align-items: center; gap: 0;
+  padding: 0 22px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono); font-size: 11px;
+}
+.c-cond .item { display: flex; align-items: baseline; gap: 7px; padding: 0 18px; border-right: 1px solid var(--line); }
+.c-cond .item:first-child { padding-left: 0; }
+.c-cond .k { font-size: 9px; letter-spacing: 0.14em; color: var(--t3); text-transform: uppercase; }
+.c-cond .v { color: var(--t2); }
+.c-cond .v b { color: var(--t1); font-weight: 500; }
+.c-cond .v.good { color: var(--ok); }
+.c-cond .v.bad  { color: var(--act); }
+.c-cond .tidebar { width: 46px; height: 5px; border-radius: 3px; background: var(--bg4); position: relative; overflow: hidden; }
+.c-cond .tidebar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--teal-dim); }
+
+/* ---------- body: horizon + decision rail ---------- */
+.c-body { flex: 1; display: flex; min-height: 0; }
+.c-horizon { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.c-rail {
+  width: 452px; flex: none;
+  background: var(--bg1);
+  border-left: 1px solid var(--line2);
+  display: flex; flex-direction: column;
+  min-height: 0;
+}
+
+/* section label */
+.c-seclabel {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 20px 10px;
+}
+.c-seclabel h3 {
+  margin: 0; font-size: 10.5px; font-weight: 600; font-family: var(--mono);
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--t2);
+}
+.c-seclabel .sub { font-size: 11px; color: var(--t3); font-family: var(--mono); }
+.c-seclabel .right { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--t3); }
+
+/* ---------- the horizon field ---------- */
+.c-field { flex: 1; position: relative; display: flex; flex-direction: column; min-height: 0; padding: 0 22px 16px; }
+.c-fieldscroll { flex: 1; position: relative; display: flex; flex-direction: column; min-height: 0; }
+
+.c-axis {
+  display: flex; height: 22px; align-items: flex-end;
+  border-bottom: 1px solid var(--line2);
+  font-family: var(--mono); font-size: 9.5px; color: var(--t3);
+  position: relative; margin-left: 128px;
+}
+.c-axis .tick { position: absolute; bottom: 3px; transform: translateX(-50%); }
+.c-axis .tick.day { color: var(--t2); }
+
+.c-lane { display: flex; align-items: stretch; flex: 1; min-height: 52px; border-bottom: 1px solid var(--line); position: relative; }
+.c-lane:last-child { border-bottom: none; }
+.c-lane .lname {
+  width: 128px; flex: none; display: flex; flex-direction: column; justify-content: center;
+  padding-right: 14px;
+}
+.c-lane .lname .b { font-size: 12px; font-weight: 600; color: var(--t1); letter-spacing: 0.01em; }
+.c-lane .lname .op { font-size: 9px; font-family: var(--mono); color: var(--t3); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+.c-lane .ltrack { flex: 1; position: relative; }
+
+/* movement token — appearance encodes feasibility state */
+.c-mv {
+  position: absolute; top: 50%; transform: translateY(-50%); height: 30px;
+  border-radius: 4px; display: flex; align-items: center; gap: 7px;
+  padding: 0 9px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.01em;
+  white-space: nowrap; overflow: hidden;
+}
+/* On Track — quiet, present but not shouting */
+.c-mv.ontrack { background: #0F1826; border: 1px solid var(--line2); color: var(--t2); }
+.c-mv.ontrack .nm { color: var(--t1); font-weight: 500; }
+/* Forecast / not yet firm — teal dashed = Horizon's projection */
+.c-mv.forecast { background: rgba(70,199,206,0.05); border: 1px dashed var(--teal-dim); color: var(--teal); }
+/* Watch */
+.c-mv.watch { background: var(--watch-bg); border: 1px solid var(--watch-line); border-left: 3px solid var(--watch); color: var(--t1); }
+.c-mv.watch .nm { color: var(--watch); }
+/* Act Now */
+.c-mv.act { background: var(--act-bg); border: 1px solid var(--act-line); border-left: 3px solid var(--act); color: var(--t1); box-shadow: 0 0 16px var(--act-glow); }
+.c-mv.act .nm { color: var(--act); font-weight: 600; }
+.c-mv .st { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.c-mv.ontrack .st { background: var(--ok); }
+.c-mv.watch .st { background: var(--watch); }
+.c-mv.act .st { background: var(--act); box-shadow: 0 0 6px var(--act); }
+
+/* conflict overlap hatch */
+.c-conflict {
+  position: absolute; top: 6px; bottom: 6px; z-index: 4;
+  background: repeating-linear-gradient(135deg, rgba(239,90,82,0.22) 0 5px, rgba(239,90,82,0.04) 5px 10px);
+  border-left: 1px solid var(--act-line); border-right: 1px solid var(--act-line);
+}
+/* decide-by tick under an Act Now token */
+.c-decideby {
+  position: absolute; bottom: 3px; transform: translateX(-50%);
+  font-family: var(--mono); font-size: 8.5px; color: var(--act); white-space: nowrap; z-index: 5;
+}
+.c-decideby::before { content: ''; display: block; width: 1px; height: 6px; background: var(--act); margin: 0 auto 2px; }
+
+/* NOW line */
+.c-now { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--teal); box-shadow: 0 0 10px var(--teal); z-index: 6; }
+.c-now::after { content: 'NOW'; position: absolute; top: 2px; left: 5px; font-family: var(--mono); font-size: 8.5px; color: var(--teal); letter-spacing: 0.16em; }
+
+/* resource pressure strip under the horizon */
+.c-res { flex: none; margin-left: 128px; padding-top: 8px; }
+.c-resrow { display: flex; align-items: center; gap: 10px; height: 20px; }
+.c-resrow .rk { width: 58px; flex: none; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; color: var(--t3); text-transform: uppercase; }
+.c-resrow .cells { flex: 1; display: flex; gap: 1px; height: 8px; }
+.c-resrow .cell { flex: 1; border-radius: 1px; background: #0E1723; }
+.c-resrow .cell.l1 { background: var(--teal-deep); }
+.c-resrow .cell.l2 { background: var(--teal-dim); }
+.c-resrow .cell.l3 { background: var(--watch); opacity: 0.7; }
+.c-resrow .cell.l4 { background: var(--act); opacity: 0.8; }
+
+/* ---------- state counts ---------- */
+.c-counts { display: flex; gap: 0; padding: 0 20px 14px; border-bottom: 1px solid var(--line); }
+.c-count { flex: 1; display: flex; flex-direction: column; gap: 3px; padding: 10px 0; }
+.c-count .n { font-family: var(--mono); font-size: 30px; font-weight: 500; line-height: 1; }
+.c-count .l { font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--t3); }
+.c-count.ontrack .n { color: var(--ok); }
+.c-count.watch .n { color: var(--watch); }
+.c-count.act .n { color: var(--act); }
+.c-count + .c-count { border-left: 1px solid var(--line); padding-left: 18px; }
+
+/* evidence freshness line */
+.c-fresh {
+  padding: 10px 20px; font-family: var(--mono); font-size: 10px; line-height: 1.7;
+  color: var(--t3); border-bottom: 1px solid var(--line);
+}
+.c-fresh .stale { color: var(--watch); }
+.c-fresh .live { color: var(--teal); }
+
+/* ---------- Decision Support Card ---------- */
+.c-cards { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+/* instant-recognition strip — the card absorbed in one glance, before reading */
+.c-recstrip { display: flex; align-items: center; gap: 14px; padding: 13px 18px; border-bottom: 1px solid var(--line); }
+.c-recstrip.act { background: var(--act-bg); }
+.c-recstrip.watch { background: var(--watch-bg); }
+.c-recstrip .rleft { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.c-recstrip .rverb { font-size: 15px; font-weight: 700; letter-spacing: 0.01em; }
+.c-recstrip.act .rverb { color: var(--act); }
+.c-recstrip.watch .rverb { color: var(--watch); }
+.c-recstrip .rwhat { font-size: 11px; color: var(--t2); }
+.c-recstrip .rright { margin-left: auto; text-align: right; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.c-recstrip .rcount { font-family: var(--mono); font-size: 10px; color: var(--t3); letter-spacing: 0.06em; }
+.c-recstrip .rby { font-family: var(--mono); font-size: 12px; color: var(--t2); }
+.c-recstrip .rby b { color: var(--act); font-weight: 600; }
+.c-recstrip.watch .rby b { color: var(--watch); }
+
+/* ---------- on-demand "peek" supporting panel (no page change) ---------- */
+.c-scrim { position: absolute; inset: 0; background: rgba(3,5,8,0.55); z-index: 40; }
+.c-peek {
+  position: absolute; z-index: 41; bottom: 18px; left: 22px; width: 560px;
+  background: var(--bg2); border: 1px solid var(--line2); border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6); display: flex; flex-direction: column; overflow: hidden;
+}
+.c-peekhead { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.c-peekhead h3 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--t2); }
+.c-peekhead .peektag { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; color: var(--teal); border: 1px solid var(--teal-deep); border-radius: 3px; padding: 2px 7px; text-transform: uppercase; }
+.c-peekhead .esc { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--t3); }
+.c-peekbody { padding: 4px 0; }
+.c-peekrow { display: flex; align-items: center; gap: 12px; padding: 9px 16px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 11.5px; }
+.c-peekrow:last-child { border-bottom: none; }
+.c-peekrow .pt { color: var(--t3); width: 54px; flex: none; }
+.c-peekrow .pv { color: var(--t1); font-weight: 500; font-family: var(--font); }
+.c-peekrow .pd { color: var(--t2); margin-left: auto; }
+.c-peekrow .pd.act { color: var(--act); }
+.c-peeknote { padding: 11px 16px; font-family: var(--mono); font-size: 10px; color: var(--t3); font-style: italic; border-top: 1px solid var(--line); line-height: 1.5; }
+.c-card {
+  background: var(--bg2);
+  border-top: 1px solid var(--line);
+  border-left: 3px solid var(--t4);
+  display: flex; flex-direction: column;
+}
+.c-card.act  { border-left-color: var(--act); }
+.c-card.watch{ border-left-color: var(--watch); }
+.c-card .chead { padding: 14px 18px 10px; }
+.c-card .crow1 { display: flex; align-items: center; gap: 10px; }
+.c-badge {
+  font-family: var(--mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.12em;
+  padding: 3px 9px 3px 8px; border-radius: 999px; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.c-badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex: none; }
+.c-badge.act { color: var(--act); background: var(--act-bg); border: 1px solid var(--act-line); }
+.c-badge.watch { color: var(--watch); background: var(--watch-bg); border: 1px solid var(--watch-line); }
+.c-badge.decision { color: var(--purple); background: var(--purple-bg); border: 1px solid var(--purple-line); }
+.c-badge.ok { color: var(--ok); background: var(--ok-bg); border: 1px solid rgba(67,201,138,0.3); }
+.c-badge.brief { color: var(--teal); background: var(--teal-glow); border: 1px solid rgba(47,212,198,0.3); }
+.c-card .vessel { font-size: 16px; font-weight: 600; letter-spacing: 0.01em; }
+.c-card .conf { margin-left: auto; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; color: var(--t3); border: 1px solid var(--line2); border-radius: 3px; padding: 2px 7px; text-transform: uppercase; }
+.c-card .cmeta { font-family: var(--mono); font-size: 11px; color: var(--t2); margin-top: 7px; letter-spacing: 0.01em; }
+.c-card .cmeta b { color: var(--t1); font-weight: 500; }
+
+.c-sec { padding: 4px 18px 14px; }
+.c-sec .sl { font-size: 9.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--t3); margin: 14px 0 8px; }
+.c-evi { display: flex; gap: 9px; margin-bottom: 9px; font-size: 12px; color: var(--t2); line-height: 1.5; }
+.c-evi .mk { color: var(--t3); font-family: var(--mono); flex: none; }
+.c-evi b { color: var(--t1); font-weight: 500; }
+.c-evi .src { display: block; font-family: var(--mono); font-size: 9.5px; color: var(--t4); margin-top: 2px; letter-spacing: 0.04em; }
+
+.c-unchanged { background: var(--bg1); border: 1px solid var(--line); border-radius: 6px; padding: 11px 13px; font-size: 12px; color: var(--t2); line-height: 1.55; }
+.c-unchanged b { color: var(--t1); }
+
+/* option — neutral, no ranking */
+.c-opt { background: var(--bg1); border: 1px solid var(--line2); border-radius: 7px; padding: 12px 14px; margin-bottom: 10px; }
+.c-opt.unavail { opacity: 0.5; }
+.c-opt .otop { display: flex; align-items: baseline; gap: 10px; margin-bottom: 9px; }
+.c-optletter { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--purple); border: 1px solid var(--purple-line); background: var(--purple-bg); border-radius: 4px; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; flex: none; align-self: center; }
+.c-opt .olabel { font-size: 13px; font-weight: 600; color: var(--t1); }
+.c-opt .oexp { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--t2); flex: none; }
+.c-opt .oexp b { color: var(--teal); font-weight: 500; }
+.c-opt .oexp.soon b { color: var(--watch); }
+.c-cons { display: flex; gap: 8px; font-size: 11.5px; color: var(--t2); line-height: 1.5; margin-bottom: 5px; }
+.c-cons .ar { flex: none; font-family: var(--mono); }
+.c-cons.relieve .ar { color: var(--ok); }
+.c-cons.introduce .ar { color: var(--watch); }
+.c-cons.down .ar { color: var(--t3); }
+.c-opt .expnote { font-family: var(--mono); font-size: 9px; color: var(--t4); font-style: italic; margin-top: 6px; }
+.c-opt .unavailtag { font-family: var(--mono); font-size: 10px; color: var(--act); letter-spacing: 0.04em; }
+
+/* test-plan editor */
+.c-test { border-top: 1px dashed var(--line2); padding: 14px 18px; }
+.c-test .stance { font-size: 11px; color: var(--t3); font-style: italic; line-height: 1.55; margin-bottom: 12px; }
+.c-test .fields { display: flex; gap: 10px; margin-bottom: 10px; }
+.c-fieldbox { flex: 1; }
+.c-fieldbox .fl { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--t3); margin-bottom: 5px; }
+.c-fieldbox .fi { background: var(--bg); border: 1px solid var(--line2); border-radius: 5px; padding: 8px 10px; font-family: var(--mono); font-size: 12px; color: var(--t1); }
+.c-fieldbox .fi.placeholder { color: var(--t4); }
+.c-actions { display: flex; gap: 9px; }
+
+.c-btn {
+  font-family: var(--font); font-size: 12px; font-weight: 600;
+  padding: 9px 16px; border-radius: 6px; border: 1px solid var(--line2);
+  background: var(--bg3); color: var(--t1); cursor: pointer; letter-spacing: 0.01em;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.c-btn.primary { background: var(--teal); border-color: var(--teal); color: #042528; }
+.c-btn.ghost { background: transparent; color: var(--t2); }
+.c-btn.wide { flex: 1; }
+
+/* working-plan banner */
+.c-working {
+  background: var(--teal-glow); border: 1px solid var(--teal-dim); border-radius: 7px;
+  padding: 12px 14px; margin: 0 0 12px;
+}
+.c-working .wt { color: var(--teal); font-weight: 600; font-size: 12.5px; }
+.c-working .wd { font-size: 11.5px; color: var(--t2); line-height: 1.55; margin-top: 4px; }
+.c-working .wx { font-family: var(--mono); font-size: 10px; color: var(--t3); margin-top: 8px; font-style: italic; }
+
+/* quiet footer feed */
+.c-quiet {
+  flex: none; height: 34px; display: flex; align-items: center; gap: 20px;
+  padding: 0 22px; border-top: 1px solid var(--line); background: var(--bg1);
+  font-family: var(--mono); font-size: 10.5px; color: var(--t3);
+}
+.c-quiet .settled { color: var(--t2); }
+
+/* collapsed card summary (second Act Now in the rail) */
+.c-cardmini {
+  display: flex; align-items: center; gap: 10px; padding: 12px 18px;
+  border-top: 1px solid var(--line); border-left: 3px solid var(--act); cursor: pointer;
+}
+.c-cardmini .vessel { font-size: 13px; font-weight: 600; }
+.c-cardmini .why { font-size: 11px; color: var(--t2); }
+.c-cardmini .chev { margin-left: auto; color: var(--t3); font-family: var(--mono); }
+
+/* calm rail empty-state */
+.c-calm { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px; text-align: center; }
+.c-calm .ring { width: 54px; height: 54px; border-radius: 50%; border: 1.5px solid var(--teal-dim); display: flex; align-items: center; justify-content: center; }
+.c-calm .ring i { width: 12px; height: 12px; border-radius: 50%; background: var(--teal-dim); box-shadow: 0 0 12px rgba(70,199,206,0.5); }
+.c-calm .ct { font-size: 14px; color: var(--t1); font-weight: 500; }
+.c-calm .cs { font-size: 11.5px; color: var(--t3); font-family: var(--mono); line-height: 1.6; max-width: 250px; }
+
+/* canvas-level annotation callout (reused) */
+.c-callout {
+  position: absolute; z-index: 30;
+  background: #FFFDF5; border: 1px solid #E2D9BE; border-radius: 6px; padding: 8px 11px;
+  font-family: var(--mono); font-size: 10.5px; line-height: 1.5; color: #5A5443;
+  box-shadow: 0 2px 12px rgba(80,70,40,0.14); max-width: 250px;
+}
+.c-callout b { color: #2D2A20; }
+.c-callout .pin { display: inline-block; width: 15px; height: 15px; border-radius: 50%; background: #C2453E; color: #fff; font-size: 9px; font-weight: 700; text-align: center; line-height: 15px; margin-right: 6px; }
+
+/* ---------- causal flow guide: Schedule → Berths → Decisions ---------- */
+.c-flow { height: 46px; flex: none; display: flex; align-items: stretch; background: linear-gradient(180deg,#070C12,#05080C); border-bottom: 1px solid var(--line); }
+.c-flowcell { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 0 22px; }
+.c-flowcell .st { display: flex; align-items: center; gap: 9px; }
+.c-flowcell .num { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--teal); border: 1px solid var(--teal-deep); border-radius: 3px; padding: 1px 5px; }
+.c-flowcell .nm { font-size: 10.5px; font-weight: 600; font-family: var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--t1); }
+.c-flowcell .q { font-size: 11px; color: var(--t3); font-family: var(--mono); }
+.c-flowarrow { display: flex; align-items: center; justify-content: center; width: 26px; flex: none; color: var(--t4); font-size: 15px; }
+
+/* ---------- schedule column (stage ①) ---------- */
+.c-sched { width: 336px; flex: none; border-right: 1px solid var(--line2); display: flex; flex-direction: column; min-height: 0; }
+.c-schedrows { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.c-schedrow { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 11px 20px; border-bottom: 1px solid var(--line); border-left: 3px solid transparent; justify-content: center; }
+.c-schedrow:last-child { border-bottom: none; }
+.c-schedrow.act { border-left-color: var(--act); background: var(--act-bg); }
+.c-schedrow.watch { border-left-color: var(--watch); }
+.c-schedrow .top { display: flex; align-items: baseline; gap: 8px; }
+.c-schedrow .v { font-size: 13px; font-weight: 600; color: var(--t1); }
+.c-schedrow .eta { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--t2); }
+.c-schedrow .dest { font-family: var(--mono); font-size: 9.5px; color: var(--t3); letter-spacing: 0.04em; }
+.c-checks { display: flex; gap: 8px; }
+.c-chk { flex: 1; display: flex; align-items: center; gap: 7px; background: var(--bg1); border: 1px solid var(--line); border-radius: 5px; padding: 5px 9px; }
+.c-chk .pip { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.c-chk .cl { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--t3); }
+.c-chk .cv { margin-left: auto; font-family: var(--mono); font-size: 10px; font-weight: 600; }
+.c-chk.ok .pip { background: var(--ok); box-shadow: 0 0 6px rgba(67,201,138,0.5); } .c-chk.ok .cv { color: var(--ok); }
+.c-chk.watch .pip { background: var(--watch); } .c-chk.watch .cv { color: var(--watch); }
+.c-chk.act .pip { background: var(--act); box-shadow: 0 0 6px var(--act); } .c-chk.act .cv { color: var(--act); }
+.c-schedrow .reason { font-family: var(--mono); font-size: 9.5px; color: var(--t3); line-height: 1.5; }
+.c-schedrow .reason .lead { color: var(--act); } .c-schedrow.watch .reason .lead { color: var(--watch); }
+.c-schedrow .toDecision { font-family: var(--mono); font-size: 9.5px; color: var(--act); display: flex; align-items: center; gap: 5px; }
+.c-schedrow.watch .toDecision { color: var(--watch); }
+
+/* ---------- site grammar: LIVE pill, KPI cards, card id, cascade, ledger ---------- */
+.c-live { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.16em; color: var(--teal); border: 1px solid rgba(47,212,198,0.35); border-radius: 999px; padding: 3px 10px; }
+.c-live .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 7px var(--teal); }
+.c-portstate .c-live { margin-right: 4px; }
+.c-shift { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; color: var(--t3); margin-left: 16px; }
+
+.c-kpis { display: flex; gap: 8px; padding: 12px 16px 14px; border-bottom: 1px solid var(--line); }
+.c-kpi { flex: 1; border: 1px solid var(--line2); border-radius: 8px; background: var(--bg2); padding: 11px 12px; display: flex; flex-direction: column; gap: 8px; }
+.c-kpi .kl { font-family: var(--mono); font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--t3); }
+.c-kpi .kn { font-family: var(--mono); font-size: 26px; font-weight: 500; line-height: 1; }
+.c-kpi .kn.act { color: var(--act); }
+.c-kpi .kn.purple { color: var(--purple); }
+.c-kpi .kn.ok { color: var(--ok); }
+
+.c-cardid { display: flex; align-items: center; gap: 12px; padding: 13px 18px 0; }
+.c-cardid .idnum { font-family: var(--mono); font-size: 10px; color: var(--t3); letter-spacing: 0.05em; }
+.c-cardid .within { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--t2); letter-spacing: 0.08em; }
+
+.c-cascade-wrap { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: none; }
+.cascadelabel { font-family: var(--mono); font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--t3); }
+.c-cascade { font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
+.c-cascade.purple { color: var(--purple); }
+.c-cascade.act { color: var(--act); }
+.c-cascade.watch { color: var(--watch); }
+.c-opt .odesc { font-size: 11.5px; color: var(--t2); line-height: 1.5; margin: 0 0 7px 28px; }
+.c-opt .oexpline { font-family: var(--mono); font-size: 9px; color: var(--t4); margin-left: 28px; }
+.c-opt .oexpline b { color: var(--t3); font-weight: 500; }
+.c-opt .oexpline b.soon { color: var(--watch); }
+
+.c-ledger { background: var(--bg1); border: 1px solid var(--line2); border-radius: 8px; margin: 0 0 6px; overflow: hidden; }
+.c-ledgerhead { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--teal); padding: 10px 14px 8px; }
+.c-lv { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-top: 1px solid var(--line); font-size: 11.5px; }
+.c-lv .lk { color: var(--t2); }
+.c-lv .lvv { font-family: var(--mono); color: var(--t1); font-size: 11px; }
+.c-lv .lvv.ok { color: var(--ok); }
+
+/* ============================================================
+   WALL DISPLAY (secondary) — ~55", viewed from metres away.
+   Purpose-built: huge cues, minimal text, immediate recognition.
+   NOT the console enlarged. Non-interactive, shared awareness.
+   ============================================================ */
+.w-app { width: 100%; height: 100%; background: radial-gradient(140% 100% at 50% -10%, #0A121C, #05070B 60%); color: var(--t1); font-family: var(--display); display: flex; flex-direction: column; overflow: hidden; }
+.w-app * { box-sizing: border-box; }
+
+.w-head { height: 156px; flex: none; display: flex; align-items: center; gap: 34px; padding: 0 56px; border-bottom: 1px solid var(--line2); }
+.w-live { display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 18px; font-weight: 600; letter-spacing: 0.22em; color: var(--teal); border: 1.5px solid rgba(47,212,198,0.4); border-radius: 999px; padding: 8px 20px; }
+.w-live .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 14px var(--teal); }
+.w-port { font-size: 46px; font-weight: 600; letter-spacing: -0.01em; }
+.w-clock { font-family: var(--mono); font-size: 30px; color: var(--t2); margin-left: 6px; }
+.w-clock small { font-size: 16px; color: var(--t3); }
+.w-status { margin-left: auto; display: flex; align-items: center; gap: 16px; padding: 14px 26px; border-radius: 14px; }
+.w-status.act { background: var(--act-bg); border: 1.5px solid var(--act-line); }
+.w-status.calm { background: var(--ok-bg); border: 1.5px solid rgba(67,201,138,0.3); }
+.w-status .sdot { width: 16px; height: 16px; border-radius: 50%; }
+.w-status.act .sdot { background: var(--act); box-shadow: 0 0 18px var(--act); animation: hv2-cpulse 2.4s ease-in-out infinite; }
+.w-status.calm .sdot { background: var(--ok); box-shadow: 0 0 16px var(--ok); }
+.w-status .stext { font-size: 34px; font-weight: 700; letter-spacing: 0.01em; }
+.w-status.act .stext { color: var(--act); }
+.w-status.calm .stext { color: var(--ok); }
+
+.w-body { flex: 1; display: flex; min-height: 0; }
+.w-berths { flex: 1; display: flex; flex-direction: column; padding: 26px 40px 20px; min-width: 0; }
+.w-blabel { font-family: var(--mono); font-size: 16px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--t3); margin-bottom: 14px; display: flex; gap: 16px; align-items: baseline; }
+.w-blabel .nowtag { color: var(--teal); }
+.w-lanes { flex: 1; position: relative; display: flex; flex-direction: column; }
+.w-lane { flex: 1; display: flex; align-items: center; border-bottom: 1px solid var(--line); position: relative; }
+.w-lane:last-child { border-bottom: none; }
+.w-lane.act { box-shadow: inset 5px 0 0 var(--act); }
+.w-lane.watch { box-shadow: inset 5px 0 0 var(--watch); }
+.w-lname { width: 210px; flex: none; padding-left: 22px; font-size: 22px; font-weight: 600; color: var(--t2); }
+.w-track { flex: 1; position: relative; height: 100%; }
+.w-blk { position: absolute; top: 50%; transform: translateY(-50%); height: 54px; border-radius: 8px; display: flex; align-items: center; padding: 0 16px; gap: 12px; overflow: hidden; }
+.w-blk.ontrack { background: #101B29; border: 1px solid var(--line2); }
+.w-blk.ontrack .bn { font-size: 17px; color: var(--t2); font-family: var(--mono); }
+.w-blk.forecast { background: rgba(47,212,198,0.06); border: 1px dashed var(--teal-dim); }
+.w-blk.forecast .bn { font-size: 17px; color: var(--teal); font-family: var(--mono); }
+.w-blk.watch { background: var(--watch-bg); border: 1.5px solid var(--watch-line); }
+.w-blk.watch .bn { font-size: 21px; font-weight: 700; color: var(--watch); }
+.w-blk.act { background: var(--act-bg); border: 1.5px solid var(--act); box-shadow: 0 0 26px var(--act-glow); }
+.w-blk.act .bn { font-size: 22px; font-weight: 700; color: var(--act); }
+.w-blk .bt { font-family: var(--mono); font-size: 14px; color: var(--t3); }
+.w-conflict { position: absolute; top: 6px; bottom: 6px; background: repeating-linear-gradient(135deg, rgba(240,85,78,0.28) 0 7px, rgba(240,85,78,0.05) 7px 14px); border-left: 2px solid var(--act); border-right: 2px solid var(--act); }
+.w-now { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--teal); box-shadow: 0 0 16px var(--teal); z-index: 4; }
+.w-now::after { content: 'NOW'; position: absolute; top: -22px; left: -14px; font-family: var(--mono); font-size: 14px; letter-spacing: 0.2em; color: var(--teal); }
+
+.w-side { width: 660px; flex: none; border-left: 1px solid var(--line2); display: flex; flex-direction: column; padding: 26px 34px; gap: 18px; }
+.w-sidelabel { font-family: var(--mono); font-size: 16px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--t3); }
+.w-acard { background: var(--bg2); border: 1px solid var(--line2); border-left: 6px solid var(--act); border-radius: 14px; padding: 22px 26px; }
+.w-acard.watch { border-left-color: var(--watch); }
+.w-acard .arow { display: flex; align-items: baseline; gap: 16px; }
+.w-acard .avessel { font-size: 34px; font-weight: 700; }
+.w-acard .acount { margin-left: auto; font-family: var(--mono); font-size: 40px; font-weight: 600; color: var(--act); }
+.w-acard.watch .acount { color: var(--watch); }
+.w-acard .areason { font-size: 19px; color: var(--t2); margin-top: 8px; line-height: 1.45; }
+.w-acard .aby { font-family: var(--mono); font-size: 15px; color: var(--t3); margin-top: 12px; letter-spacing: 0.04em; }
+.w-acard .aby b { color: var(--act); }
+.w-acard.watch .aby b { color: var(--watch); }
+.w-changes { margin-top: auto; border-top: 1px solid var(--line); padding-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.w-change { display: flex; align-items: center; gap: 14px; font-size: 18px; }
+.w-change .ci { font-family: var(--mono); font-size: 20px; width: 22px; flex: none; text-align: center; }
+.w-change.worse .ci { color: var(--act); }
+.w-change.res .ci { color: var(--ok); }
+.w-change .ct { color: var(--t2); }
+.w-change .cw { margin-left: auto; font-family: var(--mono); font-size: 14px; color: var(--t4); }
+
+.w-kpis { height: 180px; flex: none; display: flex; border-top: 1px solid var(--line2); }
+.w-kpi { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; border-right: 1px solid var(--line); }
+.w-kpi:last-child { border-right: none; }
+.w-kpi .wkl { font-family: var(--mono); font-size: 16px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--t3); }
+.w-kpi .wkn { font-family: var(--mono); font-size: 88px; font-weight: 600; line-height: 1; }
+.w-kpi .wkn.act { color: var(--act); }
+.w-kpi .wkn.purple { color: var(--purple); }
+.w-kpi .wkn.ok { color: var(--ok); }
+
+/* ---------- refinement pass: ribbon health + trend ---------- */
+.c-trend { display: flex; align-items: center; gap: 16px; margin-left: 26px; font-family: var(--mono); font-size: 11px; }
+.c-trend .worse { color: var(--act); }
+.c-trend .resolved { color: var(--teal-dim); }
+.c-trend .steady { color: var(--t3); }
+.c-portstate .msg { font-size: 13.5px; }
+.c-ribbon .right { margin-left: auto; }
+
+/* conditions → threat-led */
+.c-cond { justify-content: flex-start; }
+.c-threats { display: flex; align-items: center; gap: 22px; }
+.c-threat { display: flex; align-items: center; gap: 8px; font-size: 11.5px; }
+.c-threat .pip { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.c-threat.act .pip { background: var(--act); box-shadow: 0 0 7px var(--act); }
+.c-threat.watch .pip { background: var(--watch); }
+.c-threat b { font-weight: 600; font-family: var(--font); letter-spacing: 0.01em; }
+.c-threat.act b { color: var(--act); }
+.c-threat.watch b { color: var(--watch); }
+.c-threat .who { color: var(--t3); font-size: 11px; }
+.c-condcalm { font-size: 12px; color: var(--t2); font-family: var(--font); }
+.c-nominal { margin-left: auto; color: var(--t4); font-size: 10.5px; letter-spacing: 0.02em; }
+
+/* pre-attentive per-lane health edge */
+.c-lane.act .lname { box-shadow: inset 3px 0 0 var(--act); }
+.c-lane.watch .lname { box-shadow: inset 3px 0 0 var(--watch); }
+.c-lane .lname { padding-left: 10px; }
+
+/* confidence trend sparkline (schedule watch list) */
+.c-spark { display: block; }
+.c-spark .base { stroke: var(--line2); }
+.c-schedrow .trendline { display: flex; align-items: center; gap: 9px; }
+.c-schedrow .trendlabel { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--t3); }
+
+/* collapsed healthy-commitments summary row */
+.c-schedmore { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+.c-schedmore .cnt { font-family: var(--mono); font-size: 20px; color: var(--t2); font-weight: 500; }
+.c-schedmore .lbl { font-size: 11px; color: var(--t3); line-height: 1.4; }
+.c-schedmore .names { font-family: var(--mono); font-size: 9px; color: var(--t4); }
+
+
+/* Horizon v2 command-centre — container + scoping guards (Beta 10 unaffected: only active when body.hv2-active) */
+#hv2-root { position: fixed; inset: 0; z-index: 9000; display: none; }
+body.hv2-active #hv2-root { display: block; }
+#hv2-root .c-viewtoggle { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; color: var(--t3);
+  border: 1px solid var(--line2); border-radius: 999px; padding: 4px 10px; cursor: pointer; text-transform: uppercase; }
+#hv2-root .c-viewtoggle:hover { color: var(--teal); border-color: var(--teal-deep); }
+#hv2-root .c-schedrow .dest { font-family: var(--mono); font-size: 9.5px; color: var(--t3); letter-spacing: 0.04em; }
+#hv2-root .c-schedrow .trendline { justify-content: space-between; }
+
+</style>
 </head>
 <body>
 <div id="app">
@@ -1357,6 +1933,8 @@
     </div>
 
   </div><!-- /main -->
+
+  <div id="hv2-root"></div>
 
   <!-- Send Brief modal -->
   <div class="brief-modal-overlay" id="brief-modal-overlay" onclick="if(event.target===this)closeBriefModal()">
@@ -2325,7 +2903,7 @@ function render(d){
   // Beta 10 (flag off) is unaffected: with no d.beta11/d.beta12, neither runs.
   if(window._b11 && d && d.beta11 && !d.beta12)_b11.onData(d);
   if(!(d && d.beta12)) renderReadiness(d);  // Phase 1B Readiness tab — hidden in the Beta 12 view
-  renderCommitments(d);  // Beta 12 — Port Commitments + Decision Support Cards (gates on d.beta12)
+  renderHv2(d);  // Beta 12 — Port Commitments + Decision Support Cards (gates on d.beta12)
 }
 
 /* ── Beta 9: Conflict Timeline ── */
@@ -7553,6 +8131,407 @@ function _checkCounts(observed,badgeId,label,expected){
 
 /* ── Boot ── */
 renderAuditLog(); refresh();
+</script>
+<script id="hv2-render">
+/* ============================================================
+   HORIZON v2 — command-centre reskin (Beta 12, flag-gated).
+   Reproduces the approved design (command.css classes, scoped under
+   #hv2-root) with LIVE Horizon data only. No fabricated vessels,
+   ETAs, berths, weather, tide, or consequence. Where the design
+   showed data Horizon does not have (confidence-trend sparkline,
+   resolved-pending, changes feed, decision ledger, on-time 24h
+   history) an honest unavailable / lower-confidence state is shown.
+   Beta 10 is never touched: this only renders when d.beta12 exists.
+   ============================================================ */
+(function () {
+  var VIEW = 'console';        // 'console' | 'wall'
+  var PLAN = null;             // active operator test-plan beta12 block, or null
+  var LASTD = null;            // last live /api/summary payload
+  var PREV = null;             // previous at-risk id set (session delta)
+  var CLOCK = null;            // clock interval id
+
+  function E(s){ return (typeof esc==='function') ? esc(s==null?'':s) : String(s==null?'':s); }
+  function P(iso){ if(!iso) return NaN; try{ return Date.parse(String(iso).replace(' ','T')); }catch(e){ return NaN; } }
+  function hhmm(iso){ var t=P(iso); if(isNaN(t)) return '—'; var d=new Date(t);
+    return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0'); }
+  function mins(m){ if(m==null) return ''; if(m<60) return m+'m'; var h=Math.floor(m/60),r=m%60; return h+'h'+(r?' '+r+'m':''); }
+  function stamp(iso){ if(typeof iso!=='string'||!iso) return null; var t=P(iso); if(isNaN(t)) return String(iso);
+    var d=new Date(t); return d.toLocaleString([], {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
+
+  /* ---- forward window: 1h back, 24h span (NOW ≈ 4%) ---- */
+  function pct(iso){ var t=P(iso); if(isNaN(t)) return null; var ws=Date.now()-3600e3; return Math.max(0,Math.min(100,(t-ws)/(24*3600e3)*100)); }
+  var NOWFRAC = (1/24); // now sits 1h into a 24h window
+
+  /* ---- commitment → the two operator checks (real, from conflict types) ---- */
+  function checkState(ev, types){
+    var hit = (ev||[]).filter(function(e){ return types.indexOf(e.conflict_type)>=0; });
+    if(!hit.length) return {s:'ok', t:'Clear'};
+    var sev = hit.map(function(h){ return (h.severity||'').toLowerCase(); });
+    if(sev.indexOf('critical')>=0||sev.indexOf('high')>=0) return {s:'act', t:'Blocked'};
+    return {s:'watch', t:'At risk'};
+  }
+  function opState(fs){ return fs==='act_now'?'act':fs==='watch'?'watch':'ontrack'; }
+
+  /* ---- berth lanes (shared console + wall), 100% live ---- */
+  function lanes(d, b12){
+    var comm={}; (b12.commitments||[]).forEach(function(c){ comm[c.commitment_id]=c; });
+    var vessels=(d.vessels||[]).filter(function(v){ return v.status!=='departed'; });
+    var conflicts=(d.conflicts||[]).filter(function(c){ return (c.signal_type||'')==='CONFLICT'; });
+    var out=[];
+    (d.berths||[]).forEach(function(b){
+      var bv=vessels.filter(function(v){ return v.berth_id===b.id; });
+      var mv=[]; var health='';
+      bv.forEach(function(v){
+        var c=comm[v.id];
+        var kind = c ? opState(c.feasibility_state) : (v.status==='berthed'||v.status==='confirmed'?'ontrack':(v.status==='scheduled'?'forecast':'ontrack'));
+        var startIso = (v.status==='berthed') ? null : v.eta;
+        var s = (v.status==='berthed') ? 0 : pct(v.eta);
+        if(s==null) return;
+        var endT = P(v.etd); var startT = (v.status==='berthed')? (Date.now()-3600e3) : P(v.eta);
+        var e = (!isNaN(endT)) ? pct(v.etd) : (s + 6);
+        if(e==null) e = s + 6;
+        var w = Math.max(e - s, 5);
+        var t = v.eta ? ('ETA '+hhmm(v.eta)) : (v.etd ? ('dep '+hhmm(v.etd)) : '');
+        mv.push({ s:s, w:w, kind:kind, nm:v.name||v.id, t:t, act:(kind==='act') });
+        if(kind==='act') health='act'; else if(kind==='watch'&&health!=='act') health='watch';
+      });
+      if(!mv.length) return;
+      var cf=conflicts.filter(function(c){ return c.berth_id===b.id; });
+      var conflict=null;
+      if(cf.length){ var cs=pct(cf[0].conflict_time); if(cs!=null) conflict={s:Math.max(0,cs-1.7), w:3.4}; }
+      out.push({ b:b.name||b.id, op:(d.port_profile&&d.port_profile.short_name)||'', mv:mv, conflict:conflict, health:health });
+    });
+    return out.slice(0,8);
+  }
+
+  /* ---- session delta (honest: diff of two real snapshots) ---- */
+  function computeDelta(b12){
+    var atRisk={}; (b12.commitments||[]).forEach(function(c){ if(c.feasibility_state!=='on_track') atRisk[c.commitment_id]=c.feasibility_state; });
+    var worse=0, resolved=0;
+    if(PREV){
+      Object.keys(atRisk).forEach(function(id){ if(!PREV[id]) worse++; else if(PREV[id]==='watch'&&atRisk[id]==='act_now') worse++; });
+      Object.keys(PREV).forEach(function(id){ if(!atRisk[id]) resolved++; });
+    }
+    return {worse:worse, resolved:resolved, has:!!PREV};
+  }
+
+  /* ================= RIBBON / CONDITIONS / FLOW ================= */
+  function ribbon(d, b12){
+    var port=(d.port_profile&&d.port_profile.display_name)||d.port_name||'Port';
+    var act=(b12.state_counts&&b12.state_counts.act_now)||0;
+    var total=(b12.commitments||[]).length;
+    var msg = act>0
+      ? '<span class="msg"><b class="act">'+act+' commitment'+(act>1?'s':'')+' need'+(act>1?'':'s')+' a decision</b></span>'
+      : '<span class="msg">all <b class="calm">'+total+' commitments feasible</b></span>';
+    var dl=computeDelta(b12); var trend='';
+    if(dl.has && (dl.worse||dl.resolved)){
+      trend='<div class="c-trend">'+(dl.worse?'<span class="worse">▲ '+dl.worse+' worse since last update</span>':'')+
+            (dl.resolved?'<span class="resolved">✓ '+dl.resolved+' resolved</span>':'')+'</div>';
+    } else if(dl.has){ trend='<div class="c-trend"><span class="steady">— steady since last update</span></div>'; }
+    return '<div class="c-ribbon">'+
+      '<div class="c-brand"><img src="/logo" alt="Horizon"/><span class="wm">HORIZON</span></div>'+
+      '<div class="c-portstate"><span class="c-live"><span class="dot"></span>LIVE</span>'+
+        '<span class="name">'+E(port)+'</span>'+msg+'</div>'+ trend +
+      '<div class="right"><span class="c-clock" id="hv2-clock">'+hhmm(new Date().toISOString())+' <small>UTC</small></span>'+
+        '<span class="c-viewtoggle" onclick="hv2Toggle()">WALL VIEW ›</span></div>'+
+    '</div>';
+  }
+
+  var CTLABEL={berth_overlap:'Berth double-committed',berth_not_ready:'Berth not clear in time',pilotage_window:'Pilot notice tight',
+    towage_resource:'Tug committed elsewhere',eta_variance:'Arrival time drifting',bridge_restriction:'Air-draft over bridge limit'};
+
+  function conditions(d, b12){
+    var conflicts=(d.conflicts||[]).filter(function(c){ return (c.signal_type||'')==='CONFLICT'; });
+    var threats=conflicts.slice(0,3).map(function(c){
+      var sev=(c.severity||'').toLowerCase(); var cls=(sev==='critical'||sev==='high')?'act':'watch';
+      var who=(c.vessel_names||[]).join(' · ');
+      return '<span class="c-threat '+cls+'"><span class="pip"></span><b>'+E(CTLABEL[c.conflict_type]||c.conflict_type||'Conflict')+'</b><span class="who">'+E(who)+'</span></span>';
+    }).join('');
+    var w=d.weather||{}, t=d.tides||{};
+    var val=function(x,u){ return (x==null||x==='')?'—':(x+u); };
+    var nominal='Wind '+val(w.wind_speed_kts,' kt')+'  ·  Swell '+val(w.swell_height_m,' m')+'  ·  Vis '+val(w.visibility_nm,' nm')+
+      '  ·  Tide '+val(t.current_height_m,' m')+' '+E(t.state||'');
+    return '<div class="c-cond">'+
+      (threats ? '<div class="c-threats">'+threats+'</div>' : '<span class="c-condcalm">No conditions threatening any commitment</span>')+
+      '<span class="c-nominal">'+E(nominal)+'</span></div>';
+  }
+
+  function flow(){
+    return '<div class="c-flow">'+
+      '<div class="c-flowcell" style="width:336px;flex:none"><div class="st"><span class="num">1</span><span class="nm">Commitment watch</span></div><span class="q">Will the vessel make it?</span></div>'+
+      '<div class="c-flowarrow">▸</div>'+
+      '<div class="c-flowcell" style="flex:1"><div class="st"><span class="num">2</span><span class="nm">Berths</span></div><span class="q">Will the berth be clear when it does?</span></div>'+
+      '<div class="c-flowarrow">▸</div>'+
+      '<div class="c-flowcell" style="width:452px;flex:none"><div class="st"><span class="num">3</span><span class="nm">Decisions</span></div><span class="q">If either answer is “no”, decide.</span></div>'+
+    '</div>';
+  }
+
+  /* ================= ① SCHEDULE ================= */
+  function schedule(d, b12){
+    var comm=(b12.commitments||[]);
+    var deg=comm.filter(function(c){ return c.feasibility_state!=='on_track'; });
+    var head='<div class="c-seclabel"><h3><span style="color:var(--t3)">①</span> Commitment watch</h3><span class="sub">degrading first</span></div>';
+    if(!deg.length){
+      return '<div class="c-sched">'+head+'<div class="c-calm" style="flex:1"><div class="ring"><i></i></div>'+
+        '<div class="ct">Nothing degrading</div><div class="cs">All '+comm.length+' commitments holding. No confidence is trending down.</div></div></div>';
+    }
+    var rows=deg.map(function(c){
+      var st=opState(c.feasibility_state);
+      var mk=checkState(c.degradation_evidence,['eta_variance','pilotage_window']);
+      var bk=checkState(c.degradation_evidence,['berth_overlap','berth_not_ready']);
+      var why=(c.degradation_evidence&&c.degradation_evidence[0]&&c.degradation_evidence[0].why)||'';
+      var lead=(c.degradation_evidence&&c.degradation_evidence[0]&&CTLABEL[c.degradation_evidence[0].conflict_type])||'';
+      return '<div class="c-schedrow '+st+'">'+
+        '<div class="top"><span class="v">'+E(c.vessel_name)+'</span><span class="eta">'+(c.movement==='departure'?'ETD ':'ETA ')+hhmm(c.committed_time)+'</span></div>'+
+        '<div class="trendline"><span class="dest">→ '+E(c.berth_name||'')+'</span><span class="trendlabel" style="color:var(--t4)">confidence trend not tracked</span></div>'+
+        '<div class="c-checks">'+
+          '<div class="c-chk '+mk.s+'"><span class="pip"></span><span class="cl">Makes it</span><span class="cv">'+mk.t+'</span></div>'+
+          '<div class="c-chk '+bk.s+'"><span class="pip"></span><span class="cl">Berth</span><span class="cv">'+bk.t+'</span></div>'+
+        '</div>'+
+        (why?'<div class="reason">'+(lead?'<span class="lead">'+E(lead)+'</span> — ':'')+E(why)+'</div>':'')+
+        (c.card_worthy?'<div class="toDecision">→ opens Decision · '+E(c.berth_name||'')+' ›</div>':'')+
+      '</div>';
+    }).join('');
+    var ok=comm.filter(function(c){ return c.feasibility_state==='on_track'; });
+    var names=ok.slice(0,5).map(function(c){ return c.vessel_name; }).join(' · ')+(ok.length>5?' · +'+(ok.length-5):'');
+    var more = ok.length?'<div class="c-schedmore"><span class="cnt">'+ok.length+'</span><div><div class="lbl">more commitments on track</div><div class="names">'+E(names)+'</div></div></div>':'';
+    return '<div class="c-sched">'+head+'<div class="c-schedrows">'+rows+more+'</div></div>';
+  }
+
+  /* ================= ② BERTHS ================= */
+  function berthsField(d, b12){
+    var L=lanes(d,b12);
+    var nConf=(d.port_status&&d.port_status.active_conflicts)||0;
+    var ticks=''; for(var h=0;h<=24;h+=3){ ticks+='<span class="tick '+(h===24?'day':'')+'" style="left:'+(h/24*100)+'%">'+(h===0?'':(h===24?'+24h ›':'+'+h+'h'))+'</span>'; }
+    var lanesHtml=L.map(function(l){
+      var mv=l.mv.map(function(m){
+        return '<div class="c-mv '+m.kind+'" style="left:'+m.s+'%;width:'+m.w+'%"><span class="st"></span><span class="nm">'+E(m.nm)+'</span>'+
+          ((m.kind==='act'||m.kind==='watch')?'<span style="color:var(--t3)">'+E(m.t)+'</span>':'')+'</div>';
+      }).join('');
+      var cf=l.conflict?'<div class="c-conflict" style="left:'+l.conflict.s+'%;width:'+l.conflict.w+'%"></div>':'';
+      return '<div class="c-lane '+(l.health||'')+'"><div class="lname"><span class="b">'+E(l.b)+'</span><span class="op">'+E(l.op)+'</span></div>'+
+        '<div class="ltrack">'+cf+mv+'</div></div>';
+    }).join('');
+    return '<div class="c-seclabel"><h3><span style="color:var(--t3)">②</span> Berths</h3><span class="sub">forward picture · will the slot be clear when the vessel arrives?</span>'+
+        '<span class="right">'+(nConf?nConf+' CONFLICT'+(nConf>1?'S':''):'ALL CLEAR')+' · NEXT 24H</span></div>'+
+      '<div class="c-field"><div class="c-fieldscroll">'+
+        '<div class="c-axis">'+ticks+'</div>'+
+        '<div style="position:relative;flex:1;display:flex;flex-direction:column;min-height:0">'+lanesHtml+
+          '<div class="c-now" style="left:calc(128px + (100% - 128px) * '+NOWFRAC+')"></div>'+
+        '</div>'+
+      '</div></div>';
+  }
+
+  /* ================= EVIDENCE FRESHNESS ================= */
+  function freshLine(b12){
+    var f=b12.evidence_freshness||{};
+    var pt=function(v){ return (typeof v==='string'&&v)?('<span class="live">'+E(stamp(v))+'</span>'):'<span class="stale">source time unavailable</span>'; };
+    var src=function(s){ return s?('<span class="live">'+E(s)+'</span>'):'<span class="stale">source time unavailable</span>'; };
+    return '<div class="c-fresh">Evidence — schedule '+pt(f.schedule_as_of)+' · AIS '+pt(f.ais_as_of)+' · tide '+src(f.tide_source)+' · weather '+src(f.weather_source)+
+      (b12.freshness_stale?' · <span class="stale">⚠ '+E(b12.stale_warning||'schedule/AIS source appears stale')+'</span>':'')+'</div>';
+  }
+
+  /* ================= ③ DECISIONS ================= */
+  function kpis(d, b12){
+    var conf=(d.port_status&&d.port_status.active_conflicts); if(conf==null) conf='—';
+    var pend=(b12.state_counts&&b12.state_counts.act_now); if(pend==null) pend='—';
+    var otd=(d.dashboard&&d.dashboard.on_time_departure_pct);
+    var otdHtml = (otd==null||otd==='–')?'<span class="kn ok" style="font-size:14px;color:var(--t3)">unavailable</span>':'<span class="kn ok">'+otd+'%</span>';
+    return '<div class="c-kpis">'+
+      '<div class="c-kpi"><span class="kl">Active conflicts</span><span class="kn act">'+conf+'</span></div>'+
+      '<div class="c-kpi"><span class="kl">Decisions pending</span><span class="kn purple">'+pend+'</span></div>'+
+      '<div class="c-kpi"><span class="kl">On-time · now</span>'+otdHtml+'</div>'+
+    '</div>';
+  }
+
+  function consTone(line){ var l=(line||'').toLowerCase();
+    if(l.indexOf('relieve')>=0) return 'relieve'; if(l.indexOf('introduce')>=0) return 'introduce'; return 'down'; }
+
+  function optionHtml(o, i){
+    var ex=o.expiry||{}; var soon=(ex.expires_in_mins!=null&&ex.expires_in_mins<=60);
+    var exTxt = ex.expired ? 'Option expired' : (ex.expires_in_mins==null ? 'no closing window' : 'expires in '+mins(ex.expires_in_mins));
+    var cons=((o.consequence&&o.consequence.summary_lines)||[]).map(function(l){ var tn=consTone(l);
+      return '<div class="c-cons '+tn+'"><span class="ar">→</span><span>'+E(l)+'</span></div>'; }).join('');
+    return '<div class="c-opt'+(ex.expired?' unavail':'')+'">'+
+      '<div class="otop"><span class="c-optletter">'+String.fromCharCode(65+i)+'</span><span class="olabel">'+E(o.label||o.strategy||'Option')+'</span>'+
+        '<span class="oexp'+(soon?' soon':'')+'">Option window: <b>'+E(exTxt)+'</b></span></div>'+
+      '<div class="odesc">'+E(o.description||'')+'</div>'+
+      (cons||'<div class="c-cons down"><span class="ar">→</span><span>Consequence not projected.</span></div>')+
+      '<div class="oexpline"><b'+(soon?' class="soon"':'')+'>'+E((o.expiry&&o.expiry.basis)||'configured planning assumption')+'</b></div>'+
+    '</div>';
+  }
+
+  function card(c, b12){
+    if(!c) return '';
+    var st=opState(c.feasibility_state);
+    var opts=(c.options||[]);
+    var nearest=null; opts.forEach(function(o){ var m=o.expiry&&o.expiry.expires_in_mins; if(m!=null&&(nearest==null||m<nearest)) nearest=m; });
+    var vtype='';
+    var v=(LASTD&&(LASTD.vessels||[]).filter(function(x){ return x.id===c.commitment_id; })[0]);
+    if(v){ var bits=[]; if(v.vessel_type) bits.push(v.vessel_type); if(v.draught) bits.push('draft '+v.draught+' m'); vtype=bits.length?(' · '+bits.join(' · ')):''; }
+    var evi=(c.why_infeasible||[]).map(function(w){ return '<div class="c-evi"><span class="mk">›</span><span><b>'+E(w)+'</b><span class="src">'+E(c.provenance||'')+'</span></span></div>'; }).join('');
+    var working = (b12.working_plan) ? '<div class="c-working"><div class="wt">◇ '+E(b12.plan_label||'Operator test plan')+'</div>'+
+        '<div class="wd">Working plan only. Not live; no external systems changed and no one notified.</div>'+
+        (b12.plan_note?'<div class="wx">'+E(b12.plan_note)+'</div>':'')+
+        '<div style="margin-top:8px"><button class="c-btn ghost" onclick="hv2Live()">↩ Return to live plan</button></div></div>' : '';
+    var rby = nearest!=null ? '<span class="rby">earliest option <b>'+E(mins(nearest))+'</b></span>' : '<span class="rby">no closing window</span>';
+    return '<div class="c-card '+st+'" id="hv2-card-'+E(c.commitment_id)+'">'+
+      '<div class="c-recstrip '+st+'"><div class="rleft"><span class="rverb">'+E(c.state_label||'Attention')+'</span>'+
+        '<span class="rwhat">'+E(c.vessel_name)+' — '+E((c.why_infeasible&&c.why_infeasible[0])||'feasibility under pressure')+'</span></div>'+
+        '<div class="rright"><span class="rcount">'+opts.length+' option'+(opts.length===1?'':'s')+'</span>'+rby+'</div></div>'+
+      '<div class="c-cardid"><span class="c-badge decision">Decision</span>'+
+        (nearest!=null?'<span class="within">EARLIEST OPTION · '+E(mins(nearest))+'</span>':'')+'</div>'+
+      '<div class="chead"><div class="cmeta">'+E((c.movement||'').toUpperCase())+' · <b>'+E(c.berth_name||'')+'</b> · '+
+        (c.movement==='departure'?'ETD ':'ETA ')+'<b>'+hhmm(c.committed_time)+' UTC</b>'+E(vtype)+'</div></div>'+
+      working+
+      '<div class="c-sec">'+
+        '<div class="sl">Why this commitment needs attention</div>'+(evi||'<div class="c-evi"><span class="mk">›</span><span>—</span></div>')+
+        (c.confidence_note?'<div class="c-evi"><span class="mk">›</span><span style="color:var(--watch)">'+E(c.confidence_note)+'</span></div>':'')+
+        '<div class="sl">If unchanged</div><div class="c-unchanged">'+E(c.do_nothing||'')+'</div>'+
+        '<div class="sl">Options you can test — Horizon projects the consequence of each</div>'+
+        opts.map(optionHtml).join('')+
+      '</div>'+
+      '<div class="c-test"><div class="stance">'+E(c.advisory_note||'')+'</div>'+
+        '<div class="fields">'+
+          '<div class="c-fieldbox"><div class="fl">New '+(c.movement==='departure'?'ETD':'ETA')+'</div>'+
+            '<input class="fi hv2-in-time" type="datetime-local" value="'+E(toLocalInput(c.committed_time))+'"></div>'+
+          '<div class="c-fieldbox"><div class="fl">New berth id (optional)</div><input class="fi hv2-in-berth" type="text" placeholder="'+E(c.berth_id||'')+'"></div>'+
+        '</div>'+
+        '<div class="c-actions"><button class="c-btn primary wide" onclick="hv2Test(\''+jsq(c.commitment_id)+'\',\''+E(c.movement)+'\')">Test this plan</button>'+
+          '<button class="c-btn ghost" onclick="hv2Live()">Cancel</button></div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function cardMini(c){
+    if(!c) return '';
+    var why=(c.why_infeasible&&c.why_infeasible[0])||'';
+    return '<div class="c-cardmini" onclick="hv2FocusCard(\''+jsq(c.commitment_id)+'\')"><span class="c-badge '+opState(c.feasibility_state)+'">'+E(c.state_label||'')+'</span>'+
+      '<div><div class="vessel">'+E(c.vessel_name)+'</div><div class="why">'+E(why)+'</div></div><span class="chev">open ›</span></div>';
+  }
+
+  function rail(d, b12){
+    var head='<div class="c-seclabel"><h3><span style="color:var(--teal)">③</span> Decisions</h3><span class="right">arrivals first</span></div>';
+    var cards=(b12.decision_support_cards||[]);
+    if(!cards.length){
+      return '<div class="c-rail">'+head+kpis(d,b12)+freshLine(b12)+
+        '<div class="c-calm"><div class="ring"><i></i></div><div class="ct">No decisions required</div>'+
+        '<div class="cs">All committed movements are feasible against current schedule, tide and resources. Horizon is watching; it will raise a card the moment feasibility softens.</div></div></div>';
+    }
+    return '<div class="c-rail">'+head+kpis(d,b12)+freshLine(b12)+
+      '<div class="c-cards"><div style="flex:1;overflow-y:auto">'+card(cards[0],b12)+'</div>'+
+        cards.slice(1).map(cardMini).join('')+'</div></div>';
+  }
+
+  function quiet(d, b12){
+    var dl=computeDelta(b12);
+    var left = dl.has ? (dl.resolved? 'Recently settled': 'Watching') : 'Watching';
+    var mid = dl.has && dl.resolved ? (dl.resolved+' commitment'+(dl.resolved>1?'s':'')+' resolved since last update')
+                                    : 'Change history over prior shifts is not available in this preview';
+    return '<div class="c-quiet"><span class="settled">'+left+'</span><span>'+E(mid)+'</span>'+
+      '<span style="margin-left:auto">Assembled '+E(hhmm((b12.evidence_freshness&&b12.evidence_freshness.assembled_at)||new Date().toISOString()))+' UTC</span></div>';
+  }
+
+  /* ================= CONSOLE ================= */
+  function renderConsole(d){
+    var b12 = PLAN || d.beta12;
+    return '<div class="c-app cx">'+ribbon(d,b12)+conditions(d,b12)+flow(d,b12)+
+      '<div class="c-body"><div class="c-horizon" style="flex-direction:row">'+
+        schedule(d,b12)+'<div style="flex:1;min-width:0;display:flex;flex-direction:column">'+berthsField(d,b12)+'</div></div>'+
+        rail(d,b12)+
+      '</div>'+quiet(d,b12)+'</div>';
+  }
+
+  /* ================= WALL ================= */
+  function renderWall(d){
+    var b12=d.beta12;
+    var port=(d.port_profile&&d.port_profile.display_name)||d.port_name||'Port';
+    var act=(b12.state_counts&&b12.state_counts.act_now)||0;
+    var status = act>0
+      ? '<div class="w-status act"><span class="sdot"></span><span class="stext">'+act+' need a decision</span></div>'
+      : '<div class="w-status calm"><span class="sdot"></span><span class="stext">All clear</span></div>';
+    var L=lanes(d,b12);
+    var lanesHtml=L.map(function(l){
+      var mv=l.mv.map(function(m){ return '<div class="w-blk '+m.kind+'" style="left:'+m.s+'%;width:'+m.w+'%"><span class="bn">'+E((m.nm||'').replace(/^MV /,''))+'</span>'+
+        ((m.kind==='act'||m.kind==='watch')?'<span class="bt">'+E(m.t)+'</span>':'')+'</div>'; }).join('');
+      var cf=l.conflict?'<div class="w-conflict" style="left:'+l.conflict.s+'%;width:'+l.conflict.w+'%"></div>':'';
+      return '<div class="w-lane '+(l.health||'')+'"><div class="w-lname">'+E(l.b)+'</div><div class="w-track">'+cf+mv+'</div></div>';
+    }).join('');
+    var nConf=(d.port_status&&d.port_status.active_conflicts)||0;
+    var attn=(b12.decision_support_cards||[]).slice(0,2).map(function(c){
+      var ex=(c.options||[]).map(function(o){ return o.expiry&&o.expiry.expires_in_mins; }).filter(function(x){ return x!=null; }).sort(function(a,b){return a-b;})[0];
+      var count = ex!=null ? mins(ex) : 'held';
+      return '<div class="w-acard '+opState(c.feasibility_state)+'"><div class="arow"><span class="avessel">'+E(c.vessel_name)+'</span><span class="acount">'+E(count)+'</span></div>'+
+        '<div class="areason">'+E((c.why_infeasible&&c.why_infeasible[0])||'')+'</div>'+
+        '<div class="aby"><b>'+E((c.movement||'').toUpperCase()+' · '+(c.berth_name||''))+'</b></div></div>';
+    }).join('');
+    var dl=computeDelta(b12); var changes;
+    if(dl.has && (dl.worse||dl.resolved)){
+      changes=(dl.worse?'<div class="w-change worse"><span class="ci">▲</span><span class="ct">'+dl.worse+' commitment(s) worsened</span><span class="cw">since last update</span></div>':'')+
+              (dl.resolved?'<div class="w-change res"><span class="ci">✓</span><span class="ct">'+dl.resolved+' resolved</span><span class="cw">since last update</span></div>':'');
+    } else { changes='<div class="w-change"><span class="ci" style="color:var(--t4)">·</span><span class="ct" style="color:var(--t3)">No changes since last update — full history not available in this preview</span></div>'; }
+    var otd=(d.dashboard&&d.dashboard.on_time_departure_pct);
+    var otdHtml=(otd==null||otd==='–')?'<span class="wkn ok" style="font-size:40px;color:var(--t3)">n/a</span>':'<span class="wkn ok">'+otd+'%</span>';
+    return '<div class="w-app">'+
+      '<div class="w-head"><span class="w-live"><span class="dot"></span>LIVE</span><span class="w-port">'+E(port)+'</span>'+
+        '<span class="w-clock" id="hv2-clock">'+hhmm(new Date().toISOString())+' <small>UTC</small></span>'+status+
+        '<span class="c-viewtoggle" onclick="hv2Toggle()" style="margin-left:16px">CONSOLE ›</span></div>'+
+      '<div class="w-body"><div class="w-berths"><div class="w-blabel"><span>Forward picture · next 24 h</span>'+
+        '<span class="nowtag">▪ '+nConf+' developing conflict'+(nConf===1?'':'s')+'</span></div>'+
+        '<div class="w-lanes">'+lanesHtml+'<div class="w-now" style="left:calc(210px + (100% - 210px) * '+NOWFRAC+')"></div></div></div>'+
+        '<div class="w-side"><div class="w-sidelabel">Requires attention</div>'+(attn||'<div style="color:var(--t3);font-family:var(--mono)">No commitments require attention.</div>')+
+          '<div class="w-changes">'+changes+'</div></div></div>'+
+      '<div class="w-kpis">'+
+        '<div class="w-kpi"><span class="wkl">Active conflicts</span><span class="wkn act">'+nConf+'</span></div>'+
+        '<div class="w-kpi"><span class="wkl">Decisions pending</span><span class="wkn purple">'+act+'</span></div>'+
+        '<div class="w-kpi"><span class="wkl">On-time · now</span>'+otdHtml+'</div></div>'+
+    '</div>';
+  }
+
+  /* ================= plumbing ================= */
+  function toLocalInput(iso){ var t=P(iso); if(isNaN(t)) return ''; var d=new Date(t); var p=function(n){return String(n).padStart(2,'0');};
+    return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
+  function toIso(v){ if(!v) return null; var d=new Date(v); if(isNaN(d)) return null; return d.toISOString().replace(/\.\d{3}Z$/,'Z'); }
+  function jsq(s){ return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+  function tickClock(){ var el=document.getElementById('hv2-clock'); if(!el) return; var d=new Date();
+    el.innerHTML=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+':'+String(d.getUTCSeconds()).padStart(2,'0')+' <small>UTC</small>'; }
+
+  function paint(){
+    var root=document.getElementById('hv2-root'); if(!root||!LASTD) return;
+    root.innerHTML = (VIEW==='wall') ? renderWall(LASTD) : renderConsole(LASTD);
+  }
+
+  window.renderHv2 = function(d){
+    var root=document.getElementById('hv2-root');
+    document.body.classList.remove('b12-active');           // retire the old right-panel Beta 12 surface
+    if(!d || !d.beta12){
+      document.body.classList.remove('hv2-active'); PLAN=null; LASTD=null;
+      if(root) root.innerHTML=''; if(CLOCK){ clearInterval(CLOCK); CLOCK=null; }
+      return;
+    }
+    LASTD=d; document.body.classList.add('hv2-active');
+    paint();
+    // update session-delta baseline AFTER painting (so this poll compares to prior)
+    var nb={}; (d.beta12.commitments||[]).forEach(function(c){ if(c.feasibility_state!=='on_track') nb[c.commitment_id]=c.feasibility_state; }); PREV=nb;
+    if(!CLOCK) CLOCK=setInterval(tickClock,1000);
+  };
+  window.hv2Toggle = function(){ VIEW = (VIEW==='wall')?'console':'wall'; paint(); };
+  window.hv2Live = function(){ PLAN=null; paint(); };
+  window.hv2FocusCard = function(){ /* mini cards are summaries; full card shows the worst first */ };
+  window.hv2Test = function(cid, movement){
+    var card=document.getElementById('hv2-card-'+cid); if(!card) return;
+    var te=card.querySelector('.hv2-in-time'); var be=card.querySelector('.hv2-in-berth');
+    var body={commitment_id:cid, berth:(be?be.value.trim():'')};
+    var iso=toIso(te?te.value:null); if(movement==='departure') body.etd=iso; else body.eta=iso;
+    var btn=card.querySelector('.c-btn.primary'); if(btn){ btn.textContent='Testing…'; btn.disabled=true; }
+    fetch('/api/beta12/testplan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){ return r.json(); })
+      .then(function(j){ if(j&&j.beta12){ PLAN=j.beta12; paint(); } else if(btn){ btn.textContent='Test failed — retry'; btn.disabled=false; } })
+      .catch(function(){ if(btn){ btn.textContent='Test failed — retry'; btn.disabled=false; } });
+  };
+})();
+
 </script>
 </body>
 </html>
