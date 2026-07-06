@@ -87,11 +87,14 @@ class TestFlagOnAdditive:
     def test_flag_on(self, server_on):
         assert server_on.BETA11_ENABLED is True
 
-    def test_summary_adds_exactly_one_top_level_key(self, server_on):
-        # Phase 2 contract: flag-on adds EXACTLY one top-level key, `beta11`
-        # (the role/scenario block). Every other key is unchanged from Beta 10.
+    def test_summary_adds_only_gated_top_level_keys(self, server_on):
+        # Flag-on adds EXACTLY the gated additive blocks and nothing else:
+        #   `beta11` — role/scenario decision block (Beta 11)
+        #   `beta12` — commitment feasibility + consequence projection (Beta 12)
+        # Both reuse BETA11_ENABLED. Every other key is unchanged from Beta 10,
+        # so flag-off parity (TestFlagOffParity) remains the byte-identical gate.
         s = server_on.build_summary()
-        assert set(s.keys()) == EXPECTED_SUMMARY_KEYS | {"beta11"}
+        assert set(s.keys()) == EXPECTED_SUMMARY_KEYS | {"beta11", "beta12"}
 
     def test_beta11_block_shape(self, server_on):
         s = server_on.build_summary()

@@ -78,6 +78,39 @@ def _beta11_summary_block(active_port_id, conflicts):
         log.error("beta11 summary block failed: %s", exc, exc_info=True)
         return {}
 
+
+# Lazy accessor for the Beta 12 commitment module. Same discipline as Beta 11:
+# imported ONLY when the flag is on, so with BETA11_ENABLED off this module is
+# never touched and /api/summary is byte identical to Beta 10.
+_beta12_mod = None
+def _beta12():
+    global _beta12_mod
+    if _beta12_mod is None:
+        import beta12_commitment
+        _beta12_mod = beta12_commitment
+    return _beta12_mod
+
+
+def _beta12_summary_block(vessels, berths, conflicts, now):
+    """
+    Beta 12 (commitment feasibility + consequence projection). Reuses the
+    BETA11_ENABLED flag — no new flag, no new state, no DB. Returns
+    {"beta12": {...}} when the flag is on, else {} so the /api/summary shape is
+    byte identical to Beta 10. A read-only reshaping of data the Beta 10
+    detection + What-If engines already produce; never mutates them and never
+    raises into build_summary (a failure degrades to {}).
+    """
+    if not BETA11_ENABLED:
+        return {}
+    try:
+        block = _beta12().build_beta12_block(
+            vessels, berths, conflicts, now, shadow_fn=_whatif_shadow
+        )
+        return {"beta12": block}
+    except Exception as exc:
+        log.error("beta12 summary block failed: %s", exc, exc_info=True)
+        return {}
+
 log = logging.getLogger("horizon")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [horizon] %(levelname)s %(message)s",
                     datefmt="%Y-%m-%dT%H:%M:%SZ")
@@ -2857,6 +2890,7 @@ def build_summary():
         "dukc":              dukc,
         "esg":               esg,
         **_beta11_summary_block(active_port_id, conflicts),
+        **_beta12_summary_block(vessels, berths, conflicts, now),
         "port_profile": {
             "id":                    active_port_id,
             "display_name":          profile["display_name"],

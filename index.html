@@ -865,6 +865,68 @@
       font-size: 11px; pointer-events: none; max-width: 220px; line-height: 1.5;
       box-shadow: 0 4px 16px rgba(0,0,0,.5); display: none;
     }
+
+    /* ── Beta 12 — Port Commitments + Decision Support Cards ──────────────────
+       Flag-gated surface (present only when d.beta12). Leads the right column
+       with commitment feasibility; the legacy recommendation column is hidden
+       when body.b12-active. Nothing here affects Beta 10 (flag off). */
+    #beta12-panel { display:none; flex:1; min-height:0; overflow-y:auto; }
+    body.b12-active .panel-right > *:not(#beta12-panel){ display:none !important; }
+    body.b12-active #beta12-panel{ display:flex; flex-direction:column; }
+
+    .b12-hdr { padding:10px 12px 8px; border-bottom:1px solid var(--border); }
+    .b12-hdr-title { font-size:13px; font-weight:800; letter-spacing:.4px; color:var(--text); }
+    .b12-hdr-sub { font-size:10px; color:var(--muted); margin-top:2px; line-height:1.4; }
+    .b12-states { display:flex; gap:6px; padding:8px 12px; flex-wrap:wrap; }
+    .b12-state { flex:1; min-width:58px; text-align:center; border:1px solid var(--border);
+                 border-radius:6px; padding:6px 4px; background:var(--surface); }
+    .b12-state-n { font-size:18px; font-weight:800; line-height:1; }
+    .b12-state-l { font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); margin-top:3px; }
+    .b12-state.broken   .b12-state-n{ color:#ef4444; }
+    .b12-state.critical .b12-state-n{ color:#f97316; }
+    .b12-state.degrading .b12-state-n{ color:#fbbf24; }
+    .b12-state.healthy  .b12-state-n{ color:#6ee7b7; }
+    .b12-cards { padding:4px 10px 12px; }
+    .b12-empty { padding:24px 14px; text-align:center; color:var(--muted); font-size:12px; }
+
+    .dsc-card { border:1px solid var(--border); border-left-width:4px; border-radius:8px;
+                background:var(--surface); margin:8px 0; padding:10px 12px; }
+    .dsc-card.broken   { border-left-color:#ef4444; }
+    .dsc-card.critical { border-left-color:#f97316; }
+    .dsc-card.degrading{ border-left-color:#fbbf24; }
+    .dsc-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .dsc-state { font-size:9px; font-weight:800; letter-spacing:.6px; padding:2px 7px; border-radius:3px;
+                 text-transform:uppercase; }
+    .dsc-state.broken   { background:rgba(239,68,68,.15); color:#ef4444; }
+    .dsc-state.critical { background:rgba(249,115,22,.15); color:#f97316; }
+    .dsc-state.degrading{ background:rgba(251,191,36,.15); color:#fbbf24; }
+    .dsc-vessel { font-size:13px; font-weight:800; color:var(--text); }
+    .dsc-move { font-size:10px; color:var(--muted); }
+    .dsc-prov { font-size:8.5px; letter-spacing:.4px; padding:2px 6px; border-radius:3px; margin-left:auto;
+                border:1px solid var(--border); color:var(--muted); text-transform:uppercase; }
+    .dsc-q { margin-top:9px; }
+    .dsc-q-lbl { font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); }
+    .dsc-q-body { font-size:11.5px; color:var(--text); line-height:1.5; margin-top:2px; }
+    .dsc-why-item { font-size:11.5px; color:var(--text); line-height:1.5; margin-top:3px; padding-left:10px; position:relative; }
+    .dsc-why-item::before { content:'›'; position:absolute; left:0; color:var(--muted); }
+    .dsc-opts-lbl { font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+                    color:var(--muted); margin:11px 0 4px; }
+    .dsc-opt { border:1px solid var(--border); border-radius:6px; padding:8px 9px; margin:6px 0; background:var(--bg); }
+    .dsc-opt-hd { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+    .dsc-opt-label { font-size:12px; font-weight:700; color:var(--text); }
+    .dsc-opt-feas { font-size:8.5px; letter-spacing:.4px; text-transform:uppercase; color:var(--muted);
+                    border:1px solid var(--border); border-radius:3px; padding:1px 5px; }
+    .dsc-expiry { margin-left:auto; font-size:10px; font-weight:700; }
+    .dsc-expiry.live { color:#6ee7b7; } .dsc-expiry.soon{ color:#f97316; } .dsc-expiry.gone{ color:#ef4444; }
+    .dsc-expiry-basis { font-size:8.5px; color:var(--muted); font-weight:400; font-style:italic; }
+    .dsc-conseq { margin-top:5px; }
+    .dsc-conseq-line { font-size:11px; color:var(--muted); line-height:1.5; padding-left:12px; position:relative; }
+    .dsc-conseq-line::before { content:'→'; position:absolute; left:0; color:var(--accent,#60a5fa); }
+    .dsc-note { margin-top:10px; font-size:10px; font-style:italic; color:var(--muted); line-height:1.4;
+                border-top:1px dashed var(--border); padding-top:7px; }
+    .dsc-scenario-btn { margin-top:8px; width:100%; font-size:11px; padding:6px; border-radius:5px;
+                        border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; }
+    .dsc-scenario-btn:hover { border-color:var(--accent,#60a5fa); }
   </style>
 </head>
 <body>
@@ -1250,6 +1312,11 @@
         <span>Decisions</span>
         <span class="count-badge zero" id="conflict-count">0</span>
       </div>
+      <!-- Beta 12 (commitment feasibility + consequence projection). Populated
+           by renderCommitments() only when d.beta12 is present; body.b12-active
+           then hides the legacy recommendation column and this leads instead.
+           Absent/empty in Beta 10 (flag off) — zero footprint. -->
+      <div id="beta12-panel"></div>
       <!-- VTSO Decision Loop mounts here (Beta 12 / VTSO role only): an
            integrated collapsible section of the Decisions column, directly
            under the header and above the Decisions/Audit tab row. Empty (no
@@ -2013,6 +2080,99 @@ async function refresh(){
     render(_data);
   }catch(e){console.error('Refresh failed',e)}
 }
+/* ── Beta 12 — Port Commitments + Decision Support Cards ─────────────────────
+   Flag-gated (renders only when d.beta12 present). Leads the right column with
+   commitment feasibility and, for each at-risk commitment, a Decision Support
+   Card answering the four operator questions. NEVER recommends, ranks, or marks
+   a "best" option — Horizon projects consequences; the Harbour Master decides. */
+function _b12Mins(m){
+  if(m==null) return '';
+  if(m < 60) return m+'m';
+  const h=Math.floor(m/60), r=m%60; return h+'h'+(r?' '+r+'m':'');
+}
+function _b12Time(iso){
+  if(!iso) return '';
+  try{ return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+  catch(e){ return ''; }
+}
+function _b12ExpiryView(ex){
+  ex = ex || {};
+  if(ex.expired) return {cls:'gone', txt:'Option expired'};
+  if(ex.expires_in_mins==null) return {cls:'live', txt:'Expiry unknown'};
+  return {cls: ex.expires_in_mins<=60?'soon':'live', txt:'Expires in '+_b12Mins(ex.expires_in_mins)};
+}
+function renderDSCOption(o){
+  const ev = _b12ExpiryView(o.expiry);
+  const lines = ((o.consequence && o.consequence.summary_lines) || [])
+    .map(l => `<div class="dsc-conseq-line">${esc(l)}</div>`).join('');
+  return `
+    <div class="dsc-opt">
+      <div class="dsc-opt-hd">
+        <span class="dsc-opt-label">${esc(o.label || o.strategy || 'Option')}</span>
+        ${o.feasibility ? `<span class="dsc-opt-feas">${esc(o.feasibility)} feasibility</span>` : ''}
+        <span class="dsc-expiry ${ev.cls}">${esc(ev.txt)}</span>
+      </div>
+      ${(o.expiry && o.expiry.basis) ? `<div class="dsc-expiry-basis">${esc(o.expiry.basis)}</div>` : ''}
+      <div class="dsc-conseq">${lines || '<div class="dsc-conseq-line">No consequence projected.</div>'}</div>
+    </div>`;
+}
+function renderDecisionSupportCard(c){
+  const state = c.feasibility_state || 'degrading';
+  const move  = (c.movement || '').toUpperCase();
+  const when  = _b12Time(c.committed_time);
+  const meta  = [move, c.berth_name ? esc(c.berth_name) : '', when].filter(Boolean).join(' · ');
+  const why   = (c.why_infeasible || []).map(w => `<div class="dsc-why-item">${esc(w)}</div>`).join('');
+  const opts  = (c.options || []).map(renderDSCOption).join('');
+  return `
+    <div class="dsc-card ${state}">
+      <div class="dsc-top">
+        <span class="dsc-state ${state}">${esc(state)}</span>
+        <span class="dsc-vessel">${esc(c.vessel_name || '')}</span>
+        <span class="dsc-move">${meta}</span>
+        ${c.provenance ? `<span class="dsc-prov">${esc(c.provenance)}</span>` : ''}
+      </div>
+      <div class="dsc-q">
+        <div class="dsc-q-lbl">Why this commitment is becoming infeasible</div>
+        ${why || '<div class="dsc-q-body">—</div>'}
+      </div>
+      <div class="dsc-q">
+        <div class="dsc-q-lbl">If nothing changes</div>
+        <div class="dsc-q-body">${esc(c.do_nothing || '')}</div>
+      </div>
+      ${opts ? `<div class="dsc-opts-lbl">Options you can test — Horizon projects the consequence of each</div>${opts}` : ''}
+      <div class="dsc-note">${esc(c.advisory_note || '')}</div>
+      ${c.primary_conflict_id ? `<button class="dsc-scenario-btn" onclick="openWhatIf('${c.primary_conflict_id}')">⊕ Test your own option (Scenario Builder) →</button>` : ''}
+    </div>`;
+}
+function renderCommitments(d){
+  const b = d && d.beta12;
+  const panel = document.getElementById('beta12-panel');
+  if(!b){
+    document.body.classList.remove('b12-active');
+    if(panel) panel.innerHTML = '';
+    return;
+  }
+  document.body.classList.add('b12-active');
+  if(!panel) return;
+  const sc = b.state_counts || {};
+  const cards = b.decision_support_cards || [];
+  const stateHtml = ['broken','critical','degrading','healthy'].map(s => `
+    <div class="b12-state ${s}">
+      <div class="b12-state-n">${sc[s] || 0}</div>
+      <div class="b12-state-l">${s}</div>
+    </div>`).join('');
+  const cardsHtml = cards.length
+    ? cards.map(renderDecisionSupportCard).join('')
+    : '<div class="b12-empty">No commitments at risk.<br><span style="font-size:10.5px">All committed movements are currently feasible. Degrading, critical or broken commitments appear here with consequence projections.</span></div>';
+  panel.innerHTML = `
+    <div class="b12-hdr">
+      <div class="b12-hdr-title">PORT COMMITMENTS</div>
+      <div class="b12-hdr-sub">Is each committed movement still feasible — and if not, what happens if the plan changes? Horizon projects consequences; the Harbour Master decides.</div>
+    </div>
+    <div class="b12-states">${stateHtml}</div>
+    <div class="b12-cards">${cardsHtml}</div>`;
+}
+
 function render(d){
   updateHeader(d);
   _updatePortSwitcher(d.port_profile);
@@ -2035,8 +2195,13 @@ function render(d){
   if(_activeTab==='performance')renderPerformance(d);
   // Beta 11 role views. No-op unless the server sends a top level `beta11`
   // block (only present when BETA11_ENABLED). Keeps Beta 10 render untouched.
-  if(window._b11 && d && d.beta11)_b11.onData(d);
-  renderReadiness(d);  // Phase 1B — top-level Readiness tab (gates on d.beta11 internally)
+  // Beta 12 reset removes stakeholder lenses / readiness / acknowledgement from
+  // scope. When the Beta 12 commitment surface is active, the Beta 11 lens and
+  // readiness mounts are suppressed (code kept intact, simply not rendered).
+  // Beta 10 (flag off) is unaffected: with no d.beta11/d.beta12, neither runs.
+  if(window._b11 && d && d.beta11 && !d.beta12)_b11.onData(d);
+  if(!(d && d.beta12)) renderReadiness(d);  // Phase 1B Readiness tab — hidden in the Beta 12 view
+  renderCommitments(d);  // Beta 12 — Port Commitments + Decision Support Cards (gates on d.beta12)
 }
 
 /* ── Beta 9: Conflict Timeline ── */
