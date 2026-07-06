@@ -91,7 +91,7 @@ def _beta12():
     return _beta12_mod
 
 
-def _beta12_summary_block(vessels, berths, conflicts, now):
+def _beta12_summary_block(vessels, berths, conflicts, now, freshness=None):
     """
     Beta 12 (commitment feasibility + consequence projection). Reuses the
     BETA11_ENABLED flag — no new flag, no new state, no DB. Returns
@@ -104,7 +104,8 @@ def _beta12_summary_block(vessels, berths, conflicts, now):
         return {}
     try:
         block = _beta12().build_beta12_block(
-            vessels, berths, conflicts, now, shadow_fn=_whatif_shadow
+            vessels, berths, conflicts, now,
+            shadow_fn=_whatif_shadow, freshness=freshness,
         )
         return {"beta12": block}
     except Exception as exc:
@@ -2890,7 +2891,20 @@ def build_summary():
         "dukc":              dukc,
         "esg":               esg,
         **_beta11_summary_block(active_port_id, conflicts),
-        **_beta12_summary_block(vessels, berths, conflicts, now),
+        **_beta12_summary_block(vessels, berths, conflicts, now, freshness={
+            # Evidence freshness surfaced to the operator. Only what can be
+            # honestly sourced without touching Beta 10 modules: the vessel/
+            # schedule scrape time (real in the QShips demo — genuinely reveals
+            # staleness), plus weather/tide SOURCE. Exact weather/tide fetch age
+            # is not exposed here, so those show "source time unavailable".
+            "assembled_at":   fmt(now),
+            "ais_as_of":      scrape_result.get("scraped_at") or ds.get("scraped_at"),
+            "schedule_as_of": scrape_result.get("scraped_at") or ds.get("scraped_at"),
+            "weather_source": weather.get("source"),
+            "weather_as_of":  weather.get("fetched_at"),
+            "tide_source":    tides.get("data_source"),
+            "tide_as_of":     None,
+        }),
         "port_profile": {
             "id":                    active_port_id,
             "display_name":          profile["display_name"],
@@ -3000,6 +3014,18 @@ class HorizonHandler(BaseHTTPRequestHandler):
                 self.send_error(401)
                 return
             self._beta11_decision_action()
+        elif path == "/api/beta12/testplan":
+            # Beta 12 operator plan correction. Gated on BETA11_ENABLED so the
+            # endpoint does not exist (404) in the Beta 10 baseline. Runs a
+            # shadow re-projection of an operator-retimed commitment — no global
+            # state is mutated, no external write-back, no notifications.
+            if not BETA11_ENABLED:
+                self.send_error(404)
+                return
+            if not self._is_authenticated():
+                self.send_error(401)
+                return
+            self._beta12_testplan()
         else:
             self.send_error(405)
 
@@ -4581,6 +4607,74 @@ doRefresh();setInterval(doRefresh,30000);
         except Exception as exc:
             log.error("port-brief PDF generation failed: %s", exc, exc_info=True)
             self.send_error(500, f"PDF generation failed: {exc}")
+
+    def _beta12_testplan(self):
+        """POST /api/beta12/testplan — Beta 12 operator plan correction.
+
+        Body: {commitment_id, eta?, etd?, berth?}. Applies the operator's retime
+        to a copy of the current roster, RE-RUNS conflict detection against that
+        adjusted plan, and returns a fresh Beta 12 block tagged as an
+        "Operator test plan". Shadow only: no globals mutated, no external
+        write-back, no stakeholder notification.
+        """
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body   = json.loads(self.rfile.read(length)) if length else {}
+            commitment_id = body.get("commitment_id", "")
+            new_eta   = body.get("eta") or None
+            new_etd   = body.get("etd") or None
+            new_berth = body.get("berth")
+            if not commitment_id:
+                self._json({"error": "Missing 'commitment_id'"})
+                return
+
+            with _profile_lock:
+                profile = dict(_PORT_PROFILE)
+
+            now = utcnow()
+            scrape_result = fetch_vessel_movements(profile, now)
+            is_live = bool(scrape_result.get("using_live_data"))
+            if is_live and scrape_result.get("vessels"):
+                base_vessels = build_vessels_from_qships({"vessels": scrape_result["vessels"], "berths": []})
+            else:
+                base_vessels = make_vessels(now)
+            # Tag sources so provenance is preserved through the test plan.
+            for _v in base_vessels:
+                if not _v.get("source"):
+                    _v["source"] = ("sim" if str(_v.get("id", "")).startswith("SIM-")
+                                    else ("qships" if is_live else "sim"))
+
+            berths = make_berths(now)
+            try:
+                pilotage = make_pilotage(base_vessels, now, profile)
+            except Exception:
+                pilotage = []
+            try:
+                towage = make_towage(base_vessels, now, profile)
+            except Exception:
+                towage = []
+
+            adjusted = _beta12().apply_operator_plan(
+                base_vessels, commitment_id, new_eta, new_etd, new_berth)
+            conflicts2 = detect_conflicts(adjusted, berths, pilotage, towage, now, is_live=is_live)
+
+            freshness = {
+                "assembled_at":   fmt(now),
+                "ais_as_of":      scrape_result.get("scraped_at"),
+                "schedule_as_of": scrape_result.get("scraped_at"),
+                "weather_source": None,   # not re-fetched in the test-plan path
+                "weather_as_of":  None,
+                "tide_source":    None,
+                "tide_as_of":     None,
+            }
+            block = _beta12().build_beta12_block(
+                adjusted, berths, conflicts2, now,
+                shadow_fn=_whatif_shadow, freshness=freshness,
+                working_plan=True, plan_label="Operator test plan")
+            self._json({"beta12": block})
+        except Exception as exc:
+            log.error("beta12 testplan failed: %s", exc, exc_info=True)
+            self._json({"error": str(exc)}, status=500)
 
     def _whatif(self):
         """POST /api/whatif — run a shadow scenario simulation, returns conflict diff."""

@@ -877,33 +877,40 @@
     .b12-hdr { padding:10px 12px 8px; border-bottom:1px solid var(--border); }
     .b12-hdr-title { font-size:13px; font-weight:800; letter-spacing:.4px; color:var(--text); }
     .b12-hdr-sub { font-size:10px; color:var(--muted); margin-top:2px; line-height:1.4; }
+    .b12-fresh { padding:6px 12px; font-size:9.5px; color:var(--muted); line-height:1.5;
+                 border-bottom:1px solid var(--border); }
+    .b12-fresh b { color:var(--text); font-weight:700; }
+    .b12-fresh .stale { color:#fbbf24; }
+    .b12-plan-banner { margin:8px 12px 0; padding:7px 10px; border-radius:6px; font-size:11px; line-height:1.45;
+                       border:1px solid #60a5fa; background:rgba(96,165,250,.12); color:var(--text); }
+    .b12-plan-banner b { color:#60a5fa; }
+    .b12-plan-return { margin-top:6px; font-size:10.5px; padding:5px 9px; border-radius:5px; cursor:pointer;
+                       border:1px solid var(--border); background:var(--surface); color:var(--text); }
     .b12-states { display:flex; gap:6px; padding:8px 12px; flex-wrap:wrap; }
-    .b12-state { flex:1; min-width:58px; text-align:center; border:1px solid var(--border);
+    .b12-state { flex:1; min-width:70px; text-align:center; border:1px solid var(--border);
                  border-radius:6px; padding:6px 4px; background:var(--surface); }
     .b12-state-n { font-size:18px; font-weight:800; line-height:1; }
     .b12-state-l { font-size:8.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); margin-top:3px; }
-    .b12-state.broken   .b12-state-n{ color:#ef4444; }
-    .b12-state.critical .b12-state-n{ color:#f97316; }
-    .b12-state.degrading .b12-state-n{ color:#fbbf24; }
-    .b12-state.healthy  .b12-state-n{ color:#6ee7b7; }
+    .b12-state.act_now  .b12-state-n{ color:#ef4444; }
+    .b12-state.watch    .b12-state-n{ color:#fbbf24; }
+    .b12-state.on_track .b12-state-n{ color:#6ee7b7; }
     .b12-cards { padding:4px 10px 12px; }
     .b12-empty { padding:24px 14px; text-align:center; color:var(--muted); font-size:12px; }
 
     .dsc-card { border:1px solid var(--border); border-left-width:4px; border-radius:8px;
                 background:var(--surface); margin:8px 0; padding:10px 12px; }
-    .dsc-card.broken   { border-left-color:#ef4444; }
-    .dsc-card.critical { border-left-color:#f97316; }
-    .dsc-card.degrading{ border-left-color:#fbbf24; }
+    .dsc-card.act_now { border-left-color:#ef4444; }
+    .dsc-card.watch   { border-left-color:#fbbf24; }
     .dsc-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     .dsc-state { font-size:9px; font-weight:800; letter-spacing:.6px; padding:2px 7px; border-radius:3px;
                  text-transform:uppercase; }
-    .dsc-state.broken   { background:rgba(239,68,68,.15); color:#ef4444; }
-    .dsc-state.critical { background:rgba(249,115,22,.15); color:#f97316; }
-    .dsc-state.degrading{ background:rgba(251,191,36,.15); color:#fbbf24; }
+    .dsc-state.act_now { background:rgba(239,68,68,.15); color:#ef4444; }
+    .dsc-state.watch   { background:rgba(251,191,36,.15); color:#fbbf24; }
     .dsc-vessel { font-size:13px; font-weight:800; color:var(--text); }
     .dsc-move { font-size:10px; color:var(--muted); }
     .dsc-prov { font-size:8.5px; letter-spacing:.4px; padding:2px 6px; border-radius:3px; margin-left:auto;
                 border:1px solid var(--border); color:var(--muted); text-transform:uppercase; }
+    .dsc-conf-note { margin-top:5px; font-size:10px; color:#fbbf24; font-style:italic; }
     .dsc-q { margin-top:9px; }
     .dsc-q-lbl { font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); }
     .dsc-q-body { font-size:11.5px; color:var(--text); line-height:1.5; margin-top:2px; }
@@ -914,19 +921,30 @@
     .dsc-opt { border:1px solid var(--border); border-radius:6px; padding:8px 9px; margin:6px 0; background:var(--bg); }
     .dsc-opt-hd { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
     .dsc-opt-label { font-size:12px; font-weight:700; color:var(--text); }
-    .dsc-opt-feas { font-size:8.5px; letter-spacing:.4px; text-transform:uppercase; color:var(--muted);
-                    border:1px solid var(--border); border-radius:3px; padding:1px 5px; }
     .dsc-expiry { margin-left:auto; font-size:10px; font-weight:700; }
     .dsc-expiry.live { color:#6ee7b7; } .dsc-expiry.soon{ color:#f97316; } .dsc-expiry.gone{ color:#ef4444; }
     .dsc-expiry-basis { font-size:8.5px; color:var(--muted); font-weight:400; font-style:italic; }
     .dsc-conseq { margin-top:5px; }
     .dsc-conseq-line { font-size:11px; color:var(--muted); line-height:1.5; padding-left:12px; position:relative; }
     .dsc-conseq-line::before { content:'→'; position:absolute; left:0; color:var(--accent,#60a5fa); }
+    .dsc-evfresh { margin-top:8px; font-size:9px; color:var(--muted); line-height:1.5; }
+    .dsc-evfresh .stale { color:#fbbf24; }
     .dsc-note { margin-top:10px; font-size:10px; font-style:italic; color:var(--muted); line-height:1.4;
                 border-top:1px dashed var(--border); padding-top:7px; }
-    .dsc-scenario-btn { margin-top:8px; width:100%; font-size:11px; padding:6px; border-radius:5px;
-                        border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; }
-    .dsc-scenario-btn:hover { border-color:var(--accent,#60a5fa); }
+    .dsc-retime-btn { margin-top:8px; width:100%; font-size:11px; padding:6px; border-radius:5px;
+                      border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; }
+    .dsc-retime-btn:hover { border-color:var(--accent,#60a5fa); }
+    .dsc-retime { margin-top:8px; border:1px solid var(--border); border-radius:6px; padding:9px; background:var(--bg); }
+    .dsc-retime-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+    .dsc-retime-fld { flex:1; min-width:110px; }
+    .dsc-retime-fld label { display:block; font-size:8.5px; letter-spacing:.4px; text-transform:uppercase; color:var(--muted); margin-bottom:2px; }
+    .dsc-retime-fld input { width:100%; font-size:11px; padding:4px 6px; border-radius:4px;
+                            border:1px solid var(--border); background:var(--surface); color:var(--text); }
+    .dsc-retime-actions { display:flex; gap:6px; }
+    .dsc-retime-actions button { flex:1; font-size:11px; padding:6px; border-radius:5px; cursor:pointer;
+                                 border:1px solid var(--border); background:var(--surface); color:var(--text); }
+    .dsc-retime-test:hover { border-color:#60a5fa; }
+    .dsc-retime-hint { font-size:9px; color:var(--muted); font-style:italic; margin-top:6px; line-height:1.4; }
   </style>
 </head>
 <body>
@@ -2092,14 +2110,36 @@ function _b12Mins(m){
 }
 function _b12Time(iso){
   if(!iso) return '';
-  try{ return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+  try{ const d=new Date(iso); return isNaN(d)?'':d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
   catch(e){ return ''; }
 }
+function _b12Stamp(iso){
+  if(!iso) return '';
+  try{ const d=new Date(iso); return isNaN(d)?String(iso):d.toLocaleString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}); }
+  catch(e){ return String(iso); }
+}
+function _b12ToLocalInput(iso){
+  if(!iso) return '';
+  const d=new Date(iso); if(isNaN(d)) return '';
+  const p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function _b12ToIso(v){
+  if(!v) return null;
+  const d=new Date(v); if(isNaN(d)) return null;
+  return d.toISOString().replace(/\.\d{3}Z$/,'Z');
+}
+function _b12JS(s){ return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+let _b12Live = null;         // latest live block from /api/summary
+let _b12PlanActive = false;  // operator is viewing a test plan (don't clobber on poll)
+let _b12Fresh = null;        // evidence freshness of the block currently shown
+
 function _b12ExpiryView(ex){
   ex = ex || {};
   if(ex.expired) return {cls:'gone', txt:'Option expired'};
-  if(ex.expires_in_mins==null) return {cls:'live', txt:'Expiry unknown'};
-  return {cls: ex.expires_in_mins<=60?'soon':'live', txt:'Expires in '+_b12Mins(ex.expires_in_mins)};
+  if(ex.expires_in_mins==null) return {cls:'live', txt:'Option expiry unavailable'};
+  return {cls: ex.expires_in_mins<=60?'soon':'live', txt:'Option expires in '+_b12Mins(ex.expires_in_mins)};
 }
 function renderDSCOption(o){
   const ev = _b12ExpiryView(o.expiry);
@@ -2109,68 +2149,144 @@ function renderDSCOption(o){
     <div class="dsc-opt">
       <div class="dsc-opt-hd">
         <span class="dsc-opt-label">${esc(o.label || o.strategy || 'Option')}</span>
-        ${o.feasibility ? `<span class="dsc-opt-feas">${esc(o.feasibility)} feasibility</span>` : ''}
         <span class="dsc-expiry ${ev.cls}">${esc(ev.txt)}</span>
       </div>
       ${(o.expiry && o.expiry.basis) ? `<div class="dsc-expiry-basis">${esc(o.expiry.basis)}</div>` : ''}
-      <div class="dsc-conseq">${lines || '<div class="dsc-conseq-line">No consequence projected.</div>'}</div>
+      <div class="dsc-conseq">${lines || '<div class="dsc-conseq-line">Consequence not projected.</div>'}</div>
     </div>`;
 }
+function _b12FreshLine(f){
+  f = f || {};
+  const stamp = v => (typeof v==='string' && v) ? ('<b>'+esc(_b12Stamp(v))+'</b>') : null;
+  const sched = stamp(f.schedule_as_of) || '<span class="stale">source time unavailable</span>';
+  const ais   = stamp(f.ais_as_of)      || '<span class="stale">source time unavailable</span>';
+  const wx    = stamp(f.weather_as_of)  || (f.weather_source ? esc(f.weather_source)+' <span class="stale">(source time unavailable)</span>' : '<span class="stale">source time unavailable</span>');
+  const tide  = stamp(f.tide_as_of)     || (f.tide_source ? esc(f.tide_source)+' <span class="stale">(source time unavailable)</span>' : '<span class="stale">source time unavailable</span>');
+  return `<div class="b12-fresh">Evidence — schedule as of ${sched} · AIS as of ${ais} · tide ${tide} · weather ${wx}</div>`;
+}
+function _b12CardFresh(f){
+  f = f || {};
+  const stamp = v => (typeof v==='string' && v) ? esc(_b12Stamp(v)) : '<span class="stale">source time unavailable</span>';
+  return `<div class="dsc-evfresh">Evidence used — schedule as of ${stamp(f.schedule_as_of)} · AIS as of ${stamp(f.ais_as_of)}</div>`;
+}
 function renderDecisionSupportCard(c){
-  const state = c.feasibility_state || 'degrading';
+  const state = c.feasibility_state || 'watch';
+  const label = c.state_label || state;
   const move  = (c.movement || '').toUpperCase();
   const when  = _b12Time(c.committed_time);
   const meta  = [move, c.berth_name ? esc(c.berth_name) : '', when].filter(Boolean).join(' · ');
   const why   = (c.why_infeasible || []).map(w => `<div class="dsc-why-item">${esc(w)}</div>`).join('');
   const opts  = (c.options || []).map(renderDSCOption).join('');
+  const cid   = c.commitment_id;
+  const cidJS = _b12JS(cid);
+  const etaFld = c.movement==='arrival'
+    ? `<div class="dsc-retime-fld"><label>New ETA</label><input type="datetime-local" class="b12-in-eta" value="${_b12ToLocalInput(c.committed_time)}"></div>` : '';
+  const etdFld = c.movement==='departure'
+    ? `<div class="dsc-retime-fld"><label>New ETD (expected release)</label><input type="datetime-local" class="b12-in-etd" value="${_b12ToLocalInput(c.committed_time)}"></div>` : '';
   return `
-    <div class="dsc-card ${state}">
+    <div class="dsc-card ${state}" id="dsc-${esc(cid)}">
       <div class="dsc-top">
-        <span class="dsc-state ${state}">${esc(state)}</span>
+        <span class="dsc-state ${state}">${esc(label)}</span>
         <span class="dsc-vessel">${esc(c.vessel_name || '')}</span>
         <span class="dsc-move">${meta}</span>
         ${c.provenance ? `<span class="dsc-prov">${esc(c.provenance)}</span>` : ''}
       </div>
+      ${c.confidence_note ? `<div class="dsc-conf-note">${esc(c.confidence_note)}</div>` : ''}
       <div class="dsc-q">
-        <div class="dsc-q-lbl">Why this commitment is becoming infeasible</div>
+        <div class="dsc-q-lbl">Evidence — why this commitment needs attention</div>
         ${why || '<div class="dsc-q-body">—</div>'}
       </div>
       <div class="dsc-q">
-        <div class="dsc-q-lbl">If nothing changes</div>
+        <div class="dsc-q-lbl">If unchanged</div>
         <div class="dsc-q-body">${esc(c.do_nothing || '')}</div>
       </div>
       ${opts ? `<div class="dsc-opts-lbl">Options you can test — Horizon projects the consequence of each</div>${opts}` : ''}
+      ${_b12CardFresh(_b12Fresh)}
       <div class="dsc-note">${esc(c.advisory_note || '')}</div>
-      ${c.primary_conflict_id ? `<button class="dsc-scenario-btn" onclick="openWhatIf('${c.primary_conflict_id}')">⊕ Test your own option (Scenario Builder) →</button>` : ''}
+      <div class="dsc-retime" id="rt-${esc(cid)}" style="display:none">
+        <div class="dsc-retime-row">
+          ${etaFld}${etdFld}
+          <div class="dsc-retime-fld"><label>New berth id (optional)</label><input type="text" class="b12-in-berth" placeholder="${esc(c.berth_id || '')}"></div>
+        </div>
+        <div class="dsc-retime-actions">
+          <button class="dsc-retime-test" onclick="_b12TestPlan('${cidJS}')">Test this plan</button>
+          <button onclick="_b12ToggleRetime('${cidJS}')">Cancel</button>
+        </div>
+        <div class="dsc-retime-hint">Operator test plan — Horizon re-checks feasibility and consequences against your times. Nothing is written to external systems and no one is notified.</div>
+      </div>
+      <button class="dsc-retime-btn" onclick="_b12ToggleRetime('${cidJS}')">✎ Adjust working plan (retime &amp; re-check)</button>
     </div>`;
+}
+function _b12ToggleRetime(cid){
+  const el = document.getElementById('rt-'+cid);
+  if(el) el.style.display = (el.style.display==='none' || !el.style.display) ? 'block' : 'none';
+}
+async function _b12TestPlan(cid){
+  const card = document.getElementById('dsc-'+cid);
+  if(!card) return;
+  const etaEl = card.querySelector('.b12-in-eta');
+  const etdEl = card.querySelector('.b12-in-etd');
+  const berthEl = card.querySelector('.b12-in-berth');
+  const eta = _b12ToIso(etaEl ? etaEl.value : null);
+  const etd = _b12ToIso(etdEl ? etdEl.value : null);
+  const berth = berthEl ? berthEl.value.trim() : '';
+  const btn = card.querySelector('.dsc-retime-test');
+  if(btn){ btn.textContent = 'Testing…'; btn.disabled = true; }
+  try{
+    const r = await fetch('/api/beta12/testplan', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({commitment_id: cid, eta, etd, berth})});
+    const j = await r.json();
+    if(j && j.beta12){ _b12PlanActive = true; _b12RenderBlock(j.beta12); }
+    else if(btn){ btn.textContent = 'Test failed — retry'; btn.disabled = false; }
+  }catch(e){
+    if(btn){ btn.textContent = 'Test failed — retry'; btn.disabled = false; }
+  }
+}
+function _b12ReturnLive(){
+  _b12PlanActive = false;
+  if(_b12Live) _b12RenderBlock(_b12Live);
+}
+function _b12RenderBlock(b){
+  const panel = document.getElementById('beta12-panel');
+  if(!panel) return;
+  _b12Fresh = b.evidence_freshness || null;
+  const sc = b.state_counts || {};
+  const labels = b.state_labels || {act_now:'Act Now', watch:'Watch', on_track:'On Track'};
+  const cards = b.decision_support_cards || [];
+  const stateHtml = ['act_now','watch','on_track'].map(s => `
+    <div class="b12-state ${s}">
+      <div class="b12-state-n">${sc[s] || 0}</div>
+      <div class="b12-state-l">${esc(labels[s] || s)}</div>
+    </div>`).join('');
+  const banner = b.working_plan
+    ? `<div class="b12-plan-banner"><b>${esc(b.plan_label || 'Operator test plan')}</b> — working plan only. Not live; no external systems changed and no one notified.<br><button class="b12-plan-return" onclick="_b12ReturnLive()">↩ Return to live plan</button></div>`
+    : '';
+  const cardsHtml = cards.length
+    ? cards.map(renderDecisionSupportCard).join('')
+    : '<div class="b12-empty">No commitments need attention.<br><span style="font-size:10.5px">Committed movements are On Track. Watch and Act Now items appear here with consequence projections.</span></div>';
+  panel.innerHTML = `
+    <div class="b12-hdr">
+      <div class="b12-hdr-title">PORT COMMITMENTS</div>
+      <div class="b12-hdr-sub">Is each committed movement still feasible — and if the plan changes, what follows? Horizon projects; the Harbour Master decides.</div>
+    </div>
+    ${_b12FreshLine(b.evidence_freshness)}
+    ${banner}
+    <div class="b12-states">${stateHtml}</div>
+    <div class="b12-cards">${cardsHtml}</div>`;
 }
 function renderCommitments(d){
   const b = d && d.beta12;
   const panel = document.getElementById('beta12-panel');
   if(!b){
     document.body.classList.remove('b12-active');
+    _b12Live = null; _b12PlanActive = false;
     if(panel) panel.innerHTML = '';
     return;
   }
   document.body.classList.add('b12-active');
-  if(!panel) return;
-  const sc = b.state_counts || {};
-  const cards = b.decision_support_cards || [];
-  const stateHtml = ['broken','critical','degrading','healthy'].map(s => `
-    <div class="b12-state ${s}">
-      <div class="b12-state-n">${sc[s] || 0}</div>
-      <div class="b12-state-l">${s}</div>
-    </div>`).join('');
-  const cardsHtml = cards.length
-    ? cards.map(renderDecisionSupportCard).join('')
-    : '<div class="b12-empty">No commitments at risk.<br><span style="font-size:10.5px">All committed movements are currently feasible. Degrading, critical or broken commitments appear here with consequence projections.</span></div>';
-  panel.innerHTML = `
-    <div class="b12-hdr">
-      <div class="b12-hdr-title">PORT COMMITMENTS</div>
-      <div class="b12-hdr-sub">Is each committed movement still feasible — and if not, what happens if the plan changes? Horizon projects consequences; the Harbour Master decides.</div>
-    </div>
-    <div class="b12-states">${stateHtml}</div>
-    <div class="b12-cards">${cardsHtml}</div>`;
+  _b12Live = b;                 // always keep the latest live block
+  if(_b12PlanActive) return;    // operator viewing a test plan — do not clobber
+  _b12RenderBlock(b);
 }
 
 function render(d){

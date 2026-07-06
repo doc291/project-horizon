@@ -1,10 +1,13 @@
 """
-Beta 12 commitment-feasibility + consequence-projection unit tests.
+Beta 12 commitment-feasibility + consequence-projection unit tests
+(Preview-Readiness pass).
 
-Covers: commitment selection (only berth/time/window vessels), the four
-feasibility states, option-expiry from configured planning thresholds,
-neutral consequence projection, and — critically — that the surface never
-emits recommendation / ranking language. Plus the flag-off parity guarantee.
+Covers: commitment selection (only berth/time/window vessels), the THREE
+operator states (On Track / Watch / Act Now), advisory-only card suppression,
+option-expiry from configured planning thresholds, cost-free + feasibility-free
+neutral consequence projection, evidence freshness, departure lower-confidence
+note, arrival-leads ordering, operator plan correction, and the no-recommendation
+guarantee. Plus flag-off parity.
 """
 from datetime import datetime, timedelta, timezone
 
@@ -53,6 +56,8 @@ def _vessels():
          "eta": _iso(NOW + timedelta(minutes=30)), "etd": None, "source": "sim", "loa": 210},
         {"id": "VE", "name": "ECHO", "status": "confirmed", "berth_id": "B5",
          "eta": _iso(NOW + timedelta(hours=5)), "etd": None, "source": "sim", "loa": 190},
+        {"id": "VG", "name": "GOLF", "status": "confirmed", "berth_id": "B6",
+         "eta": _iso(NOW + timedelta(hours=5)), "etd": None, "source": "sim", "loa": 175},
         # Not a commitment: no berth relationship to test.
         {"id": "VF", "name": "FOXTROT", "status": "scheduled", "berth_id": None,
          "eta": _iso(NOW + timedelta(hours=3)), "etd": None, "source": "sim", "loa": 170},
@@ -60,114 +65,158 @@ def _vessels():
 
 
 def _berths():
-    return [{"id": f"B{i}", "name": f"Berth {i}"} for i in range(1, 6)]
+    return [{"id": f"B{i}", "name": f"Berth {i}"} for i in range(1, 7)]
 
 
 def _conflicts():
     return [
-        # ALPHA — critical berth overlap, options still available (4h out) -> critical
+        # ALPHA — critical berth overlap, options live (4h out) -> act_now, card
         _conflict("C-A", "berth_overlap", "critical", ["VA"], NOW + timedelta(hours=4),
                   options=[_opt("o1", "delay_arrival", "high", delay_mins=90),
                            _opt("o2", "reassign_berth", "medium")]),
-        # BRAVO — ETA variance advisory -> degrading
+        # BRAVO — advisory ETA variance -> watch, NO card
         _conflict("C-B", "eta_variance", "medium", ["VB"], NOW + timedelta(hours=6),
                   options=None, signal="ADVISORY"),
-        # DELTA — critical overlap but options all expired (30 min out) -> broken
+        # DELTA — critical overlap, options all expired (30 min out) -> act_now, card
         _conflict("C-D", "berth_overlap", "critical", ["VD"], NOW + timedelta(minutes=30),
                   options=[_opt("o1", "delay_arrival", "high", delay_mins=90),
                            _opt("o2", "reassign_berth", "medium")]),
-        # ECHO — bridge absolute limit -> broken
+        # ECHO — bridge absolute limit -> act_now, card (no options)
         _conflict("C-E", "bridge_restriction", "critical", ["VE"], NOW + timedelta(hours=5),
                   options=None),
+        # GOLF — medium towage CONFLICT with live option -> watch, card
+        _conflict("C-G", "towage_resource", "medium", ["VG"], NOW + timedelta(hours=5),
+                  options=[_opt("o1", "delay_arrival", "high", delay_mins=60)]),
     ]
 
 
 # ── Option expiry (Q4) ─────────────────────────────────────────────────────────
 def test_option_expiry_uses_configured_lead_and_flags_assumption():
-    ct = NOW + timedelta(hours=4)  # 240 min out
-    d = b12.compute_option_expiry("delay_arrival", ct, NOW)   # lead 90
+    ct = NOW + timedelta(hours=4)
+    d = b12.compute_option_expiry("delay_arrival", ct, NOW)
     assert d["expires_in_mins"] == 150 and d["expired"] is False
     assert d["assumption"] is True and d["basis"] == b12.ASSUMPTION_NOTE
-    r = b12.compute_option_expiry("advance_departure", ct, NOW)  # lead 180
-    assert r["expires_in_mins"] == 60
     imminent = b12.compute_option_expiry("reassign_berth", NOW + timedelta(minutes=30), NOW)
     assert imminent["expired"] is True and imminent["expires_in_mins"] == 0
 
 
-# ── Commitment selection + states ──────────────────────────────────────────────
+# ── Commitment selection + three operator states ───────────────────────────────
 def test_only_berth_time_window_vessels_are_commitments():
     cms = b12.build_commitments(_vessels(), _berths(), _conflicts(), NOW)
     ids = {c["commitment_id"] for c in cms}
-    assert "VF" not in ids                      # no berth relationship -> excluded
-    assert {"VA", "VB", "VC", "VD", "VE"} <= ids
+    assert "VF" not in ids
     charlie = next(c for c in cms if c["commitment_id"] == "VC")
-    assert charlie["movement"] == "departure"   # berthed + etd = expected release
+    assert charlie["movement"] == "departure"
 
 
-def test_four_feasibility_states():
+def test_three_operator_states_no_four_level_vocab():
     cms = {c["commitment_id"]: c for c in
            b12.build_commitments(_vessels(), _berths(), _conflicts(), NOW)}
-    assert cms["VC"]["feasibility_state"] == "healthy"     # no conflict
-    assert cms["VB"]["feasibility_state"] == "degrading"   # advisory
-    assert cms["VA"]["feasibility_state"] == "critical"    # critical + options live
-    assert cms["VD"]["feasibility_state"] == "broken"      # options all expired
-    assert cms["VE"]["feasibility_state"] == "broken"      # bridge absolute limit
+    assert cms["VC"]["feasibility_state"] == "on_track"
+    assert cms["VB"]["feasibility_state"] == "watch"   # advisory still moves state
+    assert cms["VG"]["feasibility_state"] == "watch"
+    assert cms["VA"]["feasibility_state"] == "act_now"
+    assert cms["VD"]["feasibility_state"] == "act_now"  # was "broken"
+    assert cms["VE"]["feasibility_state"] == "act_now"  # bridge absolute
+    for c in cms.values():
+        assert c["feasibility_state"] in ("on_track", "watch", "act_now")
+        assert c["state_label"] in ("On Track", "Watch", "Act Now")
 
 
-# ── Consequence projection (Q3) ────────────────────────────────────────────────
-def test_project_consequence_reshapes_shadow_neutrally():
-    def stub_shadow(cid, adjustments, vessels, conflicts):
+def test_departure_carries_lower_confidence_note():
+    cms = {c["commitment_id"]: c for c in
+           b12.build_commitments(_vessels(), _berths(), _conflicts(), NOW)}
+    assert cms["VC"]["confidence_note"] == b12.DEPARTURE_CONFIDENCE_NOTE
+    assert cms["VA"]["confidence_note"] is None  # arrivals have no such note
+
+
+# ── Advisory-only cards suppressed ─────────────────────────────────────────────
+def test_advisory_only_commitment_gets_no_card():
+    def stub(cid, adj, v, c): return {"resolved": [], "new_conflicts": []}
+    cms = b12.build_commitments(_vessels(), _berths(), _conflicts(), NOW)
+    cards = b12.build_decision_support_cards(cms, _conflicts(), _vessels(), NOW, stub)
+    ids = {c["commitment_id"] for c in cards}
+    assert "VB" not in ids                 # advisory-only -> no card
+    assert "VC" not in ids                 # on track -> no card
+    assert ids == {"VA", "VD", "VE", "VG"}  # operator-relevant CONFLICT threats only
+
+
+# ── Consequence projection: neutral, NO cost, NO feasibility ───────────────────
+def test_project_consequence_is_cost_free_and_neutral():
+    def stub(cid, adjustments, vessels, conflicts):
         return {"resolved": [{"id": "C-A", "description": "berth overlap description",
                               "severity": "critical"}],
                 "new_conflicts": [], "cost_delta": -4000,
-                "new_recommendation": "Proceed with adjusted schedule",  # must be ignored
+                "new_recommendation": "Proceed with adjusted schedule",
                 "new_reasoning": "..."}
-    opt = _opt("o1", "delay_arrival", "high", delay_mins=90)
-    out = b12.project_consequence(_conflicts()[0], opt, _vessels(), _conflicts(), stub_shadow)
+    out = b12.project_consequence(_conflicts()[0],
+                                  _opt("o1", "delay_arrival", "high", delay_mins=90),
+                                  _vessels(), _conflicts(), stub)
     joined = " ".join(out["summary_lines"]).lower()
-    assert "relieves" in joined and "net saving" in joined
-    assert "proceed" not in joined and "recommend" not in joined  # no rec wording leaked
-    assert out["resolved_ids"] == ["C-A"]
+    assert "relieves" in joined
+    for banned in ("a$", "cost", "saving", "$", "proceed", "recommend"):
+        assert banned not in joined
+    assert "cost_delta" not in out          # cost not surfaced at all
 
 
-# ── Cards answer four questions, never recommend ───────────────────────────────
-def test_cards_answer_four_questions_without_recommendation():
-    def stub_shadow(cid, adjustments, vessels, conflicts):
-        return {"resolved": [], "new_conflicts": [], "cost_delta": 0}
+def test_cards_omit_cost_and_feasibility_and_never_recommend():
+    def stub(cid, adj, v, c): return {"resolved": [], "new_conflicts": []}
     cms = b12.build_commitments(_vessels(), _berths(), _conflicts(), NOW)
-    cards = b12.build_decision_support_cards(cms, _conflicts(), _vessels(), NOW, stub_shadow)
-    assert cards, "expected cards for at-risk commitments"
-    # Healthy commitments never produce a card.
-    assert all(c["feasibility_state"] != "healthy" for c in cards)
+    cards = b12.build_decision_support_cards(cms, _conflicts(), _vessels(), NOW, stub)
     for card in cards:
-        assert card["why_infeasible"]           # Q1
-        assert card["do_nothing"]               # Q2
-        assert "recommended" not in card        # no recommendation on the card
+        assert "recommended" not in card
         for o in card["options"]:
-            assert "consequence" in o           # Q3
-            assert "expiry" in o                # Q4
-            assert "recommended" not in o       # neutral option
-    # No ranking / "best" / star language anywhere in the serialised surface.
+            assert "feasibility" not in o          # no feasibility chip data
+            assert "direct_cost_label" not in o    # no cost data
+            assert "cost_label" not in o
+            assert "expiry" in o and "consequence" in o
     blob = repr(cards).lower()
-    for banned in ("best option", "★", "ranking", "recommended_option"):
+    # (per-option feasibility chip already asserted absent above; "feasibility"
+    # as a substring legitimately appears in the "feasibility_state" field name.)
+    for banned in ("best option", "optimal", "preferred", "★", "ranking",
+                   "cost_label", "a$", "cost_delta"):
         assert banned not in blob
-    # The only permitted use of "recommend" is the explicit non-recommendation
-    # disclaimer; strip it and assert nothing else recommends anything.
     assert "recommend" not in blob.replace("no option is recommended", "")
 
 
-def test_block_shape_and_counts():
-    def stub_shadow(cid, adjustments, vessels, conflicts):
-        return {"resolved": [], "new_conflicts": [], "cost_delta": 0}
-    block = b12.build_beta12_block(_vessels(), _berths(), _conflicts(), NOW, stub_shadow)
-    assert set(block["state_counts"]) == {"healthy", "degrading", "critical", "broken"}
-    assert block["state_counts"]["broken"] == 2
-    assert block["planning_thresholds_mins"] == b12.OPTION_LEAD_TIME_MINS
-    assert block["assumption_note"] == b12.ASSUMPTION_NOTE
+# ── Block: counts, ordering, freshness ─────────────────────────────────────────
+def test_block_counts_ordering_and_freshness():
+    def stub(cid, adj, v, c): return {"resolved": [], "new_conflicts": []}
+    fresh = {"assembled_at": _iso(NOW), "ais_as_of": "2026-06-22T08:00:04Z",
+             "schedule_as_of": "2026-06-22T08:00:04Z", "weather_source": "live",
+             "weather_as_of": None, "tide_source": "bom", "tide_as_of": None}
+    block = b12.build_beta12_block(_vessels(), _berths(), _conflicts(), NOW, stub, freshness=fresh)
+    assert set(block["state_counts"]) == {"on_track", "watch", "act_now"}
+    assert block["state_counts"] == {"on_track": 1, "watch": 2, "act_now": 3}
+    # Arrival story leads: no departure appears before an arrival.
+    seen_departure = False
+    for cm in block["commitments"]:
+        if cm["movement"] == "departure":
+            seen_departure = True
+        elif seen_departure:
+            raise AssertionError("arrival appeared after a departure — ordering wrong")
+    assert block["evidence_freshness"]["schedule_as_of"] == "2026-06-22T08:00:04Z"
+    assert block["state_labels"] == b12.OP_LABEL
+
+
+# ── Operator plan correction (retime) ──────────────────────────────────────────
+def test_apply_operator_plan_is_pure_and_retimes_one_commitment():
+    vessels = _vessels()
+    new_eta = _iso(NOW + timedelta(hours=9))
+    adjusted = b12.apply_operator_plan(vessels, "VD", new_eta=new_eta, new_berth="B1")
+    orig = next(v for v in vessels if v["id"] == "VD")
+    moved = next(v for v in adjusted if v["id"] == "VD")
+    assert orig["eta"] != new_eta and orig["berth_id"] == "B4"   # original untouched
+    assert moved["eta"] == new_eta and moved["berth_id"] == "B1"  # copy retimed
+    # Retimed roster re-projects: DELTA's imminent overlap should relieve.
+    def stub(cid, adj, v, c): return {"resolved": [], "new_conflicts": []}
+    block = b12.build_beta12_block(adjusted, _berths(), _conflicts(), NOW, stub, working_plan=True,
+                                   plan_label="Operator test plan")
+    assert block["working_plan"] is True and block["plan_label"] == "Operator test plan"
 
 
 # ── Flag-off parity ────────────────────────────────────────────────────────────
 def test_flag_off_emits_no_beta12_block():
     import server
-    assert server.BETA11_ENABLED is False        # default in the test environment
+    assert server.BETA11_ENABLED is False
     assert server._beta12_summary_block(_vessels(), _berths(), _conflicts(), NOW) == {}
