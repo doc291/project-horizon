@@ -197,6 +197,29 @@ def test_block_counts_ordering_and_freshness():
             raise AssertionError("arrival appeared after a departure — ordering wrong")
     assert block["evidence_freshness"]["schedule_as_of"] == "2026-06-22T08:00:04Z"
     assert block["state_labels"] == b12.OP_LABEL
+    # 22 Jun evidence vs 6 Jul now -> materially stale, prominent warning present.
+    assert block["freshness_stale"] is True
+    assert "schedule/AIS source appears stale" in block["stale_warning"]
+
+
+def test_fresh_evidence_not_flagged_stale():
+    def stub(cid, adj, v, c): return {"resolved": [], "new_conflicts": []}
+    fresh = {"schedule_as_of": _iso(NOW - timedelta(minutes=20)),
+             "ais_as_of": _iso(NOW - timedelta(minutes=5))}
+    block = b12.build_beta12_block(_vessels(), _berths(), _conflicts(), NOW, stub, freshness=fresh)
+    assert block["freshness_stale"] is False and block["stale_warning"] is None
+    # Unavailable timestamps are 'unknown', never 'stale'.
+    blank = b12.build_beta12_block(_vessels(), _berths(), _conflicts(), NOW, stub, freshness=None)
+    assert blank["freshness_stale"] is False
+
+
+def test_operator_test_plan_is_labelled_partial():
+    def stub(cid, adj, v, c): return {"resolved": [], "new_conflicts": []}
+    block = b12.build_beta12_block(_vessels(), _berths(), _conflicts(), NOW, stub,
+                                   working_plan=True, plan_label=b12.PARTIAL_PLAN_LABEL,
+                                   plan_note=b12.PARTIAL_PLAN_NOTE)
+    assert block["plan_label"] == "Partial operator test plan"
+    assert "excludes tide, UKC, weather and transit" in block["plan_note"]
 
 
 # ── Operator plan correction (retime) ──────────────────────────────────────────

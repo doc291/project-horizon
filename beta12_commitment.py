@@ -71,6 +71,16 @@ _CRITICAL_EXPIRY_WINDOW_MINS = 60
 DEPARTURE_CONFIDENCE_NOTE = "Lower confidence: scheduled berth release only"
 SOURCE_UNAVAILABLE = "Source time unavailable"
 
+# Schedule/AIS evidence older than this is flagged as materially stale.
+STALE_AFTER_MINS = 360   # 6 hours
+
+# The operator test plan re-checks berth/pilotage/towage/ETA/bridge feasibility
+# only. It does NOT recompute tide, UKC, weather or PBG-to-berth transit, so it
+# must be presented as PARTIAL, never as full feasibility/consequence.
+PARTIAL_PLAN_LABEL = "Partial operator test plan"
+PARTIAL_PLAN_NOTE = ("Projection excludes tide, UKC, weather and transit "
+                     "recalculation in this preview.")
+
 
 # ── datetime helpers ───────────────────────────────────────────────────────────
 def _parse_iso(s):
@@ -98,6 +108,17 @@ def _default_freshness():
     return {"assembled_at": None, "ais_as_of": None, "schedule_as_of": None,
             "weather_source": None, "weather_as_of": None,
             "tide_source": None, "tide_as_of": None}
+
+
+def _freshness_stale(freshness, now):
+    """Return (stale, [sources]) — schedule/AIS evidence older than the
+    threshold. Unavailable (no timestamp) is 'unknown', not 'stale'."""
+    stale_sources = []
+    for key in ("schedule_as_of", "ais_as_of"):
+        ts = _parse_iso((freshness or {}).get(key))
+        if ts is not None and (now - ts).total_seconds() > STALE_AFTER_MINS * 60:
+            stale_sources.append(key)
+    return (bool(stale_sources), stale_sources)
 
 
 # ── Option expiry (Q4) ─────────────────────────────────────────────────────────
@@ -377,7 +398,8 @@ def apply_operator_plan(vessels, commitment_id, new_eta=None, new_etd=None, new_
 
 # ── Top-level block builder ────────────────────────────────────────────────────
 def build_beta12_block(vessels, berths, conflicts, now, shadow_fn=None,
-                       freshness=None, working_plan=False, plan_label=None):
+                       freshness=None, working_plan=False, plan_label=None,
+                       plan_note=None):
     commitments = build_commitments(vessels, berths, conflicts, now)
     cards = build_decision_support_cards(commitments, conflicts, vessels, now, shadow_fn)
     commitments.sort(key=_sort_key)
@@ -385,16 +407,23 @@ def build_beta12_block(vessels, berths, conflicts, now, shadow_fn=None,
     counts = {"on_track": 0, "watch": 0, "act_now": 0}
     for cm in commitments:
         counts[cm["feasibility_state"]] = counts.get(cm["feasibility_state"], 0) + 1
+    fresh = freshness or _default_freshness()
+    stale, stale_sources = _freshness_stale(fresh, now)
     return {
         "generated_at": _fmt(now),
         "commitments": commitments,
         "state_counts": counts,
         "state_labels": OP_LABEL,
         "decision_support_cards": cards,
-        "evidence_freshness": freshness or _default_freshness(),
+        "evidence_freshness": fresh,
+        "freshness_stale": stale,
+        "stale_sources": stale_sources,
+        "stale_warning": ("Demo data freshness warning: schedule/AIS source appears stale."
+                          if stale else None),
         "planning_thresholds_mins": OPTION_LEAD_TIME_MINS,
         "assumption_note": ASSUMPTION_NOTE,
         "working_plan": bool(working_plan),
         "plan_label": plan_label,
+        "plan_note": plan_note,
         "frame": "The machine detects and projects. The Harbour Master proposes and decides.",
     }

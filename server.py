@@ -4667,10 +4667,16 @@ doRefresh();setInterval(doRefresh,30000);
                 "tide_source":    None,
                 "tide_as_of":     None,
             }
-            block = _beta12().build_beta12_block(
+            _b12 = _beta12()
+            block = _b12.build_beta12_block(
                 adjusted, berths, conflicts2, now,
                 shadow_fn=_whatif_shadow, freshness=freshness,
-                working_plan=True, plan_label="Operator test plan")
+                working_plan=True,
+                # Partial: this path re-checks berth/pilotage/towage/ETA/bridge
+                # only — NOT tide, UKC, weather or PBG-to-berth transit. Labelled
+                # so the operator is never shown it as full feasibility.
+                plan_label=_b12.PARTIAL_PLAN_LABEL,
+                plan_note=_b12.PARTIAL_PLAN_NOTE)
             self._json({"beta12": block})
         except Exception as exc:
             log.error("beta12 testplan failed: %s", exc, exc_info=True)

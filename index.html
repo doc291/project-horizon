@@ -886,6 +886,10 @@
     .b12-plan-banner b { color:#60a5fa; }
     .b12-plan-return { margin-top:6px; font-size:10.5px; padding:5px 9px; border-radius:5px; cursor:pointer;
                        border:1px solid var(--border); background:var(--surface); color:var(--text); }
+    .b12-plan-note { margin-top:5px; font-size:10.5px; color:var(--text); font-weight:600; }
+    .b12-stale-banner { margin:8px 12px 0; padding:9px 11px; border-radius:6px; font-size:12px; font-weight:700;
+                        line-height:1.45; border:1.5px solid #f59e0b; background:rgba(245,158,11,.16); color:#fbbf24; }
+    .b12-stale-banner::before { content:'⚠ '; }
     .b12-states { display:flex; gap:6px; padding:8px 12px; flex-wrap:wrap; }
     .b12-state { flex:1; min-width:70px; text-align:center; border:1px solid var(--border);
                  border-radius:6px; padding:6px 4px; background:var(--surface); }
@@ -2258,8 +2262,11 @@ function _b12RenderBlock(b){
       <div class="b12-state-n">${sc[s] || 0}</div>
       <div class="b12-state-l">${esc(labels[s] || s)}</div>
     </div>`).join('');
+  const staleBanner = b.freshness_stale
+    ? `<div class="b12-stale-banner">${esc(b.stale_warning || 'Demo data freshness warning: schedule/AIS source appears stale.')}</div>`
+    : '';
   const banner = b.working_plan
-    ? `<div class="b12-plan-banner"><b>${esc(b.plan_label || 'Operator test plan')}</b> — working plan only. Not live; no external systems changed and no one notified.<br><button class="b12-plan-return" onclick="_b12ReturnLive()">↩ Return to live plan</button></div>`
+    ? `<div class="b12-plan-banner"><b>${esc(b.plan_label || 'Operator test plan')}</b> — working plan only. Not live; no external systems changed and no one notified.${b.plan_note ? `<div class="b12-plan-note">${esc(b.plan_note)}</div>` : ''}<button class="b12-plan-return" onclick="_b12ReturnLive()">↩ Return to live plan</button></div>`
     : '';
   const cardsHtml = cards.length
     ? cards.map(renderDecisionSupportCard).join('')
@@ -2269,6 +2276,7 @@ function _b12RenderBlock(b){
       <div class="b12-hdr-title">PORT COMMITMENTS</div>
       <div class="b12-hdr-sub">Is each committed movement still feasible — and if the plan changes, what follows? Horizon projects; the Harbour Master decides.</div>
     </div>
+    ${staleBanner}
     ${_b12FreshLine(b.evidence_freshness)}
     ${banner}
     <div class="b12-states">${stateHtml}</div>
